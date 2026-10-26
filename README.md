@@ -3,7 +3,7 @@
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
 portal (<https://members.motionlab.berlin/motionlabberlin>).
 
-It does three things:
+It does four things:
 
 1. **Resource filters in the main menu.** A new **Filters** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -20,6 +20,10 @@ It does three things:
 3. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
+4. **No location prompt.** The portal asks for the browser location on every
+   page load. Safari only remembers a denial for a day, so the dialog returns
+   each visit; the extension hides `navigator.geolocation` from the page, which
+   makes the portal skip the request instead of prompting.
 
 Both toggles live in the toolbar popup; pins are managed from the menu itself.
 
@@ -73,6 +77,7 @@ Everything tunable lives in `src/lib/config.js`:
 | `nav.stripGroupPrefix` | Show `3D printing` instead of `Machines: 3D printing`. |
 | `nav.hideEmptyTypes` | Hide resource types that have no groups. |
 | `defaultView` | View used by the injected links (`calendar`). |
+| `geo.blockPrompt` | Hide `navigator.geolocation` so the portal stops asking for the location (`true`). |
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
@@ -105,7 +110,8 @@ Two scripts do the work:
   resources, and stores pins.
 - `src/page.js` (page world) patches `history.pushState`/`replaceState` so
   client-side navigation also lands on the calendar, and remembers an explicit
-  *List* choice from the portal's *View* dropdown.
+  *List* choice from the portal's *View* dropdown. It also hides
+  `navigator.geolocation` before the app boots (see above).
 
 A pinned link looks like
 `/motionlabberlin/bookings/machines/calendar?group=…&nxplus-resource=1415309496`.

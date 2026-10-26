@@ -26,8 +26,8 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins, pinned banner, settings.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
-  explicit-list detection, and the single-resource calendar (XHR payload filter
-  + group-filter bypass).
+  explicit-list detection, the single-resource calendar (XHR payload filter
+  + group-filter bypass), and the `navigator.geolocation` block.
 - `src/popup.*` — toolbar settings UI (two toggles, group cache status).
 - `tests/` — `node --test` suites plus the browser fixture.
 
@@ -43,6 +43,14 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   The portal compares the query value with `!==`, so keep the raw string for
   links and only trim it for display — trimming the URL value silently returns
   no resources.
+- The portal wraps the whole app in a geolocation provider that calls
+  `navigator.geolocation.getCurrentPosition()` on mount (location context for
+  the AI assistant, not the map/filters). Safari only keeps a denial for a day,
+  so it prompts on every visit. `page.js` replaces
+  `Navigator.prototype.geolocation` with an `undefined` getter before the app
+  boots, which sends the provider down its "not supported" branch; the portal
+  has no CSP header, and nothing else in its bundle touches the API. Config
+  flag: `geo.blockPrompt`.
 - Resource groups come from `GET https://<webAddress>.spaces.nexudus.com/api/public/resources/published/details`
   (`{ Resources: [{ SystemResourceType, GroupName, ... }] }`), authorised with
   the `AUTH_TOKEN` cookie the portal itself sets (readable JS cookie).

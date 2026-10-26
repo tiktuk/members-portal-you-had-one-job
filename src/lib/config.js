@@ -32,6 +32,14 @@
     /** Which bookings view the extension falls back to. */
     defaultView: "calendar",
 
+    /**
+     * The portal asks for the browser location on every page load (it feeds the
+     * AI assistant). Safari only remembers a denial for a day, so the prompt
+     * comes back each visit. Hiding `navigator.geolocation` makes the portal
+     * take its "not supported" branch instead. Set to false to allow it.
+     */
+    geo: { blockPrompt: true },
+
     nav: {
       enabled: true,
       /** Label of the injected top-level menu item. */

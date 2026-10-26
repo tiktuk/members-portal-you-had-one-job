@@ -41,6 +41,26 @@
   });
 
   /* ------------------------------------------------------------------ *
+   * Geolocation prompt
+   * ------------------------------------------------------------------ */
+
+  // The portal wraps the whole app in a provider that calls
+  // navigator.geolocation.getCurrentPosition() on mount (it feeds the AI
+  // assistant). Safari only keeps a denial for a day, so the dialog shows up
+  // again on every visit. Hide the API before the app boots: the provider then
+  // takes its "not supported" branch and no permission dialog appears.
+  if (config.geo?.blockPrompt !== false) {
+    try {
+      Object.defineProperty(Navigator.prototype, "geolocation", {
+        configurable: true,
+        get: () => undefined,
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
    * Pinned resource (single-resource calendar)
    * ------------------------------------------------------------------ */
 
