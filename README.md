@@ -117,6 +117,9 @@ The id is also mirrored into `sessionStorage` because the portal removes unknown
 query parameters when it normalises the URL. Leaving the pinned view (different
 type, list view, or another menu link) clears the marker; changing type triggers
 a full navigation so the portal's cached, filtered resource list is reset.
+With a single resource the portal's Previous/Next buttons (which scroll the
+resource grid sideways) have nothing to scroll, so `page.js` makes them step the
+date range by the visible day count instead.
 
 Because the redirect happens on the URL and only the resources payload is
 filtered, no React internals are touched; the portal's own links, filters and

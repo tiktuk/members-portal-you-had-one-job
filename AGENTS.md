@@ -80,6 +80,11 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   clears the marker and forces `location.assign(...)` from the history patch:
   the portal caches the filtered resources in React Query, so an SPA-only
   navigation would keep the one-resource payload.
+- The calendar's Previous/Next buttons are horizontal scrollers for
+  `.fc-scroller`, not week navigation. A single pinned resource fits, so the
+  clicks are no-ops; `page.js` intercepts them in the capture phase and shifts
+  the URL's `start`/`end` by the visible day count (7 for week, 1 for day),
+  then dispatches `popstate` because React Router ignores raw `pushState`.
 - The menu exposes individual resources through the group chevron; the pin
   button is hover/focus-visible on desktop and always visible on touch.
 - `cache.groupsVersion` is 3 (v2 caches are still used as a fallback while the

@@ -200,6 +200,69 @@
 
   window.addEventListener("popstate", () => syncPinnedFor(location.href));
 
+  /* ------------------------------------------------------------------ *
+   * Pinned calendar: previous / next
+   * ------------------------------------------------------------------ */
+
+  // The portal's Previous/Next buttons scroll the resource grid sideways. A
+  // pinned calendar has a single resource, so the grid fits and the buttons do
+  // nothing; step the date range by the visible number of days instead.
+  function calendarStep(button) {
+    const container = button.closest(".calendar-container");
+    const heading = container?.querySelector("h4");
+    const row = heading?.parentElement?.parentElement;
+    if (!row) return 0;
+    const buttons = [...row.querySelectorAll("button")];
+    if (buttons.length !== 2) return 0;
+    const index = buttons.indexOf(button);
+    return index === 0 ? -1 : index === 1 ? 1 : 0;
+  }
+
+  function localIso(date) {
+    const pad = (value, width = 2) => String(Math.abs(value)).padStart(width, "0");
+    const offset = -date.getTimezoneOffset();
+    const sign = offset < 0 ? "-" : "+";
+    return (
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}` +
+      `${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`
+    );
+  }
+
+  function stepPinnedRange(days) {
+    const params = new URLSearchParams(location.search);
+    const from = new Date(params.get("start") || "");
+    const to = new Date(params.get("end") || "");
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return false;
+    from.setDate(from.getDate() + days);
+    to.setDate(to.getDate() + days);
+    params.set("start", localIso(from));
+    params.set("end", localIso(to));
+    history.pushState(history.state, "", `${location.pathname}?${params.toString()}${location.hash}`);
+    // React Router only reacts to history events; pushState alone is invisible.
+    window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+    return true;
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest("button");
+      if (!button || !pinned()) return;
+      const direction = calendarStep(button);
+      if (!direction) return;
+      const container = button.closest(".calendar-container");
+      const days = container.querySelectorAll(".fc-timegrid-col").length || 1;
+      if (!stepPinnedRange(direction * days)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true,
+  );
+
   /**
    * Remember an explicit "List" choice in the portal's View dropdown, and clear
    * it again when the user switches back to the calendar.
