@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nexudus Portal+</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <img src="icons/icon-48.png" alt="" width="32" height="32" />
+      <div>
+        <h1>Nexudus Portal+</h1>
+        <p>MotionLab.Berlin members portal</p>
+      </div>
+    </header>
+
+    <main>
+      <label class="row">
+        <span class="row-text">
+          <span class="row-title">Calendar as default view</span>
+          <span class="row-hint">Bookings links open the calendar instead of the list.</span>
+        </span>
+        <input type="checkbox" id="calendar-default" class="switch" />
+      </label>
+
+      <label class="row">
+        <span class="row-text">
+          <span class="row-title">Filters in the main menu</span>
+          <span class="row-hint">Adds a “Filters” menu with every resource group.</span>
+        </span>
+        <input type="checkbox" id="nav-menu" class="switch" />
+      </label>
+
+      <section class="status">
+        <div class="status-line">
+          <span id="groups-status">No group data yet.</span>
+        </div>
+        <button type="button" id="refresh" class="refresh">Refresh groups</button>
+      </section>
+
+      <p class="note">
+        Changes apply on the next page load. Use the portal’s own “View” dropdown to
+        switch to the list view when you need it.
+      </p>
+    </main>
+
+    <script src="lib/config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

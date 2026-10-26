@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Nexudus Portal+",
+  "short_name": "Portal+",
+  "version": "1.0.0",
+  "description": "Puts resource-group filters in the members portal menu and opens bookings in the calendar view by default.",
+  "minimum_chrome_version": "111",
+  "permissions": ["storage"],
+  "host_permissions": ["https://*.spaces.nexudus.com/*"],
+  "action": {
+    "default_title": "Nexudus Portal+",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://members.motionlab.berlin/*"],
+      "js": ["lib/config.js", "lib/url.js", "lib/groups.js", "content.js"],
+      "css": ["portal.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/config.js", "lib/url.js", "page.js"],
+      "matches": ["https://members.motionlab.berlin/*"]
+    }
+  ]
+}

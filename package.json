@@ -1,0 +1,11 @@
+{
+  "name": "nexudus-portal-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser extension that improves the MotionLab.Berlin Nexudus members portal.",
+  "scripts": {
+    "test": "node --test tests/",
+    "icons": "python3 scripts/make-icons.py",
+    "build": "bash scripts/build.sh"
+  }
+}

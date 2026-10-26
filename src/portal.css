@@ -1,0 +1,82 @@
+/* Nexudus Portal+ — styles for the injected "Filters" menu.
+   Scoped to .nxplus-* so nothing else in the portal is affected. */
+
+.nxplus-nav-item {
+  position: relative;
+}
+
+.nxplus-nav-item .nxplus-toggle {
+  white-space: nowrap;
+}
+
+/* The button already contains the theme's chevron; drop Bootstrap's CSS caret. */
+.nxplus-nav-item .nxplus-toggle::after {
+  display: none;
+}
+
+.nxplus-menu {
+  width: max-content;
+  min-width: 280px;
+  max-width: min(92vw, 880px);
+  max-height: calc(100dvh - 8rem);
+  overflow: auto;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+}
+
+.nxplus-columns {
+  display: grid;
+  /* content.js sets an explicit track count; this is the fallback */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+
+.nxplus-section {
+  min-width: 0;
+  padding-bottom: 0.25rem;
+}
+
+.nxplus-section-title {
+  margin: 0.35rem 0 0.4rem;
+  padding: 0 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color, #6c757d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nxplus-link {
+  display: block;
+  padding: 0.32rem 0.5rem;
+  border-radius: 0.5rem;
+  color: var(--bs-body-color, #212529);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nxplus-link:hover,
+.nxplus-link:focus-visible {
+  background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
+  color: var(--bs-body-color, #212529);
+  text-decoration: none;
+}
+
+.nxplus-link.is-active {
+  font-weight: 600;
+  color: var(--bs-primary, #0d6efd);
+  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
+}
+
+.nxplus-empty {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--bs-secondary-color, #6c757d);
+}
