@@ -3,7 +3,7 @@
   "name": "Nexudus Portal+",
   "short_name": "Portal+",
   "version": "1.0.0",
-  "description": "Puts resource-group filters in the members portal menu and opens bookings in the calendar view by default.",
+  "description": "Adds resource filters and pinnable single-resource calendars to the members portal, and opens bookings in the calendar view by default.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],
   "host_permissions": ["https://*.spaces.nexudus.com/*"],

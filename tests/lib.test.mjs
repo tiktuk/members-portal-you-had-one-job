@@ -103,6 +103,23 @@ test("bookingHref encodes group names the way the portal expects", () => {
   );
 });
 
+test("bookingHref can pin a single resource", () => {
+  const { NXPlusUrl } = loadLibs();
+  assert.equal(
+    NXPlusUrl.bookingHref({
+      webAddress: "motionlabberlin",
+      type: "machines",
+      view: "calendar",
+      group: "Machines: CNC Machining ",
+      resource: 1415309496,
+    }),
+    "/motionlabberlin/bookings/machines/calendar?group=Machines%3A+CNC+Machining+&nxplus-resource=1415309496",
+  );
+  assert.equal(NXPlusUrl.RESOURCE_PARAM, "nxplus-resource");
+  assert.equal(NXPlusUrl.currentPinnedResource("?nxplus-resource=1415309496"), "1415309496");
+  assert.equal(NXPlusUrl.currentPinnedResource(""), "");
+});
+
 test("currentRange/currentGroup read the active query", () => {
   const { NXPlusUrl } = loadLibs();
   assert.deepEqual(plain(NXPlusUrl.currentRange("?start=2026-10-26T21%3A45%3A00.000%2B01%3A00&end=2026-10-26T22%3A45%3A00.000%2B01%3A00")), {
@@ -124,13 +141,13 @@ test("the explicit list choice is remembered for the tab", () => {
 
 const PAYLOAD = {
   Resources: [
-    { SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
-    { SystemResourceType: 10, GroupName: "Machines: 3D printing" },
-    { SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
-    { SystemResourceType: 5, GroupName: "Labs: Outdoor Lab " },
-    { SystemResourceType: 1, GroupName: "Meeting Rooms" },
-    { SystemResourceType: 1, GroupName: "" },
-    { SystemResourceType: 99, GroupName: "Unmapped" },
+    { Id: 1415309496, Name: "OLSK Large CNC ", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+    { Id: 1415309596, Name: "CNC Routermax 1325 Deluxe", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+    { Id: 1415309571, Name: "Prusa - MK4", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+    { Id: 1415309502, Name: "Outdoor Lab", SystemResourceType: 5, GroupName: "Labs: Outdoor Lab " },
+    { Id: 1415299774, Name: "Meeting Room: BUS", SystemResourceType: 1, GroupName: "Meeting Rooms" },
+    { Id: 1415299775, Name: "No group", SystemResourceType: 1, GroupName: "" },
+    { Id: 1415309999, Name: "Unmapped", SystemResourceType: 99, GroupName: "Unmapped" },
   ],
 };
 
@@ -142,6 +159,20 @@ test("groupsBySlugFromPayload groups, preserves exact names and de-duplicates", 
     "meeting-rooms": ["Meeting Rooms"],
     "other-resources": ["Unmapped"],
   });
+});
+
+test("resourceListFromPayload exposes individual resources", () => {
+  const { NXPlusGroups } = loadLibs();
+  const resources = plain(NXPlusGroups.resourceListFromPayload(PAYLOAD));
+  assert.deepEqual(
+    resources.map((resource) => resource.id),
+    ["1415309496", "1415309596", "1415309571", "1415309502", "1415299774", "1415299775", "1415309999"],
+  );
+  assert.equal(resources[0].name, "OLSK Large CNC");
+  // The raw group is kept for the portal's exact match filter.
+  assert.equal(resources[3].group, "Labs: Outdoor Lab ");
+  assert.equal(resources[0].type, "machines");
+  assert.equal(resources[4].type, "meeting-rooms");
 });
 
 test("buildMenuModel keeps the portal's type order and strips prefixes", () => {

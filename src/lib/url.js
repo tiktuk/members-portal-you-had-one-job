@@ -8,6 +8,7 @@
   const BOOKING_VIEWS = ["list", "calendar", "floorplan", "map"];
   const BOOKING_PATH_RE = /^\/([^/]+)\/bookings\/([^/]+)\/(list|calendar|floorplan|map)\/?$/;
   const ALLOW_LIST_KEY = "nxplus:allow-list";
+  const RESOURCE_PARAM = globalThis.NXPlusConfig?.nav?.resourceParam || "nxplus-resource";
 
   function parseBookingPath(pathname) {
     const match = BOOKING_PATH_RE.exec(pathname || "");
@@ -56,9 +57,10 @@
     return config?.api?.fallbackBaseUrl || "https://spaces.nexudus.com";
   }
 
-  function bookingHref({ webAddress, type, view, group, start, end }) {
+  function bookingHref({ webAddress, type, view, group, resource, start, end }) {
     const params = new URLSearchParams();
     if (group) params.set("group", group);
+    if (resource) params.set(RESOURCE_PARAM, String(resource));
     if (start) params.set("start", start);
     if (end) params.set("end", end);
     const query = params.toString();
@@ -104,8 +106,18 @@
     }
   }
 
+  /** Resource id of a single-resource calendar link, if present. */
+  function currentPinnedResource(search) {
+    try {
+      return new URLSearchParams(search ?? location.search).get(RESOURCE_PARAM) || "";
+    } catch {
+      return "";
+    }
+  }
+
   globalThis.NXPlusUrl = {
     BOOKING_VIEWS,
+    RESOURCE_PARAM,
     parseBookingPath,
     pathWithView,
     toCalendarUrl,
@@ -114,6 +126,7 @@
     bookingHref,
     currentRange,
     currentGroup,
+    currentPinnedResource,
     isListAllowed,
     setListAllowed,
   };

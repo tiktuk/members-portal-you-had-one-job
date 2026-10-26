@@ -30,6 +30,28 @@
   }
 
   /**
+   * Flat list of bookable resources: [{ id, name, group, type }].
+   *
+   * `name` is trimmed for display; `group` keeps the exact API string (some
+   * values end with a space) because it is used verbatim in filter links.
+   */
+  function resourceListFromPayload(payload) {
+    const result = [];
+    for (const resource of resourcesFromPayload(payload)) {
+      const id = resource.Id != null ? String(resource.Id) : "";
+      const slug = slugForType(resource.SystemResourceType);
+      if (!id || !slug) continue;
+      result.push({
+        id,
+        name: String(resource.Name ?? "").trim(),
+        group: String(resource.GroupName ?? ""),
+        type: slug,
+      });
+    }
+    return result;
+  }
+
+  /**
    * slug -> sorted unique group names, straight from the API payload.
    *
    * Names are kept exactly as the API returns them (some end with a space):
@@ -94,6 +116,7 @@
     typeLabel,
     displayGroupName,
     resourcesFromPayload,
+    resourceListFromPayload,
     groupsBySlugFromPayload,
     buildMenuModel,
   };

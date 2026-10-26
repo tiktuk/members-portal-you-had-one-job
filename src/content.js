@@ -19,6 +19,7 @@
   const MENU_ID = "nxplus-menu";
   const DOCK_ID = "nxplus-dock-button";
   const SHEET_ID = "nxplus-sheet";
+  const PINNED_BANNER_ID = "nxplus-pinned-banner";
   const DEFAULT_SETTINGS = { calendarDefault: true, navMenu: true };
   const hasExtensionApis = typeof chrome !== "undefined" && Boolean(chrome.runtime && chrome.runtime.id);
 
@@ -26,11 +27,17 @@
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" aria-hidden="true"><path d="M3 5h18l-7.5 8.6V20L10.5 18v-4.4L3 5z"></path></svg>';
   const CHEVRON_ICON =
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>';
+  const PIN_ICON =
+    '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>';
+  const PIN_FILLED_ICON =
+    '<svg viewBox="0 0 24 24" height="14" width="14" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>';
 
   const state = {
     settings: readCachedSettings(),
     groups: null,
     groupsVersion: 0,
+    pins: [],
+    expandedGroups: new Set(),
     signature: "",
     ensureTimer: 0,
   };
@@ -59,6 +66,7 @@
       writeCachedSettings(state.settings);
       chrome.storage.onChanged.addListener(onStorageChanged);
     }
+    state.pins = await loadPins();
 
     observeNav();
     scheduleEnsure();
@@ -131,10 +139,19 @@
   }
 
   function currentSignature() {
-    return [location.pathname, location.search, state.groupsVersion, state.settings.navMenu].join("|");
+    return [
+      location.pathname,
+      location.search,
+      state.groupsVersion,
+      state.settings.navMenu,
+      state.pins.map((pin) => pin.id).join(","),
+      currentPinnedId(),
+    ].join("|");
   }
 
   function ensureNav() {
+    ensurePinnedBanner();
+
     if (state.settings.navMenu === false || !cfg.nav.enabled) {
       document.getElementById(NAV_ID)?.remove();
       document.getElementById(DOCK_ID)?.remove();
@@ -372,9 +389,9 @@
   }
 
   /**
-   * Builds the type/group columns used by both the desktop dropdown and the
-   * mobile sheet. `explicitColumns` is only needed for the dropdown, whose
-   * width is derived from the content.
+   * Builds the pinned resources plus the type/group columns used by both the
+   * desktop dropdown and the mobile sheet. `explicitColumns` is only needed for
+   * the dropdown, whose width is derived from the content.
    */
   function renderMenuContent({ explicitColumns }) {
     const list = findNavList();
@@ -391,6 +408,13 @@
     const { start, end } = U.currentRange(location.search);
     const current = U.parseBookingPath(location.pathname);
     const currentGroup = U.currentGroup(location.search);
+    const pinnedId = currentPinnedId();
+
+    const content = document.createElement("div");
+    content.className = "nxplus-menu-content";
+
+    const pinned = renderPinnedSection({ webAddress, view, start, end, current, pinnedId });
+    if (pinned) content.appendChild(pinned);
 
     const columns = document.createElement("div");
     columns.className = "nxplus-columns";
@@ -412,19 +436,75 @@
         menuLink({
           label: `All ${type.label.toLowerCase()}`,
           href: U.bookingHref({ webAddress, type: type.slug, view, start, end }),
-          active: current?.type === type.slug && !currentGroup,
+          active: current?.type === type.slug && !currentGroup && !pinnedId,
+          onActivate: clearPinnedResource,
         }),
       );
 
       for (const group of type.groups) {
-        section.appendChild(
+        const key = groupKey(type.slug, group.name);
+        const resources = resourcesForGroup(type.slug, group.name);
+        const expanded = state.expandedGroups.has(key);
+
+        const row = document.createElement("div");
+        row.className = "nxplus-group-row";
+        row.appendChild(
           menuLink({
             label: group.label,
             title: group.name,
             href: U.bookingHref({ webAddress, type: type.slug, view, group: group.name, start, end }),
-            active: current?.type === type.slug && currentGroup === group.name,
+            active: current?.type === type.slug && currentGroup === group.name && !pinnedId,
+            onActivate: clearPinnedResource,
           }),
         );
+
+        if (resources.length) {
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "nxplus-group-toggle";
+          toggle.title = expanded ? "Hide resources" : "Show resources";
+          toggle.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${group.label} resources`);
+          toggle.setAttribute("aria-expanded", String(expanded));
+          toggle.innerHTML = CHEVRON_ICON;
+          toggle.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleGroup(key);
+          });
+          row.appendChild(toggle);
+        }
+        section.appendChild(row);
+
+        if (resources.length) {
+          const resourceList = document.createElement("div");
+          resourceList.className = "nxplus-resource-list";
+          resourceList.hidden = !expanded;
+
+          for (const resource of resources) {
+            const resourceRow = document.createElement("div");
+            resourceRow.className = "nxplus-resource-row";
+            resourceRow.appendChild(
+              menuLink({
+                label: resource.name || `Resource ${resource.id}`,
+                title: resource.name || resource.id,
+                href: U.bookingHref({
+                  webAddress,
+                  type: type.slug,
+                  view,
+                  group: group.name,
+                  resource: resource.id,
+                  start,
+                  end,
+                }),
+                active: pinnedId === resource.id,
+                onActivate: () => rememberPinnedResource({ ...resource, type: type.slug }),
+              }),
+            );
+            resourceRow.appendChild(pinButton({ ...resource, type: type.slug }));
+            resourceList.appendChild(resourceRow);
+          }
+          section.appendChild(resourceList);
+        }
       }
 
       columns.appendChild(section);
@@ -439,7 +519,80 @@
       columns.appendChild(empty);
     }
 
-    return columns;
+    content.appendChild(columns);
+    return content;
+  }
+
+  function renderPinnedSection({ webAddress, view, start, end, current, pinnedId }) {
+    const pins = state.pins.filter((pin) => pin && pin.id);
+    if (!pins.length) return null;
+
+    const section = document.createElement("div");
+    section.className = "nxplus-pinned";
+
+    const title = document.createElement("div");
+    title.className = "nxplus-section-title nxplus-pinned-title";
+    title.textContent = "Pinned";
+    section.appendChild(title);
+
+    for (const pin of pins) {
+      const resource = findResource(pin.id);
+      const type = pin.type || resource?.type || current?.type || "all";
+      const group = pin.group || resource?.group || "";
+      const name = pin.name || resource?.name || `Resource ${pin.id}`;
+
+      const item = document.createElement("div");
+      item.className = "nxplus-pinned-item";
+      item.appendChild(
+        menuLink({
+          label: name,
+          title: name,
+          href: U.bookingHref({ webAddress, type, view, group, resource: pin.id, start, end }),
+          active: pinnedId === pin.id,
+          onActivate: () => rememberPinnedResource({ id: pin.id, name, group, type }),
+        }),
+      );
+
+      const unpin = document.createElement("button");
+      unpin.type = "button";
+      unpin.className = "nxplus-pin-button is-pinned";
+      unpin.title = "Unpin resource";
+      unpin.setAttribute("aria-label", `Unpin ${name}`);
+      unpin.setAttribute("aria-pressed", "true");
+      unpin.innerHTML = PIN_FILLED_ICON;
+      unpin.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        togglePin({ id: pin.id, name, group, type });
+      });
+      item.appendChild(unpin);
+
+      section.appendChild(item);
+    }
+    return section;
+  }
+
+  function resourcesForGroup(slug, groupName) {
+    return (state.groups?.resources || [])
+      .filter((resource) => resource.type === slug && resource.group === groupName)
+      .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+  }
+
+  function findResource(id) {
+    const value = String(id);
+    return (state.groups?.resources || []).find((resource) => resource.id === value) || null;
+  }
+
+  function groupKey(slug, name) {
+    return `${slug}|${name}`;
+  }
+
+  function toggleGroup(key) {
+    if (state.expandedGroups.has(key)) state.expandedGroups.delete(key);
+    else state.expandedGroups.add(key);
+    const item = document.getElementById(NAV_ID);
+    if (item) fillMenu(item);
+    if (isSheetOpen()) fillSheet();
   }
 
   function readNavTypes(list) {
@@ -461,18 +614,159 @@
     return types;
   }
 
-  function menuLink({ label, href, active, title }) {
+  function menuLink({ label, href, active, title, onActivate }) {
     const link = document.createElement("a");
     link.className = `nxplus-link${active ? " is-active" : ""}`;
     link.href = href;
-    link.textContent = label;
+    link.appendChild(document.createTextNode(label));
     link.setAttribute("role", "menuitem");
     if (title) link.title = title;
     link.addEventListener("click", () => {
+      if (onActivate) onActivate();
       closeMenu();
       closeSheet();
     });
     return link;
+  }
+
+  function pinButton(resource) {
+    const pinned = state.pins.some((pin) => pin.id === resource.id);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `nxplus-pin-button${pinned ? " is-pinned" : ""}`;
+    button.title = pinned ? "Unpin resource" : "Pin resource";
+    button.setAttribute("aria-label", `${pinned ? "Unpin" : "Pin"} ${resource.name || resource.id}`);
+    button.setAttribute("aria-pressed", String(pinned));
+    button.innerHTML = pinned ? PIN_FILLED_ICON : PIN_ICON;
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      togglePin(resource);
+    });
+    return button;
+  }
+
+  async function togglePin(resource) {
+    const id = String(resource.id);
+    const exists = state.pins.some((pin) => pin.id === id);
+    if (exists) {
+      state.pins = state.pins.filter((pin) => pin.id !== id);
+    } else {
+      state.pins = [
+        ...state.pins,
+        {
+          id,
+          name: resource.name || "",
+          group: resource.group || "",
+          type: resource.type || "",
+        },
+      ];
+    }
+    await storageSet(cfg.storageKeys.pins, state.pins);
+    state.signature = "";
+    scheduleEnsure();
+
+    // Unpinning the resource that is currently shown alone should return to
+    // the normal calendar instead of leaving a stale single-resource view.
+    if (exists && currentPinnedId() === id) {
+      const href = showAllHref();
+      clearPinnedResource();
+      if (href) location.assign(href);
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Pinned resource (per-tab marker + banner)
+   * ------------------------------------------------------------------ */
+
+  function readPinnedSession() {
+    try {
+      const raw = sessionStorage.getItem(cfg.storageKeys.pinnedSession);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function rememberPinnedResource(resource) {
+    try {
+      sessionStorage.setItem(
+        cfg.storageKeys.pinnedSession,
+        JSON.stringify({
+          id: String(resource.id),
+          name: resource.name || "",
+          group: resource.group || "",
+          type: resource.type || "",
+        }),
+      );
+    } catch {
+      /* storage can be unavailable in private modes */
+    }
+  }
+
+  function clearPinnedResource() {
+    try {
+      sessionStorage.removeItem(cfg.storageKeys.pinnedSession);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function currentPinnedId() {
+    const fromUrl = U.currentPinnedResource(location.search);
+    if (fromUrl) return fromUrl;
+    const session = readPinnedSession();
+    return session && session.id ? String(session.id) : "";
+  }
+
+  function showAllHref() {
+    const info = U.parseBookingPath(location.pathname);
+    const pin = readPinnedSession();
+    const type = info?.type || pin?.type || "all";
+    const view = info?.view || cfg.defaultView;
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const { start, end } = U.currentRange(location.search);
+    return U.bookingHref({ webAddress, type, view, start, end });
+  }
+
+  function ensurePinnedBanner() {
+    const existing = document.getElementById(PINNED_BANNER_ID);
+    const info = U.parseBookingPath(location.pathname);
+    const pinnedId = currentPinnedId();
+    if (!info || !pinnedId) {
+      existing?.remove();
+      return;
+    }
+
+    const main = document.querySelector("main");
+    if (!main) return;
+
+    let banner = existing;
+    if (!banner) {
+      banner = document.createElement("div");
+      banner.id = PINNED_BANNER_ID;
+      banner.className = "nxplus-pinned-banner";
+      banner.innerHTML =
+        '<span class="nxplus-pinned-badge">Pinned</span>' +
+        '<span class="nxplus-pinned-text">Showing only <strong class="nxplus-pinned-name"></strong></span>' +
+        '<a class="nxplus-pinned-show-all" href="#"></a>';
+    }
+    if (!main.contains(banner)) main.prepend(banner);
+
+    const session = readPinnedSession();
+    const resource = findResource(pinnedId);
+    const name = session?.name || resource?.name || `Resource ${pinnedId}`;
+    const type = info.type || session?.type || resource?.type || "all";
+    const href = showAllHref();
+    const label = `Show all ${G.typeLabel(type).toLowerCase()}`;
+
+    const nameElement = banner.querySelector(".nxplus-pinned-name");
+    if (nameElement.textContent !== name) nameElement.textContent = name;
+
+    const link = banner.querySelector(".nxplus-pinned-show-all");
+    if (link.getAttribute("href") !== href) link.href = href;
+    if (link.textContent !== label) link.textContent = label;
+    link.onclick = () => clearPinnedResource();
   }
 
   /* ------------------------------------------------------------------ *
@@ -481,14 +775,20 @@
 
   async function refreshGroups({ force = false } = {}) {
     const stored = await storageGet(cfg.storageKeys.groups);
-    const cached = stored && stored.version === cfg.cache.groupsVersion ? stored : null;
+    // v2 caches only had groups; keep using them while the resource list is
+    // fetched so the menu does not go blank after an upgrade.
+    const cached =
+      stored && (stored.version === cfg.cache.groupsVersion || stored.version === 2) ? stored : null;
     if (cached) {
       state.groups = cached;
       state.groupsVersion += 1;
       scheduleEnsure();
     }
 
-    const isFresh = cached && Date.now() - (cached.fetchedAt || 0) < cfg.cache.groupsTtlMs;
+    const isFresh =
+      cached &&
+      cached.version === cfg.cache.groupsVersion &&
+      Date.now() - (cached.fetchedAt || 0) < cfg.cache.groupsTtlMs;
     if (isFresh && !force) return;
 
     const fresh = await fetchGroups();
@@ -526,6 +826,7 @@
         version: cfg.cache.groupsVersion,
         fetchedAt: Date.now(),
         groupsBySlug: G.groupsBySlugFromPayload(payload),
+        resources: G.resourceListFromPayload(payload),
         resourceCount: G.resourcesFromPayload(payload).length,
       };
     } catch {
@@ -584,6 +885,32 @@
     return { ...DEFAULT_SETTINGS, ...(stored || {}) };
   }
 
+  async function loadPins() {
+    const stored = hasExtensionApis ? await storageGet(cfg.storageKeys.pins) : readLocalPins();
+    return normalizePins(stored);
+  }
+
+  function readLocalPins() {
+    try {
+      return JSON.parse(localStorage.getItem(cfg.storageKeys.pins) || "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function normalizePins(value) {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((pin) => (typeof pin === "string" ? { id: pin } : pin))
+      .filter((pin) => pin && pin.id)
+      .map((pin) => ({
+        id: String(pin.id),
+        name: String(pin.name || ""),
+        group: String(pin.group || ""),
+        type: String(pin.type || ""),
+      }));
+  }
+
   function storageGet(key) {
     return new Promise((resolve) => {
       if (!hasExtensionApis) return resolve(undefined);
@@ -616,6 +943,12 @@
       state.signature = "";
       scheduleEnsure();
       if (state.settings.navMenu !== false && !state.groups) refreshGroups();
+    }
+
+    if (changes[cfg.storageKeys.pins]) {
+      state.pins = normalizePins(changes[cfg.storageKeys.pins].newValue);
+      state.signature = "";
+      scheduleEnsure();
     }
 
     if (changes[cfg.storageKeys.refreshRequest]) refreshGroups({ force: true });

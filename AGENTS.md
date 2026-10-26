@@ -24,9 +24,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
-  group fetching/caching, settings.
-- `src/page.js` — page world: `history.pushState`/`replaceState` patch and the
-  explicit-list detection.
+  group/resource fetching and caching, pins, pinned banner, settings.
+- `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
+  explicit-list detection, and the single-resource calendar (XHR payload filter
+  + group-filter bypass).
 - `src/popup.*` — toolbar settings UI (two toggles, group cache status).
 - `tests/` — `node --test` suites plus the browser fixture.
 
@@ -36,6 +37,8 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   `list|calendar|floorplan|map`, type slugs like `machines`, `labs`.
 - Filters are query params: `group=<exact GroupName>`, `type=<id>`,
   `Allocation`, `customFields`. Both the list and the calendar filter by them.
+  There is no per-resource query param; the extension adds
+  `nxplus-resource=<Resource.Id>` and handles it in `page.js`.
 - `GroupName` values frequently end with a space (`"Machines: CNC Machining "`).
   The portal compares the query value with `!==`, so keep the raw string for
   links and only trim it for display — trimming the URL value silently returns
@@ -53,6 +56,34 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   The dock button copies the class names of an existing dock button at runtime,
   so hashed class renames do not break it; its sheet is our own markup
   (`.nxplus-sheet-*`) appended to `<body>`.
+
+## Pinned resources
+
+- Pins live in `chrome.storage.local` (`nxplus:pins`) as
+  `[{ id, name, group, type }]`; the menu mirrors the raw `group` string so a
+  pinned link still works if the cache is stale.
+- The per-tab marker `nxplus:pinned-resource` is in `sessionStorage` and holds
+  `{ id, name, group, type }`. The content script writes it on click; `page.js`
+  also writes it from a shared `?nxplus-resource=<id>` URL. The portal strips
+  unknown query params while normalising the bookings URL, so the marker is what
+  keeps the view alive after boot.
+- `page.js` filters the `/api/public/resources/published/details` XHR response
+  down to the pinned `Id`. The portal fetches that endpoint with axios (XHR),
+  not `fetch`. The override defines `responseText` (and `response` when
+  `responseType === "json"`) on the XHR instance; the `load` listener runs
+  before axios's `loadend`.
+- While pinned, `page.js` overrides `URLSearchParams.prototype.get` to return
+  `null` for every key except `start`, `end` and `view`: a leftover portal
+  category/capacity/amenity filter would hide the pinned resource. It calls the
+  saved original `get` internally to avoid recursion.
+- Leaving the pinned view (different type, non-calendar view, non-bookings page)
+  clears the marker and forces `location.assign(...)` from the history patch:
+  the portal caches the filtered resources in React Query, so an SPA-only
+  navigation would keep the one-resource payload.
+- The menu exposes individual resources through the group chevron; the pin
+  button is hover/focus-visible on desktop and always visible on touch.
+- `cache.groupsVersion` is 3 (v2 caches are still used as a fallback while the
+  resource list is fetched).
 
 ## Gotchas
 
@@ -73,6 +104,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   content-driven). Sheet columns use the CSS `auto-fill` fallback.
 - `src/lib/*.js` must stay dependency-free and side-effect free (they are
   loaded in both worlds and in the tests).
+- `page.js`'s `URLSearchParams` override only affects the page world. In the
+  real extension `content.js` is isolated, so its group highlighting is
+  unaffected; in `tests/fixture.html` both run in the page world, so the active
+  group may show as “All …” while a resource is pinned.
 - Safari support comes from `safari-web-extension-converter`; avoid APIs that
   Safari's MV3 does not implement (no `world` in content scripts, no
   `declarativeNetRequest` tricks). The page-world injection uses a plain

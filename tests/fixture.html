@@ -140,34 +140,45 @@
 
       window.__fixturePayload = {
         Resources: [
-          { SystemResourceType: 10, GroupName: "Machines: 3D printing" },
-          { SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
-          { SystemResourceType: 10, GroupName: "Machines: Laser Cutting" },
-          { SystemResourceType: 10, GroupName: "Machines: Metalworking" },
-          { SystemResourceType: 10, GroupName: "Machines: Textile Designing" },
-          { SystemResourceType: 10, GroupName: "Machines: UV printing" },
-          { SystemResourceType: 10, GroupName: "Machines: Woodworking" },
-          { SystemResourceType: 5, GroupName: "Labs: 3D printing" },
-          { SystemResourceType: 5, GroupName: "Labs: E-Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Handtool Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Laser Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Metal Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Outdoor Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Textile Lab" },
-          { SystemResourceType: 5, GroupName: "Labs: Wood Lab" },
-          { SystemResourceType: 1, GroupName: "Meeting Rooms" },
+          { Id: 1415309474, Name: "Prusa - XL", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+          { Id: 1415309571, Name: "Prusa - MK4", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+          { Id: 1415309496, Name: "OLSK Large CNC", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+          { Id: 1415309596, Name: "CNC Routermax 1325 Deluxe", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+          { Id: 1415309492, Name: "xTool F1", SystemResourceType: 10, GroupName: "Machines: Laser Cutting" },
+          { Id: 1415309499, Name: "Band Saw Knuth HB 250A", SystemResourceType: 10, GroupName: "Machines: Metalworking" },
+          { Id: 1415309593, Name: "Sewing machine Typical GC6-1-D3E", SystemResourceType: 10, GroupName: "Machines: Textile Designing" },
+          { Id: 1415309601, Name: "eufyMake E1 UV Printer Workstation", SystemResourceType: 10, GroupName: "Machines: UV printing" },
+          { Id: 1415309491, Name: "Table saw / Router table - Hammer B3 winner", SystemResourceType: 10, GroupName: "Machines: Woodworking" },
+          { Id: 1415309502, Name: "Outdoor Lab", SystemResourceType: 5, GroupName: "Labs: Outdoor Lab" },
+          { Id: 1415309591, Name: "E-Lab", SystemResourceType: 5, GroupName: "Labs: E-Lab" },
+          { Id: 1415299774, Name: "Meeting Room: BUS", SystemResourceType: 1, GroupName: "Meeting Rooms" },
         ],
       };
 
       const settings = { calendarDefault: true, navMenu: true };
+      const store = { "nxplus:settings": settings, "nxplus:pins": [] };
+      const listeners = [];
+      window.__fixtureStore = store;
       window.chrome = {
         runtime: { id: "fixture", getURL: (path) => `/src/${path}` },
         storage: {
           local: {
-            get: (keys, callback) => callback({ "nxplus:settings": settings }),
-            set: (_values, callback) => callback && callback(),
+            get: (keys, callback) => {
+              const result = {};
+              for (const key of keys) result[key] = store[key];
+              callback(result);
+            },
+            set: (values, callback) => {
+              const changes = {};
+              for (const [key, value] of Object.entries(values)) {
+                changes[key] = { oldValue: store[key], newValue: value };
+                store[key] = value;
+              }
+              for (const listener of listeners) listener(changes, "local");
+              if (callback) callback();
+            },
           },
-          onChanged: { addListener: () => {} },
+          onChanged: { addListener: (listener) => listeners.push(listener) },
         },
       };
 
@@ -175,7 +186,8 @@
 
       const bar = document.getElementById("fixture-bar");
       const render = () => {
-        bar.textContent = `path: ${location.pathname}\nsearch: ${location.search}\nallow-list: ${sessionStorage.getItem("nxplus:allow-list") ?? "-"}`;
+        const pins = (store["nxplus:pins"] || []).map((pin) => pin.name || pin.id).join(", ");
+        bar.textContent = `path: ${location.pathname}\nsearch: ${location.search}\nallow-list: ${sessionStorage.getItem("nxplus:allow-list") ?? "-"}\npins: ${pins || "-"}`;
       };
       render();
       setInterval(render, 200);

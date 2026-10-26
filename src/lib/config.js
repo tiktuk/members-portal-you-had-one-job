@@ -40,13 +40,18 @@
       stripGroupPrefix: true,
       /** Hide types that have no resource groups. */
       hideEmptyTypes: true,
+      /**
+       * Query parameter that narrows the calendar to one resource. The value is
+       * the Nexudus resource id; the portal itself ignores it (see page.js).
+       */
+      resourceParam: "nxplus-resource",
     },
 
     cache: {
       /** Resource groups change rarely; six hours keeps the menu instant. */
       groupsTtlMs: 6 * 60 * 60 * 1000,
       /** Bump to invalidate cached payloads after changing their shape. */
-      groupsVersion: 2,
+      groupsVersion: 3,
     },
 
     /**
@@ -103,9 +108,13 @@
     storageKeys: {
       settings: "nxplus:settings",
       groups: "nxplus:groups",
+      /** Pinned resources: [{ id, name, group, type }]. */
+      pins: "nxplus:pins",
       refreshRequest: "nxplus:refresh-request",
       /** Mirror of `settings` in the page's localStorage (read synchronously). */
       settingsCache: "nxplus:settings-cache",
+      /** sessionStorage marker for the pinned resource of the current tab. */
+      pinnedSession: "nxplus:pinned-resource",
     },
   };
 

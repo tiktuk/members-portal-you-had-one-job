@@ -3,7 +3,7 @@
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
 portal (<https://members.motionlab.berlin/motionlabberlin>).
 
-It does two things:
+It does three things:
 
 1. **Resource filters in the main menu.** A new **Filters** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -12,20 +12,27 @@ It does two things:
    Below 1200 px the portal swaps the top navigation for its bottom dock, so the
    extension adds a **Filters** button there that opens the same list as a
    bottom sheet.
-2. **Calendar by default.** Bookings links open the calendar view instead of the
+2. **Pinnable resources.** Expand a group in the **Filters** menu and press the
+   pin icon next to a resource (for example *OLSK Large CNC*). Pinned resources
+   appear at the top of the menu; clicking one opens the calendar with **only
+   that resource**, so there is no horizontal scrolling through every machine of
+   the type. A *Pinned* banner above the calendar links back to the full type.
+3. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
 
-Both can be toggled from the toolbar popup.
+Both toggles live in the toolbar popup; pins are managed from the menu itself.
 
 ```
 Bookings ▾   Filters ▾   Store ▾   Memberships   Community
               ┌──────────────────────────────────────────────┐
+              │ PINNED                                        │
+              │ [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]      │
               │ MACHINES        LABS           MEETING ROOMS │
               │ All machines    All labs       All meeting…  │
-              │ 3D printing     3D printing    Meeting Rooms │
-              │ CNC Machining   E-Lab                        │
-              │ Laser Cutting   Handtool Lab                 │
+              │ 3D printing  ›  E-Lab        › Meeting Rooms │
+              │ CNC Machining › Metal Lab    ›               │
+              │ Laser Cutting › Outdoor Lab  ›               │
               │ …               …                            │
               └──────────────────────────────────────────────┘
 ```
@@ -67,11 +74,13 @@ Everything tunable lives in `src/lib/config.js`:
 | `nav.hideEmptyTypes` | Hide resource types that have no groups. |
 | `defaultView` | View used by the injected links (`calendar`). |
 | `resourceTypeOrder` | Column order of the menu. |
+| `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
 | `portal.origin` / `content_scripts.matches` | Change both to use this on another Nexudus portal. |
 
 The menu is built from the portal's own navigation (which resource types it
-offers) plus `GET /api/public/resources/published/details` for the group names.
+offers) plus `GET /api/public/resources/published/details` for the group and
+resource names. Pins are stored in `chrome.storage.local` under `nxplus:pins`.
 
 ## How it works
 
@@ -83,7 +92,8 @@ space's API lives on its own subdomain, `https://<webAddress>.spaces.nexudus.com
   `list`, `calendar`, `floorplan` or `map`. The resource type is a slug such as
   `machines`, `labs` or `meeting-rooms`.
 - The list/calendar views filter their resources by query parameters, notably
-  `group=<exact GroupName>` and `type=<SystemResourceType>`.
+  `group=<exact GroupName>` and `type=<SystemResourceType>`. There is no
+  resource-level query parameter, so the extension implements one itself.
 - The SPA stores its session in a readable `AUTH_TOKEN` cookie (JSON with
   `access_token`), which is what lets the extension fetch resource groups
   without a background service worker.
@@ -91,13 +101,26 @@ space's API lives on its own subdomain, `https://<webAddress>.spaces.nexudus.com
 Two scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
-  `calendar` **before the app boots**, injects the menu, and caches groups.
+  `calendar` **before the app boots**, injects the menu, caches groups and
+  resources, and stores pins.
 - `src/page.js` (page world) patches `history.pushState`/`replaceState` so
   client-side navigation also lands on the calendar, and remembers an explicit
   *List* choice from the portal's *View* dropdown.
 
-Because the redirect happens on the URL, no React internals are touched; the
-portal's own links, filters and view picker keep working.
+A pinned link looks like
+`/motionlabberlin/bookings/machines/calendar?group=…&nxplus-resource=1415309496`.
+The portal ignores the extra parameter, so `page.js` narrows the
+`/api/public/resources/published/details` response down to that id before the
+calendar renders, and makes the portal's filters no-ops while pinned (only the
+calendar's `start`, `end` and `view` query keys survive).
+The id is also mirrored into `sessionStorage` because the portal removes unknown
+query parameters when it normalises the URL. Leaving the pinned view (different
+type, list view, or another menu link) clears the marker; changing type triggers
+a full navigation so the portal's cached, filtered resource list is reset.
+
+Because the redirect happens on the URL and only the resources payload is
+filtered, no React internals are touched; the portal's own links, filters and
+view picker keep working.
 
 ## Development
 
@@ -123,6 +146,8 @@ open http://localhost:8765/tests/fixture.html
   line; *Refresh groups* forces a re-fetch.
 - **Still on the list view** — the extension remembers an explicit *List* choice
   for the tab; pick *Calendar* in the portal's *View* dropdown to reset it.
+- **Only one resource is shown** — a pinned resource is active. Use *Show all
+  …* in the banner above the calendar, or unpin it in the **Filters** menu.
 - **Changes from the popup** apply on the next page load.
 - If Nexudus changes the markup, `src/content.js` selectors
   (`nav.navbar ul.navbar-nav`, `#resourceViewDropdown`) and `config.js` are the
