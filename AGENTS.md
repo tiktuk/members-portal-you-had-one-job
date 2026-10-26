@@ -48,6 +48,11 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   `config.resourceTypeSlugs` in sync.
 - The portal's *View* dropdown toggle has `id="resourceViewDropdown"`; its menu
   links end in `/list` or `/calendar`.
+- Below 1200 px the portal hides the navbar and shows a bottom dock
+  (`nav[aria-label="Main navigation"]`, CSS-module classes like `_dockBtn_…`).
+  The dock button copies the class names of an existing dock button at runtime,
+  so hashed class renames do not break it; its sheet is our own markup
+  (`.nxplus-sheet-*`) appended to `<body>`.
 
 ## Gotchas
 
@@ -63,6 +68,9 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The injected `<li>` lives inside a React-rendered `<ul>`; a MutationObserver
   re-inserts it if React removes it. Keep `ensureNav()` idempotent and cheap —
   it runs on every DOM mutation (debounced) and on a 1 s fallback timer.
+- `renderMenuContent()` feeds both the desktop dropdown and the mobile sheet;
+  only the dropdown sets an explicit grid track count (its width is
+  content-driven). Sheet columns use the CSS `auto-fill` fallback.
 - `src/lib/*.js` must stay dependency-free and side-effect free (they are
   loaded in both worlds and in the tests).
 - Safari support comes from `safari-web-extension-converter`; avoid APIs that

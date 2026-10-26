@@ -80,3 +80,92 @@
   font-size: 0.9rem;
   color: var(--bs-secondary-color, #6c757d);
 }
+
+/* ------------------------------------------------------------------ *
+ * Mobile dock button + bottom sheet (the portal swaps to a dock below
+ * 1200px and hides the top navigation).
+ * ------------------------------------------------------------------ */
+
+.nxplus-dock-button svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.nxplus-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.nxplus-sheet-root[hidden] {
+  display: none;
+}
+
+.nxplus-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.nxplus-sheet-panel {
+  position: relative;
+  width: 100%;
+  max-height: 82dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.22);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nxplus-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.nxplus-sheet-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.nxplus-sheet-body {
+  padding: 0.35rem 1rem 1.1rem;
+  overflow: auto;
+}
+
+.nxplus-sheet-body .nxplus-columns {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.nxplus-sheet-body .nxplus-link {
+  padding: 0.5rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nxplus-sheet-panel {
+    animation: nxplus-sheet-in 0.18s ease-out;
+  }
+}
+
+@keyframes nxplus-sheet-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -18,9 +18,20 @@
     />
     <link rel="stylesheet" href="/src/portal.css" />
     <style>
-      body { padding: 0; }
+      body { padding: 0 0 80px; }
+      .fixture-dock {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 1500;
+        background: #fff; border-top: 1px solid #dee2e6;
+      }
+      .fixture-dock-inner { display: flex; justify-content: space-around; }
+      .fixture-dock-btn {
+        flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        padding: 8px 4px; border: 0; background: none; color: #495057;
+        font-size: 11px;
+      }
+      .fixture-dock-icon { font-size: 20px; line-height: 24px; }
       .fixture-bar {
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000;
+        position: fixed; bottom: 68px; left: 0; right: 0; z-index: 2000;
         background: #f8f9fa; border-top: 1px solid #dee2e6;
         font: 12px/1.4 ui-monospace, monospace; padding: 8px 12px; white-space: pre-wrap;
       }
@@ -58,6 +69,28 @@
             </li>
           </ul>
         </div>
+      </div>
+    </nav>
+
+    <!-- Mirrors the portal's bottom dock, shown below 1200px. -->
+    <nav class="fixture-dock d-xl-none" aria-label="Main navigation">
+      <div class="fixture-dock-inner">
+        <button type="button" class="fixture-dock-btn" aria-label="Dashboard">
+          <span class="fixture-dock-icon">▦</span>
+          <span class="fixture-dock-label">Dashboard</span>
+        </button>
+        <button type="button" class="fixture-dock-btn" aria-label="Bookings" aria-haspopup="menu">
+          <span class="fixture-dock-icon">▤</span>
+          <span class="fixture-dock-label">Bookings</span>
+        </button>
+        <button type="button" class="fixture-dock-btn" aria-label="Store" aria-haspopup="menu">
+          <span class="fixture-dock-icon">▧</span>
+          <span class="fixture-dock-label">Store</span>
+        </button>
+        <button type="button" class="fixture-dock-btn" aria-label="More options" aria-haspopup="menu">
+          <span class="fixture-dock-icon">⋯</span>
+          <span class="fixture-dock-label">More</span>
+        </button>
       </div>
     </nav>
 

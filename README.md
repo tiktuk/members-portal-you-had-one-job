@@ -9,6 +9,9 @@ It does two things:
    *Bookings* lists every bookable resource type and its resource groups
    (Machines › CNC Machining, Labs › Outdoor Lab, …). One click jumps straight
    to that group instead of *Bookings → Machines → Filters → Group → Close*.
+   Below 1200 px the portal swaps the top navigation for its bottom dock, so the
+   extension adds a **Filters** button there that opens the same list as a
+   bottom sheet.
 2. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.

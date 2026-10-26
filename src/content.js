@@ -17,8 +17,15 @@
 
   const NAV_ID = "nxplus-nav-item";
   const MENU_ID = "nxplus-menu";
+  const DOCK_ID = "nxplus-dock-button";
+  const SHEET_ID = "nxplus-sheet";
   const DEFAULT_SETTINGS = { calendarDefault: true, navMenu: true };
   const hasExtensionApis = typeof chrome !== "undefined" && Boolean(chrome.runtime && chrome.runtime.id);
+
+  const FUNNEL_ICON =
+    '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" aria-hidden="true"><path d="M3 5h18l-7.5 8.6V20L10.5 18v-4.4L3 5z"></path></svg>';
+  const CHEVRON_ICON =
+    '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>';
 
   const state = {
     settings: readCachedSettings(),
@@ -103,7 +110,9 @@
 
     document.addEventListener("click", onDocumentClick, true);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeMenu();
+      if (event.key !== "Escape") return;
+      closeMenu();
+      closeSheet();
     });
     window.addEventListener("popstate", scheduleEnsure);
 
@@ -126,25 +135,33 @@
   }
 
   function ensureNav() {
-    const list = findNavList();
-    if (!list) return;
-
-    let item = document.getElementById(NAV_ID);
     if (state.settings.navMenu === false || !cfg.nav.enabled) {
-      if (item) item.remove();
+      document.getElementById(NAV_ID)?.remove();
+      document.getElementById(DOCK_ID)?.remove();
+      document.getElementById(SHEET_ID)?.remove();
       return;
     }
 
-    if (!item || !list.contains(item)) {
-      item = buildNavItem();
-      insertNavItem(list, item);
-      state.signature = "";
+    // Desktop: a dropdown in the main navigation bar.
+    const list = findNavList();
+    if (list) {
+      const item = document.getElementById(NAV_ID);
+      if (!item || !list.contains(item)) {
+        insertNavItem(list, buildNavItem());
+        state.signature = "";
+      }
     }
+
+    // Mobile/narrow: a button in the bottom dock that opens a sheet.
+    const dock = findDock();
+    if (dock) ensureDockButton(dock);
 
     const signature = currentSignature();
     if (signature !== state.signature) {
       state.signature = signature;
-      fillMenu(item);
+      const item = document.getElementById(NAV_ID);
+      if (item) fillMenu(item);
+      if (isSheetOpen()) fillSheet();
     }
   }
 
@@ -176,6 +193,122 @@
     else list.appendChild(item);
   }
 
+  /* ------------------------------------------------------------------ *
+   * Mobile dock (narrow viewports use a bottom bar instead of the navbar)
+   * ------------------------------------------------------------------ */
+
+  function findDock() {
+    return (
+      document.querySelector('nav[aria-label="Main navigation"]') ||
+      document.querySelector("nav[class*='dockNav']")
+    );
+  }
+
+  function ensureDockButton(dock) {
+    const existing = document.getElementById(DOCK_ID);
+    if (existing && dock.contains(existing)) return;
+
+    const buttons = [...dock.querySelectorAll("button")].filter((button) => !button.id.startsWith("nxplus"));
+    const reference = buttons[0];
+    if (!reference) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = DOCK_ID;
+    // Reuse the portal's own dock classes so the button looks native.
+    button.className = `${reference.className} nxplus-dock-button`;
+    button.setAttribute("aria-label", cfg.nav.label);
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-expanded", "false");
+
+    const icon = document.createElement("span");
+    if (reference.firstElementChild?.className) icon.className = reference.firstElementChild.className;
+    icon.innerHTML = FUNNEL_ICON;
+    const label = document.createElement("span");
+    if (reference.lastElementChild?.className) label.className = reference.lastElementChild.className;
+    label.textContent = cfg.nav.label;
+    button.append(icon, label);
+
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleSheet();
+    });
+
+    const more = buttons.find((candidate) => /more|mehr|más|plus/i.test(candidate.getAttribute("aria-label") || ""));
+    if (more) more.parentElement.insertBefore(button, more);
+    else reference.parentElement.appendChild(button);
+  }
+
+  function ensureSheet() {
+    const existing = document.getElementById(SHEET_ID);
+    if (existing) return existing;
+
+    const root = document.createElement("div");
+    root.id = SHEET_ID;
+    root.className = "nxplus-sheet-root";
+    root.hidden = true;
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "nxplus-sheet-backdrop";
+    backdrop.addEventListener("click", closeSheet);
+
+    const panel = document.createElement("div");
+    panel.className = "nxplus-sheet-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-label", cfg.nav.label);
+
+    const header = document.createElement("div");
+    header.className = "nxplus-sheet-header";
+    const title = document.createElement("h2");
+    title.className = "nxplus-sheet-title";
+    title.textContent = cfg.nav.label;
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn-close";
+    close.setAttribute("aria-label", "Close");
+    close.addEventListener("click", closeSheet);
+    header.append(title, close);
+
+    const body = document.createElement("div");
+    body.className = "nxplus-sheet-body";
+
+    panel.append(header, body);
+    root.append(backdrop, panel);
+    document.body.appendChild(root);
+    return root;
+  }
+
+  function isSheetOpen() {
+    const root = document.getElementById(SHEET_ID);
+    return Boolean(root && !root.hidden);
+  }
+
+  function toggleSheet() {
+    if (isSheetOpen()) closeSheet();
+    else openSheet();
+  }
+
+  function openSheet() {
+    const root = ensureSheet();
+    fillSheet();
+    root.hidden = false;
+    document.getElementById(DOCK_ID)?.setAttribute("aria-expanded", "true");
+  }
+
+  function closeSheet() {
+    const root = document.getElementById(SHEET_ID);
+    if (!root || root.hidden) return;
+    root.hidden = true;
+    document.getElementById(DOCK_ID)?.setAttribute("aria-expanded", "false");
+  }
+
+  function fillSheet() {
+    const body = ensureSheet().querySelector(".nxplus-sheet-body");
+    if (body) body.replaceChildren(renderMenuContent({ explicitColumns: false }));
+  }
+
   function buildNavItem() {
     const item = document.createElement("li");
     item.className = "nav-item dropdown nxplus-nav-item";
@@ -187,13 +320,9 @@
       "cursor-pointer nav-link arrow-none d-flex align-items-center gap-1 dropdown-toggle nxplus-toggle";
     button.setAttribute("aria-haspopup", "true");
     button.setAttribute("aria-expanded", "false");
-    button.innerHTML =
-      '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" aria-hidden="true"><path d="M3 5h18l-7.5 8.6V20L10.5 18v-4.4L3 5z"></path></svg>';
+    button.innerHTML = FUNNEL_ICON;
     button.append(document.createTextNode(cfg.nav.label));
-    button.insertAdjacentHTML(
-      "beforeend",
-      '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>',
-    );
+    button.insertAdjacentHTML("beforeend", CHEVRON_ICON);
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -239,8 +368,15 @@
 
   function fillMenu(item) {
     const menu = item.querySelector(`#${MENU_ID}`);
-    if (!menu) return;
+    if (menu) menu.replaceChildren(renderMenuContent({ explicitColumns: true }));
+  }
 
+  /**
+   * Builds the type/group columns used by both the desktop dropdown and the
+   * mobile sheet. `explicitColumns` is only needed for the dropdown, whose
+   * width is derived from the content.
+   */
+  function renderMenuContent({ explicitColumns }) {
     const list = findNavList();
     const types = list ? readNavTypes(list) : [];
     const groupsBySlug = state.groups?.groupsBySlug || {};
@@ -258,8 +394,10 @@
 
     const columns = document.createElement("div");
     columns.className = "nxplus-columns";
-    // The menu sizes to its content, so the track count has to be explicit.
-    columns.style.gridTemplateColumns = `repeat(${Math.min(Math.max(model.length, 1), 4)}, minmax(160px, 1fr))`;
+    if (explicitColumns) {
+      // The menu sizes to its content, so the track count has to be explicit.
+      columns.style.gridTemplateColumns = `repeat(${Math.min(Math.max(model.length, 1), 4)}, minmax(160px, 1fr))`;
+    }
 
     for (const type of model) {
       const section = document.createElement("div");
@@ -301,7 +439,7 @@
       columns.appendChild(empty);
     }
 
-    menu.replaceChildren(columns);
+    return columns;
   }
 
   function readNavTypes(list) {
@@ -330,7 +468,10 @@
     link.textContent = label;
     link.setAttribute("role", "menuitem");
     if (title) link.title = title;
-    link.addEventListener("click", () => closeMenu());
+    link.addEventListener("click", () => {
+      closeMenu();
+      closeSheet();
+    });
     return link;
   }
 
