@@ -90,6 +90,19 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   clears the marker and forces `location.assign(...)` from the history patch:
   the portal caches the filtered resources in React Query, so an SPA-only
   navigation would keep the one-resource payload.
+- The portal's own *Bookings* menu and *View* dropdown links carry no
+  `nxplus-resource` (the View links can even copy the current parameter), and
+  React Router ignores a navigation to the URL already in the address bar. A
+  capture-phase click handler therefore clears the marker for any normal
+  calendar/list link of the pinned type and navigates in full. The View
+  dropdown handler strips the parameter before navigating. Without this, the
+  single-resource view stuck around and hid every other booking.
+- `pinnedActive` (in-memory) says whether the pinned view is live for this
+  document. The marker alone is not enough: the portal normalises the URL to
+  drop `nxplus-resource`. On boot the marker is only kept for a `reload`
+  (`performance.getEntriesByType("navigation")`); a fresh navigation to a plain
+  calendar URL clears it. SPA date changes keep it. The Previous/Next handler
+  re-adds `nxplus-resource` to its `pushState` URL for the same reason.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts

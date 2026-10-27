@@ -124,9 +124,11 @@ The portal ignores the extra parameter, so `page.js` narrows the
 calendar renders, and makes the portal's filters no-ops while pinned (only the
 calendar's `start`, `end` and `view` query keys survive).
 The id is also mirrored into `sessionStorage` because the portal removes unknown
-query parameters when it normalises the URL. Leaving the pinned view (different
-type, list view, or another menu link) clears the marker; changing type triggers
-a full navigation so the portal's cached, filtered resource list is reset.
+query parameters when it normalises the URL. Leaving the pinned view — a
+different type, the portal's *View* dropdown, or any normal calendar/list link
+(including the portal's own *Bookings* menu) — clears the marker and triggers a
+full navigation, so the portal's cached, filtered resource list is reset.
+Reloading a pinned view keeps it.
 With a single resource the portal's Previous/Next buttons (which scroll the
 resource grid sideways) have nothing to scroll, so `page.js` makes them step the
 date range by the visible day count instead.

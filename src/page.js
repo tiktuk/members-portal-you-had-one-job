@@ -110,12 +110,39 @@
     }
   }
 
+  // Whether the pinned view is live for this document. The portal strips the
+  // unknown query parameter while normalising the URL, so the marker alone
+  // cannot tell a normalised pinned URL from a normal calendar navigation.
+  let pinnedActive = false;
+
+  function navigationType() {
+    try {
+      const type = performance.getEntriesByType?.("navigation")?.[0]?.type;
+      if (type) return type;
+      // Older Safari only exposes the deprecated enum (1 = reload).
+      return performance.navigation?.type === 1 ? "reload" : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function samePinnedView(info, pin) {
+    return Boolean(
+      info && info.view === "calendar" && pin && pin.id && (!pin.type || pin.type === info.type),
+    );
+  }
+
   /**
    * Keep the per-tab marker in sync with a URL. The portal drops unknown query
    * parameters when it normalises the bookings URL, so the marker (not the URL)
    * is what keeps the single-resource view alive after boot.
+   *
+   * SPA navigations (date changes, the portal re-rendering) keep the marker. A
+   * fresh document only keeps it on a reload: the URL was normalised before the
+   * reload, so a plain calendar URL on a normal load means the marker belongs
+   * to an earlier navigation. Explicit calendar links are handled on click.
    */
-  function syncPinnedFor(url) {
+  function syncPinnedFor(url, { boot = false } = {}) {
     let next;
     try {
       next = new URL(String(url ?? location.href), location.href);
@@ -130,22 +157,75 @@
       if (!stored || String(stored.id) !== fromUrl) {
         writePinned({ id: fromUrl, type: info?.type || "" });
       }
+      pinnedActive = true;
       return;
     }
 
-    if (stored && stored.id && (!info || (stored.type && info.type !== stored.type))) {
-      clearPinned();
+    if (!stored || !stored.id) {
+      pinnedActive = false;
+      return;
     }
+
+    if (!samePinnedView(info, stored)) {
+      clearPinned();
+      pinnedActive = false;
+      return;
+    }
+
+    if (boot && navigationType() !== "reload") {
+      clearPinned();
+      pinnedActive = false;
+      return;
+    }
+
+    pinnedActive = true;
   }
 
   function pinned() {
-    syncPinnedFor(location.href);
+    if (!pinnedActive) return null;
     const stored = readPinned();
     return stored && stored.id ? stored : null;
   }
 
   // Pick up the marker from a direct/shared link before the app boots.
-  pinned();
+  syncPinnedFor(location.href, { boot: true });
+
+  // Any normal calendar link leaves the pinned view: the portal's own Bookings
+  // menu and View dropdown do not know about the marker, so without this the
+  // single-resource view sticks around and hides everyone else's bookings.
+  // Force a full navigation so the portal's cached, filtered resource payload
+  // is dropped as well.
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest("a[href]");
+      if (!link) return;
+      let next;
+      try {
+        next = new URL(link.href, location.href);
+      } catch {
+        return;
+      }
+      if (next.origin !== location.origin) return;
+      const info = U.parseBookingPath(next.pathname);
+      // A list link counts too: the calendar default rewrites it, but the user
+      // still asked for the normal resource view.
+      if (!info || (info.view !== "calendar" && info.view !== "list")) return;
+      if (originalGet.call(new URLSearchParams(next.search), RESOURCE_PARAM)) return;
+      const pin = pinned();
+      if (!pin || (pin.type && info.type !== pin.type)) return;
+
+      clearPinned();
+      pinnedActive = false;
+      event.preventDefault();
+      event.stopPropagation();
+      location.assign(next.href);
+    },
+    true,
+  );
 
   // While a single resource is pinned, the resources payload is already
   // narrowed down; any portal filter left over in the URL (group, capacity,
@@ -213,7 +293,7 @@
         if (rewritten) nextUrl = rewritten;
       }
 
-      if (!leavingPinned) {
+      if (!leavingPinned && pinnedActive) {
         const pin = readPinned();
         if (pin && pin.id) {
           const info = U.parseBookingPath(safePath(nextUrl ?? location.href));
@@ -275,6 +355,10 @@
     to.setDate(to.getDate() + days);
     params.set("start", localIso(from));
     params.set("end", localIso(to));
+    // Keep the marker alive through the pushState; the portal strips the
+    // parameter again when it normalises the URL.
+    const pin = pinned();
+    if (pin) params.set(RESOURCE_PARAM, String(pin.id));
     history.pushState(history.state, "", `${location.pathname}?${params.toString()}${location.hash}`);
     // React Router only reacts to history events; pushState alone is invisible.
     window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
@@ -302,11 +386,14 @@
 
   /**
    * Remember an explicit "List" choice in the portal's View dropdown, and clear
-   * it again when the user switches back to the calendar.
+   * it again when the user switches back to the calendar. The portal builds
+   * those links from the current URL, so they can still carry the resource
+   * parameter; choosing a view always means leaving the pinned resource.
    */
   document.addEventListener(
     "click",
     (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
       const link = target.closest("a[href]");
@@ -316,6 +403,15 @@
       const info = U.parseBookingPath(safePath(link.href));
       if (!info) return;
       U.setListAllowed(info.view === "list");
+
+      if (!pinned()) return;
+      const url = new URL(link.href, location.href);
+      url.searchParams.delete(RESOURCE_PARAM);
+      clearPinned();
+      pinnedActive = false;
+      event.preventDefault();
+      event.stopPropagation();
+      location.assign(url.href);
     },
     true,
   );
