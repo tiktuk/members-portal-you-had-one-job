@@ -94,6 +94,27 @@
     );
   }
 
+  /** `YYYY-MM-DDTHH:MM` local time, the format `/api/public/bookings/my` expects. */
+  function toQueryTimestamp(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return (
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+    );
+  }
+
+  function lookaheadEnd(now) {
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + LOOKAHEAD_DAYS,
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
+  }
+
   function normalizePins(value) {
     if (!Array.isArray(value)) return [];
     return value
@@ -191,6 +212,22 @@
     return normalizeItem(record, resourceId, "event");
   }
 
+  function groupByDay(items, today) {
+    const sections = [];
+    for (const item of items) {
+      const last = sections[sections.length - 1];
+      if (last && last.day === item.day) last.bookings.push(item);
+      else {
+        sections.push({
+          day: item.day,
+          label: dayLabel(item.day, today),
+          bookings: [item],
+        });
+      }
+    }
+    return sections;
+  }
+
   /**
    * Builds one card per pinned resource, mirroring the web app's widgets:
    * bookings and resource events grouped into day sections, only upcoming items
@@ -200,15 +237,7 @@
     const today = dayKey(now);
     const nowStamp = localStamp(now);
     const rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const rangeEnd = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + LOOKAHEAD_DAYS,
-      23,
-      59,
-      59,
-      999,
-    ).getTime();
+    const rangeEnd = lookaheadEnd(now);
 
     const pinsById = new Map();
     for (const pin of normalizePins(pins)) pinsById.set(pin.id, pin);
@@ -244,19 +273,6 @@
         (a, b) => a.stamp - b.stamp || a.id.localeCompare(b.id),
       );
 
-      const sections = [];
-      for (const booking of bookings) {
-        const last = sections[sections.length - 1];
-        if (last && last.day === booking.day) last.bookings.push(booking);
-        else {
-          sections.push({
-            day: booking.day,
-            label: dayLabel(booking.day, today),
-            bookings: [booking],
-          });
-        }
-      }
-
       for (const booking of bookings) {
         total += 1;
         if (booking.event) eventCount += 1;
@@ -268,21 +284,75 @@
         icon: resourceIcon(pin),
         groupLabel: String(pin.group || "").trim(),
         bookings,
-        sections,
+        sections: groupByDay(bookings, today),
       });
     }
 
     return { cards, total, bookingCount, eventCount, today, rangeStart, rangeEnd };
   }
 
+  /**
+   * `/api/public/bookings/my` returns the member's bookings across every
+   * resource with naive local `FromTime`/`ToTime` values, so no timezone
+   * conversion is needed.
+   */
+  function normalizeMyBooking(record) {
+    const start = parseTimestamp(record.FromTime || record.fromTime || record.start);
+    const end = parseTimestamp(record.ToTime || record.toTime || record.end);
+    if (!start || !end) return null;
+
+    const resourceName = String(record.ResourceName || record.Resource?.Name || "—").trim();
+
+    return {
+      id: String(record.Id ?? `${record.ResourceId}-${start.stamp}`),
+      resourceId: record.ResourceId != null ? String(record.ResourceId) : "",
+      resourceName,
+      day: start.day,
+      startTime: start.time,
+      endTime: end.time,
+      allDay: Boolean(record.AllDay),
+      coworker: resourceName,
+      tentative: Boolean(record.Tentative),
+      event: false,
+      description: "",
+      url: "",
+      stamp: start.stamp,
+      endStamp: end.stamp,
+    };
+  }
+
+  function buildMyBookings(records, now) {
+    const today = dayKey(now);
+    const nowStamp = localStamp(now);
+    const rangeEnd = lookaheadEnd(now);
+
+    const items = [];
+    const seen = new Set();
+    for (const record of Array.isArray(records) ? records : []) {
+      if (!record || record.Cancelled === true) continue;
+      const item = normalizeMyBooking(record);
+      if (!item) continue;
+      if (item.endStamp <= nowStamp) continue;
+      if (item.stamp >= rangeEnd) continue;
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      items.push(item);
+    }
+
+    items.sort((a, b) => a.stamp - b.stamp || a.id.localeCompare(b.id));
+    return { items, sections: groupByDay(items, today), count: items.length };
+  }
+
   globalThis.NXPlusOverview = {
     LOOKAHEAD_DAYS,
     buildModel,
+    buildMyBookings,
     dayLabel,
     normalizePins,
     parseTimestamp,
     rangeFor,
     resourceIcon,
     toPortalIso,
+    toQueryTimestamp,
   };
 })();

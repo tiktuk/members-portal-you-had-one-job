@@ -74,6 +74,19 @@ function event(overrides) {
   };
 }
 
+function myRecord(overrides) {
+  return {
+    Id: 1,
+    ResourceId: 1415309476,
+    ResourceName: 'GS 6090 PR - "Laser Catthi"',
+    FromTime: "2026-10-27T13:00:00",
+    ToTime: "2026-10-27T15:30:00",
+    Tentative: false,
+    Cancelled: false,
+    ...overrides,
+  };
+}
+
 test("buildModel keeps only pinned resources and upcoming bookings", () => {
   const O = loadOverview();
   const model = O.buildModel(
@@ -284,6 +297,71 @@ test("rangeFor covers today plus the 14-day lookahead", () => {
   assert.equal(end.getDate(), 10);
   assert.equal(end.getMonth(), 10);
   assert.equal(end.getHours(), 23);
+});
+
+test("buildMyBookings groups personal bookings by day with resource names", () => {
+  const O = loadOverview();
+  const model = O.buildMyBookings(
+    [
+      myRecord({ Id: 1 }),
+      myRecord({
+        Id: 2,
+        ResourceId: 1415309596,
+        ResourceName: "CNC Routermax 1325 Deluxe",
+        FromTime: "2026-10-28T10:00:00",
+        ToTime: "2026-10-28T17:00:00",
+      }),
+      myRecord({ Id: 3, FromTime: "2026-10-26T10:00:00", ToTime: "2026-10-26T11:00:00" }),
+      myRecord({ Id: 4, Cancelled: true }),
+      myRecord({
+        Id: 5,
+        FromTime: "2026-11-20T10:00:00",
+        ToTime: "2026-11-20T11:00:00",
+      }),
+    ],
+    NOW,
+  );
+
+  assert.equal(model.count, 2);
+  assert.deepEqual(plain(model.items.map((item) => item.id)), ["1", "2"]);
+  assert.deepEqual(
+    plain(model.sections.map((section) => [section.day, section.label, section.bookings.length])),
+    [
+      ["2026-10-27", "Today", 1],
+      ["2026-10-28", "Wed", 1],
+    ],
+  );
+  assert.equal(model.items[0].coworker, 'GS 6090 PR - "Laser Catthi"');
+  assert.equal(model.items[1].resourceName, "CNC Routermax 1325 Deluxe");
+});
+
+test("buildMyBookings keeps an ongoing booking and de-duplicates ids", () => {
+  const O = loadOverview();
+  const model = O.buildMyBookings(
+    [
+      myRecord({ Id: 1, FromTime: "2026-10-26T22:00:00", ToTime: "2026-10-27T14:00:00" }),
+      myRecord({ Id: 1, FromTime: "2026-10-26T22:00:00", ToTime: "2026-10-27T14:00:00" }),
+      myRecord({ Id: 2, Tentative: true }),
+    ],
+    NOW,
+  );
+
+  assert.equal(model.count, 2);
+  assert.equal(model.items[0].tentative, false);
+  assert.equal(model.items[1].tentative, true);
+});
+
+test("buildMyBookings handles no records", () => {
+  const O = loadOverview();
+  const model = O.buildMyBookings([], NOW);
+  assert.equal(model.count, 0);
+  assert.deepEqual(plain(model.sections), []);
+});
+
+test("toQueryTimestamp writes the local minute precision the API expects", () => {
+  const O = loadOverview();
+  assert.equal(O.toQueryTimestamp(new Date(2026, 9, 27, 0, 0, 0)), "2026-10-27T00:00");
+  assert.equal(O.toQueryTimestamp(new Date(2026, 10, 10, 23, 59, 0)), "2026-11-10T23:59");
 });
 
 test("toPortalIso writes a local ISO timestamp with offset", () => {

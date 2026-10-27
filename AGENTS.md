@@ -23,8 +23,9 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
-- `src/lib/overview.js` — bookings/events payload → pinned-overview model (day
-  sections, timestamp parsing, icons); loaded by the page and the tests.
+- `src/lib/overview.js` — bookings/events payload → pinned-overview model and
+  personal-bookings model (day sections, timestamp parsing, icons); loaded by
+  the page and the tests.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins, pinned banner, settings.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
@@ -155,6 +156,16 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   returns a different wall-clock value (`11:00Z` for that workshop). The CLI's
   `calendar_event_time` converts it again and prints 10:00, an hour early. This
   page uses the portal's `/en/...` endpoint instead.
+- The **My bookings** card fetches `/api/public/bookings/my` with the same
+  session and window (`from_Booking_FromTime`/`to_Booking_FromTime` in
+  `YYYY-MM-DDTHH:MM` local, `orderBy=FromTime`, `dir=0`, `size=100`), following
+  `HasNextPage`. It skips `Cancelled` bookings and does not merge events: they
+  are not the member's bookings. Rows show `ResourceName`.
+- `FromTime`/`ToTime` from `/api/public/bookings/my` are naive local wall-clock
+  strings (no `Z`), unlike the `/en/...` feeds. `parseTimestamp` parses them as
+  local, so no conversion is needed.
+- The widget loads independently of pins, so the page still shows personal
+  bookings when there are no pinned resources.
 - Extension pages bypass CORS through the manifest host permission. The space
   host only allows `https://members.motionlab.berlin` as a CORS origin, so a
   plain web page could not call these endpoints.

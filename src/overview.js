@@ -11,17 +11,23 @@
   const summary = document.getElementById("summary");
   const notice = document.getElementById("notice");
   const cards = document.getElementById("cards");
+  const myBookings = document.getElementById("my-bookings");
   const refreshButton = document.getElementById("refresh");
   const portalLink = document.getElementById("portal-link");
+
+  const PERSON_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/></svg>';
 
   const state = {
     pins: [],
     session: null,
     webAddress: cfg.portal.webAddress,
     model: null,
+    myModel: null,
     loading: false,
     error: null,
     eventsError: null,
+    myBookingsError: null,
     updatedAt: null,
   };
 
@@ -80,29 +86,44 @@
 
   async function load() {
     const session = currentSession();
-    if (!state.pins.length || session.status !== "ok") {
+    if (session.status !== "ok") {
       state.loading = false;
       state.model = null;
+      state.myModel = null;
       state.error = null;
+      state.eventsError = null;
+      state.myBookingsError = null;
       render();
       return;
     }
 
+    const hasPins = state.pins.length > 0;
     state.loading = true;
     state.error = null;
     state.eventsError = null;
+    state.myBookingsError = null;
     render();
 
     try {
-      const [bookingsResult, eventsResult] = await Promise.allSettled([
-        fetchBookings(session),
-        fetchEvents(session),
+      const [myResult, bookingsResult, eventsResult] = await Promise.allSettled([
+        fetchMyBookings(session),
+        hasPins ? fetchBookings(session) : Promise.resolve([]),
+        hasPins ? fetchEvents(session) : Promise.resolve([]),
       ]);
-      if (bookingsResult.status === "rejected") throw bookingsResult.reason;
 
-      const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
-      state.eventsError = eventsResult.status === "rejected" ? eventsResult.reason : null;
-      state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events);
+      state.myBookingsError = myResult.status === "rejected" ? myResult.reason : null;
+      state.myModel =
+        myResult.status === "fulfilled" ? O.buildMyBookings(myResult.value, new Date()) : null;
+
+      if (hasPins) {
+        if (bookingsResult.status === "rejected") throw bookingsResult.reason;
+        const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
+        state.eventsError = eventsResult.status === "rejected" ? eventsResult.reason : null;
+        state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events);
+      } else {
+        state.model = null;
+      }
+
       state.updatedAt = new Date();
       state.webAddress = session.webAddress;
     } catch (error) {
@@ -130,7 +151,39 @@
     if (endpoint === "fullCalendarBookings") params.set("showAll", "");
 
     const url = `${U.apiBaseUrl(session.webAddress)}/en/bookings/${endpoint}?${params.toString()}`;
+    const payload = await fetchJson(session, url);
+    if (!Array.isArray(payload)) throw new Error("Unexpected calendar response.");
+    return payload;
+  }
 
+  async function fetchMyBookings(session) {
+    const { start, end } = O.rangeFor(new Date());
+    const base = U.apiBaseUrl(session.webAddress);
+    const records = [];
+    let page = 1;
+
+    while (true) {
+      const params = new URLSearchParams({
+        from_Booking_FromTime: O.toQueryTimestamp(start),
+        to_Booking_FromTime: O.toQueryTimestamp(end),
+        orderBy: "FromTime",
+        dir: "0",
+        size: "100",
+        page: String(page),
+      });
+      const payload = await fetchJson(session, `${base}/api/public/bookings/my?${params.toString()}`);
+      if (!payload || !Array.isArray(payload.Records)) {
+        throw new Error("Unexpected bookings response.");
+      }
+      records.push(...payload.Records);
+      if (!payload.HasNextPage || page >= 20) break;
+      page += 1;
+    }
+
+    return records;
+  }
+
+  async function fetchJson(session, url) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), cfg.api.timeoutMs || 15000);
     try {
@@ -153,9 +206,7 @@
       }
       if (!response.ok) throw new Error(`The portal returned HTTP ${response.status}.`);
 
-      const payload = await response.json();
-      if (!Array.isArray(payload)) throw new Error("Unexpected calendar response.");
-      return payload;
+      return await response.json();
     } catch (error) {
       if (error.name === "AbortError") throw new Error("The request timed out.");
       throw error;
@@ -175,21 +226,36 @@
 
     summary.textContent = summaryText(session);
     renderNotice(session);
+    renderMyBookings(session);
     renderCards(session);
   }
 
+  function updatedSuffix() {
+    if (!state.updatedAt) return "";
+    return ` · updated ${state.updatedAt.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })}`;
+  }
+
   function summaryText(session) {
-    if (!state.pins.length) return "Pin a resource in the portal's Filters menu to see its bookings here.";
-    if (session.status !== "ok") return `${plural(state.pins.length, "pinned resource")} · not connected`;
+    const updated = updatedSuffix();
+
+    if (session.status !== "ok") {
+      return state.pins.length
+        ? `${plural(state.pins.length, "pinned resource")} · not connected`
+        : "Not connected to the members portal";
+    }
+
+    if (!state.pins.length) {
+      if (state.myBookingsError) return "Couldn't load your bookings.";
+      if (!state.myModel) return "Loading your bookings…";
+      return `${plural(state.myModel.count, "booking")} of yours in the next 14 days${updated}`;
+    }
+
     if (!state.model) return "Loading bookings…";
 
-    const updated = state.updatedAt
-      ? ` · updated ${state.updatedAt.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}`
-      : "";
     const parts = [
       plural(state.pins.length, "pinned resource"),
       plural(state.model.bookingCount, "booking"),
@@ -199,11 +265,6 @@
   }
 
   function renderNotice(session) {
-    if (!state.pins.length) {
-      hideNotice();
-      return;
-    }
-
     if (session.status === "missing") {
       showNotice({
         title: "Connect to the members portal",
@@ -238,12 +299,13 @@
       return;
     }
 
-    if (state.eventsError) {
+    const warnings = [];
+    if (state.myBookingsError) warnings.push("your own bookings");
+    if (state.eventsError) warnings.push("workshop reservations");
+    if (warnings.length) {
       showNotice({
-        title: "Couldn't load workshops",
-        message: `Bookings are shown, but workshop reservations may be missing. ${state.eventsError.message}`,
-        linkLabel: "Open members portal ↗",
-        href: `${cfg.portal.origin}/`,
+        title: "Some data couldn't load",
+        message: `Showing the rest of the overview; ${warnings.join(" and ")} may be missing.`,
         warning: true,
       });
       return;
@@ -278,6 +340,63 @@
   function hideNotice() {
     notice.hidden = true;
     notice.replaceChildren();
+  }
+
+  function renderMyBookings(session) {
+    myBookings.replaceChildren();
+    if (session.status === "ok") myBookings.appendChild(myBookingsCard());
+  }
+
+  function myBookingsCard() {
+    const article = document.createElement("article");
+    article.className = "card my-bookings-card";
+
+    const head = document.createElement("div");
+    head.className = "card-head";
+
+    const icon = document.createElement("div");
+    icon.className = "resource-icon my-bookings-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = PERSON_ICON;
+
+    const titles = document.createElement("div");
+    titles.className = "card-titles";
+    const heading = document.createElement("h2");
+    heading.textContent = "My bookings";
+    const subtitle = document.createElement("p");
+    subtitle.className = "card-subtitle";
+    if (state.myBookingsError) {
+      subtitle.textContent = "Across every resource · unavailable";
+    } else if (state.myModel) {
+      subtitle.textContent = `Across every resource · ${plural(state.myModel.count, "booking")}`;
+    } else {
+      subtitle.textContent = "Across every resource";
+    }
+    titles.append(heading, subtitle);
+    head.append(icon, titles);
+    article.appendChild(head);
+
+    if (state.myBookingsError) {
+      article.appendChild(cardMessage("Couldn't load your bookings."));
+    } else if (!state.myModel) {
+      article.appendChild(cardMessage("Loading your bookings…"));
+    } else if (!state.myModel.sections.length) {
+      article.appendChild(cardMessage("No bookings in the next 14 days."));
+    } else {
+      const list = document.createElement("div");
+      list.className = "booking-list";
+      for (const section of state.myModel.sections) list.appendChild(dayRow(section));
+      article.appendChild(list);
+    }
+
+    return article;
+  }
+
+  function cardMessage(text) {
+    const element = document.createElement("p");
+    element.className = "card-empty";
+    element.textContent = text;
+    return element;
   }
 
   function renderCards(session) {

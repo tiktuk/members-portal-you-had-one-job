@@ -21,11 +21,12 @@ It does five things:
    jumping to the first resource of the whole type.
 3. **Pinned resources overview.** A standalone page shows every pinned resource
    as a card with its bookings and workshop reservations for the next 14 days,
-   grouped by day like the widgets in the Always in Motion dashboard. Workshops
-   appear with a *Reserved* badge and can be expanded for details. Open the page
-   from **Overview** in the *Pinned* header of the Filters menu or from the
-   toolbar popup. Each card links back to the single-resource calendar and can
-   unpin the resource.
+   grouped by day like the widgets in the Always in Motion dashboard. A
+   **My bookings** card above them lists only your own bookings across every
+   resource. Workshops appear with a *Reserved* badge and can be expanded for
+   details. Open the page from **Overview** in the *Pinned* header of the
+   Filters menu or from the toolbar popup. Each card links back to the
+   single-resource calendar and can unpin the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -135,6 +136,12 @@ calendar and the web app: an `08:00Z` booking shows at 09:00 in Berlin, and a
 wall-clock value (`11:00Z`) and prints it without conversion, so its workshop
 time is an hour early. The page refreshes every minute while it is visible and
 can unpin resources without leaving the page.
+
+The **My bookings** card fetches `/api/public/bookings/my` with the same token
+and date window, follows `HasNextPage`, skips cancelled bookings, and shows the
+resource name for each row. That endpoint returns naive local `FromTime`/
+`ToTime` values, so they are used as-is (no timezone conversion). It loads even
+when nothing is pinned.
 
 Two scripts do the work:
 

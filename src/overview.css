@@ -117,6 +117,18 @@ h1 {
   gap: 1rem;
 }
 
+.my-bookings {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.resource-icon.my-bookings-icon {
+  background: rgba(25, 135, 84, 0.12);
+  color: #198754;
+}
+
 .card {
   min-width: 0;
   padding: 1.1rem 1.15rem 1.15rem;
@@ -179,6 +191,10 @@ h1 {
 @media (prefers-color-scheme: dark) {
   .resource-icon.type-machines {
     color: #ffa94d;
+  }
+
+  .resource-icon.my-bookings-icon {
+    color: #63e6be;
   }
 
   .badge-event {
@@ -428,6 +444,7 @@ h1 {
 }
 
 .empty-state {
+  grid-column: 1 / -1;
   padding: 3rem 1rem;
   border: 1px dashed var(--line);
   border-radius: var(--radius);
