@@ -107,6 +107,9 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   resource's group (`pinnedGroup()` in `content.js`), so the calendar returns to
   the same category instead of the first resource of the whole type. The group
   comes from the session pin, then the cached resource list, then the URL.
+- The banner is wrapped in a `.container` div (`nxplus-pinned-banner-wrap`) so
+  it lines up with the portal's calendar container instead of spanning the full
+  `<main>`. `ensurePinnedBanner` wraps a banner left over from an older version.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts

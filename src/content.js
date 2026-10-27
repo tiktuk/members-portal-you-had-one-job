@@ -20,6 +20,7 @@
   const DOCK_ID = "nxplus-dock-button";
   const SHEET_ID = "nxplus-sheet";
   const PINNED_BANNER_ID = "nxplus-pinned-banner";
+  const PINNED_BANNER_WRAP_ID = "nxplus-pinned-banner-wrap";
   const DEFAULT_SETTINGS = {
     calendarDefault: true,
     navMenu: true,
@@ -751,6 +752,7 @@
     const info = U.parseBookingPath(location.pathname);
     const pinnedId = currentPinnedId();
     if (!info || !pinnedId) {
+      document.getElementById(PINNED_BANNER_WRAP_ID)?.remove();
       existing?.remove();
       return;
     }
@@ -759,6 +761,7 @@
     if (!main) return;
 
     let banner = existing;
+    let wrap = document.getElementById(PINNED_BANNER_WRAP_ID);
     if (!banner) {
       banner = document.createElement("div");
       banner.id = PINNED_BANNER_ID;
@@ -767,8 +770,22 @@
         '<span class="nxplus-pinned-badge">Pinned</span>' +
         '<span class="nxplus-pinned-text">Showing only <strong class="nxplus-pinned-name"></strong></span>' +
         '<a class="nxplus-pinned-show-all" href="#"></a>';
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = PINNED_BANNER_WRAP_ID;
+        wrap.className = "container";
+      }
+      wrap.appendChild(banner);
+    } else if (!wrap) {
+      // Upgrading from a banner that was prepended straight to <main>.
+      wrap = document.createElement("div");
+      wrap.id = PINNED_BANNER_WRAP_ID;
+      wrap.className = "container";
+      banner.parentElement?.insertBefore(wrap, banner);
+      wrap.appendChild(banner);
     }
-    if (!main.contains(banner)) main.prepend(banner);
+    // Match the width of the portal's calendar container.
+    if (wrap && !main.contains(wrap)) main.prepend(wrap);
 
     const session = readPinnedSession();
     const resource = findResource(pinnedId);
