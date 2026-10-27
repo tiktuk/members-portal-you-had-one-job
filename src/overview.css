@@ -250,18 +250,6 @@ h1 {
   flex: 0 0 auto;
 }
 
-.card-link {
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.card-link:hover {
-  text-decoration: underline;
-}
-
 .unpin {
   display: inline-flex;
   align-items: center;
@@ -327,6 +315,17 @@ h1 {
   min-width: 0;
   font-size: 0.875rem;
   overflow-wrap: anywhere;
+}
+
+.card-title-link,
+.booking-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.card-title-link:hover,
+.booking-link:hover {
+  text-decoration: underline;
 }
 
 .badge {

@@ -120,6 +120,7 @@
         const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
         state.eventsError = eventsResult.status === "rejected" ? eventsResult.reason : null;
         state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events);
+        O.markOwnedBookings(state.model, state.myModel);
       } else {
         state.model = null;
       }
@@ -362,7 +363,14 @@
     const titles = document.createElement("div");
     titles.className = "card-titles";
     const heading = document.createElement("h2");
-    heading.textContent = "My bookings";
+    const titleLink = document.createElement("a");
+    titleLink.className = "card-title-link";
+    titleLink.href = `${cfg.portal.origin}/${state.webAddress}/user/activity/bookings`;
+    titleLink.target = "_blank";
+    titleLink.rel = "noopener";
+    titleLink.title = "Open My bookings in the portal";
+    titleLink.textContent = "My bookings";
+    heading.appendChild(titleLink);
     const subtitle = document.createElement("p");
     subtitle.className = "card-subtitle";
     if (state.myBookingsError) {
@@ -437,7 +445,14 @@
     const titles = document.createElement("div");
     titles.className = "card-titles";
     const heading = document.createElement("h2");
-    heading.textContent = card.pin.name || `Resource ${card.pin.id}`;
+    const titleLink = document.createElement("a");
+    titleLink.className = "card-title-link";
+    titleLink.href = calendarHref(card.pin);
+    titleLink.target = "_blank";
+    titleLink.rel = "noopener";
+    titleLink.title = `Open ${card.pin.name || "resource"} in the calendar`;
+    titleLink.textContent = card.pin.name || `Resource ${card.pin.id}`;
+    heading.appendChild(titleLink);
     const subtitle = document.createElement("p");
     subtitle.className = "card-subtitle";
     subtitle.textContent = card.groupLabel || typeLabel(card.pin.type);
@@ -445,14 +460,6 @@
 
     const actions = document.createElement("div");
     actions.className = "card-actions";
-
-    const link = document.createElement("a");
-    link.className = "card-link";
-    link.href = calendarHref(card.pin);
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Calendar ↗";
-    link.title = `Open ${card.pin.name || "resource"} in the calendar`;
 
     const unpin = document.createElement("button");
     unpin.type = "button";
@@ -463,7 +470,7 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
     unpin.addEventListener("click", () => unpinResource(card.pin));
 
-    actions.append(link, unpin);
+    actions.append(unpin);
     head.append(icon, titles, actions);
     article.appendChild(head);
 
@@ -507,13 +514,29 @@
     const entry = document.createElement("div");
     entry.className = "booking";
 
-    const who = document.createElement("span");
-    who.className = "booking-who";
+    const href = booking.mine ? bookingHref(booking) : "";
+    const who = document.createElement(href ? "a" : "span");
+    who.className = `booking-who${href ? " booking-link" : ""}`;
+    if (href) {
+      who.href = href;
+      who.target = "_blank";
+      who.rel = "noopener";
+      who.title = "Open booking in the portal";
+    }
     who.textContent = booking.coworker;
 
     entry.append(timeLabel(booking), who);
     if (booking.tentative) entry.appendChild(badge("Tentative"));
     return entry;
+  }
+
+  function bookingHref(booking) {
+    if (!booking.id || !booking.resourceId) return "";
+    const params = new URLSearchParams({
+      id: booking.id,
+      resource_id: booking.resourceId,
+    });
+    return `${cfg.portal.origin}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
   }
 
   function eventEntry(booking) {

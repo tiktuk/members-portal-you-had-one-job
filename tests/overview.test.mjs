@@ -110,6 +110,7 @@ test("buildModel keeps only pinned resources and upcoming bookings", () => {
   );
   assert.equal(model.cards[1].bookings[0].id, "5");
   assert.equal(model.cards[1].groupLabel, "Machines: Laser Cutting");
+  assert.equal(model.cards[0].bookings[0].mine, false);
 });
 
 test("buildModel groups bookings into day sections with web-app labels", () => {
@@ -333,6 +334,24 @@ test("buildMyBookings groups personal bookings by day with resource names", () =
   );
   assert.equal(model.items[0].coworker, 'GS 6090 PR - "Laser Catthi"');
   assert.equal(model.items[1].resourceName, "CNC Routermax 1325 Deluxe");
+  assert.equal(model.items[0].mine, true);
+});
+
+test("markOwnedBookings marks only the member's own pinned bookings", () => {
+  const O = loadOverview();
+  const model = O.buildModel(
+    PINS,
+    [
+      record({ id: 1 }),
+      record({ id: 2, start: "2026-10-28T10:00Z", end: "2026-10-28T12:00Z" }),
+    ],
+    NOW,
+  );
+  const myModel = O.buildMyBookings([myRecord({ Id: 1 })], NOW);
+  O.markOwnedBookings(model, myModel);
+
+  assert.equal(model.cards[0].bookings.find((item) => item.id === "1").mine, true);
+  assert.equal(model.cards[0].bookings.find((item) => item.id === "2").mine, false);
 });
 
 test("buildMyBookings keeps an ongoing booking and de-duplicates ids", () => {

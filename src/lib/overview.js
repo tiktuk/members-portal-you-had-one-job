@@ -197,6 +197,7 @@
         : String(record.coworkerFullName || "—"),
       tentative: !isEvent && Boolean(record.tentative),
       event: isEvent,
+      mine: false,
       description: isEvent ? String(record.shortDescription || "") : "",
       url: isEvent ? String(record.url || "") : "",
       stamp: start.stamp,
@@ -314,6 +315,7 @@
       coworker: resourceName,
       tentative: Boolean(record.Tentative),
       event: false,
+      mine: true,
       description: "",
       url: "",
       stamp: start.stamp,
@@ -343,11 +345,25 @@
     return { items, sections: groupByDay(items, today), count: items.length };
   }
 
+  /**
+   * Marks the pinned-card rows that also appear in the member's own bookings.
+   * Only those have a booking page the member can open; other members'
+   * bookings are not editable through the portal.
+   */
+  function markOwnedBookings(model, myModel) {
+    const mineIds = new Set((myModel?.items || []).map((item) => item.id));
+    for (const card of model?.cards || []) {
+      for (const item of card.bookings) item.mine = mineIds.has(item.id);
+    }
+    return model;
+  }
+
   globalThis.NXPlusOverview = {
     LOOKAHEAD_DAYS,
     buildModel,
     buildMyBookings,
     dayLabel,
+    markOwnedBookings,
     normalizePins,
     parseTimestamp,
     rangeFor,

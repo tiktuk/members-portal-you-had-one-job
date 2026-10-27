@@ -131,8 +131,8 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `overview.html` is a standalone extension page (opened from the popup's
   **Overview →** link and from **Overview** in the pinned header of the Filters
   menu). It renders one card per pin, mirroring the Django web app's dashboard
-  widgets: icon, name, group, day-grouped bookings and resource events, and a
-  link back to the single-resource calendar.
+  widgets: icon, name, group, day-grouped bookings and resource events. The card
+  title links to the single-resource calendar; the × button unpins it.
 - Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
   therefore mirrors a live session into `chrome.storage.local`
   (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
@@ -166,6 +166,14 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   local, so no conversion is needed.
 - The widget loads independently of pins, so the page still shows personal
   bookings when there are no pinned resources.
+- `markOwnedBookings` marks pinned rows that also appear in
+  `/api/public/bookings/my` (`mine: true`). Only those titles link to
+  `/<webAddress>/public/bookings/edit?id=<bookingId>&resource_id=<resourceId>`;
+  the portal fills in `booking`, `start` and `end` from the id. Do not link
+  other members' bookings: the edit page cannot fetch them and falls back to a
+  new-booking form (`Id: 0`), which is misleading.
+- The **My bookings** card title links to
+  `/<webAddress>/user/activity/bookings` (the portal's My Bookings page).
 - Extension pages bypass CORS through the manifest host permission. The space
   host only allows `https://members.motionlab.berlin` as a CORS origin, so a
   plain web page could not call these endpoints.

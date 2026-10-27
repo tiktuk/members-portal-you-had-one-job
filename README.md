@@ -23,10 +23,12 @@ It does five things:
    as a card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
    **My bookings** card above them lists only your own bookings across every
-   resource. Workshops appear with a *Reserved* badge and can be expanded for
-   details. Open the page from **Overview** in the *Pinned* header of the
-   Filters menu or from the toolbar popup. Each card links back to the
-   single-resource calendar and can unpin the resource.
+   resource. Your booking titles link to their portal booking page, and the
+   **My bookings** title links to the portal's My Bookings page. Workshops
+   appear with a *Reserved* badge and can be expanded for details. Open the page
+   from **Overview** in the *Pinned* header of the Filters menu or from the
+   toolbar popup. Each card's title links to the single-resource calendar, and
+   its × button unpins the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -142,6 +144,13 @@ and date window, follows `HasNextPage`, skips cancelled bookings, and shows the
 resource name for each row. That endpoint returns naive local `FromTime`/
 `ToTime` values, so they are used as-is (no timezone conversion). It loads even
 when nothing is pinned.
+
+Your own booking titles link to
+`/<webAddress>/public/bookings/edit?id=…&resource_id=…` (the portal fills in the
+rest), and the **My bookings** title links to
+`/<webAddress>/user/activity/bookings`. Other members' bookings are shown as
+plain text: the portal's edit page only opens bookings that belong to the
+signed-in member.
 
 Two scripts do the work:
 
