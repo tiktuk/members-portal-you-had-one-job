@@ -20,7 +20,11 @@
   const DOCK_ID = "nxplus-dock-button";
   const SHEET_ID = "nxplus-sheet";
   const PINNED_BANNER_ID = "nxplus-pinned-banner";
-  const DEFAULT_SETTINGS = { calendarDefault: true, navMenu: true };
+  const DEFAULT_SETTINGS = {
+    calendarDefault: true,
+    navMenu: true,
+    geoBlockPrompt: cfg.geo?.blockPrompt !== false,
+  };
   const hasExtensionApis = typeof chrome !== "undefined" && Boolean(chrome.runtime && chrome.runtime.id);
 
   const FUNNEL_ICON =
@@ -64,6 +68,9 @@
     if (hasExtensionApis) {
       state.settings = await loadSettings();
       writeCachedSettings(state.settings);
+      // The page script boots from the (possibly older) cached settings; hand it
+      // the stored ones before the portal's bundle runs.
+      notifyPage(state.settings);
       chrome.storage.onChanged.addListener(onStorageChanged);
     }
     state.pins = await loadPins();

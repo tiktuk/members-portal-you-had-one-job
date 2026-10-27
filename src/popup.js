@@ -3,10 +3,15 @@
   "use strict";
 
   const cfg = NXPlusConfig;
-  const DEFAULTS = { calendarDefault: true, navMenu: true };
+  const DEFAULTS = {
+    calendarDefault: true,
+    navMenu: true,
+    geoBlockPrompt: cfg.geo?.blockPrompt !== false,
+  };
 
   const calendarToggle = document.getElementById("calendar-default");
   const navToggle = document.getElementById("nav-menu");
+  const geoToggle = document.getElementById("geo-block");
   const refreshButton = document.getElementById("refresh");
   const status = document.getElementById("groups-status");
 
@@ -16,11 +21,15 @@
     const settings = { ...DEFAULTS, ...((await get(cfg.storageKeys.settings)) || {}) };
     calendarToggle.checked = settings.calendarDefault !== false;
     navToggle.checked = settings.navMenu !== false;
+    geoToggle.checked = settings.geoBlockPrompt !== false;
 
     calendarToggle.addEventListener("change", () =>
       saveSettings({ calendarDefault: calendarToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
+    geoToggle.addEventListener("change", () =>
+      saveSettings({ geoBlockPrompt: geoToggle.checked }),
+    );
 
     refreshButton.addEventListener("click", async () => {
       refreshButton.disabled = true;

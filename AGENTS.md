@@ -28,7 +28,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
-- `src/popup.*` — toolbar settings UI (two toggles, group cache status).
+- `src/popup.*` — toolbar settings UI (three toggles, group cache status).
 - `tests/` — `node --test` suites plus the browser fixture.
 
 ## Portal facts this relies on
@@ -49,8 +49,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   so it prompts on every visit. `page.js` replaces
   `Navigator.prototype.geolocation` with an `undefined` getter before the app
   boots, which sends the provider down its "not supported" branch; the portal
-  has no CSP header, and nothing else in its bundle touches the API. Config
-  flag: `geo.blockPrompt`.
+  has no CSP header, and nothing else in its bundle touches the API. Controlled
+  by the popup's *Block location prompt* toggle (`settings.geoBlockPrompt`,
+  default `config.geo.blockPrompt`); `page.js` keeps the original
+  `Navigator.prototype` descriptor so turning it off restores the real API.
 - Resource groups come from `GET https://<webAddress>.spaces.nexudus.com/api/public/resources/published/details`
   (`{ Resources: [{ SystemResourceType, GroupName, ... }] }`), authorised with
   the `AUTH_TOKEN` cookie the portal itself sets (readable JS cookie).

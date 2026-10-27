@@ -36,7 +36,8 @@
      * The portal asks for the browser location on every page load (it feeds the
      * AI assistant). Safari only remembers a denial for a day, so the prompt
      * comes back each visit. Hiding `navigator.geolocation` makes the portal
-     * take its "not supported" branch instead. Set to false to allow it.
+     * take its "not supported" branch instead. This is only the default for the
+     * popup's "Block location prompt" toggle (`geoBlockPrompt`).
      */
     geo: { blockPrompt: true },
 

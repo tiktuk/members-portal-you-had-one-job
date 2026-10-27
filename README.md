@@ -23,9 +23,11 @@ It does four things:
 4. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
-   makes the portal skip the request instead of prompting.
+   makes the portal skip the request instead of prompting. The popup's *Block
+   location prompt* toggle turns this off.
 
-Both toggles live in the toolbar popup; pins are managed from the menu itself.
+All three toggles live in the toolbar popup; pins are managed from the menu
+itself.
 
 ```
 Bookings ▾   Filters ▾   Store ▾   Memberships   Community
@@ -69,7 +71,9 @@ same way if you want it on a phone.
 
 ## Configuration
 
-Everything tunable lives in `src/lib/config.js`:
+Everything tunable lives in `src/lib/config.js`. The popup's toggles are stored
+in `chrome.storage.local`; `geo.blockPrompt` below only seeds the *Block
+location prompt* toggle.
 
 | Key | Meaning |
 | --- | --- |
@@ -77,7 +81,7 @@ Everything tunable lives in `src/lib/config.js`:
 | `nav.stripGroupPrefix` | Show `3D printing` instead of `Machines: 3D printing`. |
 | `nav.hideEmptyTypes` | Hide resource types that have no groups. |
 | `defaultView` | View used by the injected links (`calendar`). |
-| `geo.blockPrompt` | Hide `navigator.geolocation` so the portal stops asking for the location (`true`). |
+| `geo.blockPrompt` | Default for the popup's *Block location prompt* toggle: hide `navigator.geolocation` so the portal stops asking for the location (`true`). |
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |

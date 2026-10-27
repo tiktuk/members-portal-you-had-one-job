@@ -25,7 +25,7 @@
   const PINNED_KEY = config.storageKeys?.pinnedSession || "nxplus:pinned-resource";
 
   const script = document.currentScript;
-  let settings = { calendarDefault: true };
+  let settings = { calendarDefault: true, geoBlockPrompt: config.geo?.blockPrompt !== false };
   try {
     settings = { ...settings, ...JSON.parse(script?.dataset?.config || "{}") };
   } catch {
@@ -38,6 +38,7 @@
     const data = event.data;
     if (!data || data.type !== "nxplus:settings") return;
     settings = { ...settings, ...data.settings };
+    applyGeoBlock(settings.geoBlockPrompt !== false);
   });
 
   /* ------------------------------------------------------------------ *
@@ -49,16 +50,32 @@
   // assistant). Safari only keeps a denial for a day, so the dialog shows up
   // again on every visit. Hide the API before the app boots: the provider then
   // takes its "not supported" branch and no permission dialog appears.
-  if (config.geo?.blockPrompt !== false) {
+  // Controlled by the popup's "Block location prompt" toggle.
+  let geolocationDescriptor;
+  let geoBlocked = false;
+
+  function applyGeoBlock(block) {
+    if (block === geoBlocked) return;
     try {
-      Object.defineProperty(Navigator.prototype, "geolocation", {
-        configurable: true,
-        get: () => undefined,
-      });
+      if (block) {
+        geolocationDescriptor ??= Object.getOwnPropertyDescriptor(Navigator.prototype, "geolocation");
+        Object.defineProperty(Navigator.prototype, "geolocation", {
+          configurable: true,
+          get: () => undefined,
+        });
+      } else if (geolocationDescriptor) {
+        Object.defineProperty(Navigator.prototype, "geolocation", geolocationDescriptor);
+      } else {
+        // The API was never on the prototype; just drop the shim.
+        delete Navigator.prototype.geolocation;
+      }
+      geoBlocked = block;
     } catch {
       /* ignore */
     }
   }
+
+  applyGeoBlock(settings.geoBlockPrompt !== false);
 
   /* ------------------------------------------------------------------ *
    * Pinned resource (single-resource calendar)
