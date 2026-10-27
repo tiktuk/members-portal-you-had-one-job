@@ -23,7 +23,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
-- `src/lib/overview.js` — calendar payload → pinned-overview model (day
+- `src/lib/overview.js` — bookings/events payload → pinned-overview model (day
   sections, timestamp parsing, icons); loaded by the page and the tests.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins, pinned banner, settings.
@@ -130,8 +130,8 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `overview.html` is a standalone extension page (opened from the popup's
   **Overview →** link and from **Overview** in the pinned header of the Filters
   menu). It renders one card per pin, mirroring the Django web app's dashboard
-  widgets: icon, name, group, day-grouped bookings and a link back to the
-  single-resource calendar.
+  widgets: icon, name, group, day-grouped bookings and resource events, and a
+  link back to the single-resource calendar.
 - Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
   therefore mirrors a live session into `chrome.storage.local`
   (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
@@ -139,18 +139,25 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   not been opened since install; if it says the session expired, open the
   portal to renew it.
 - Bookings come from `GET https://<webAddress>.spaces.nexudus.com/en/bookings/fullCalendarBookings?showAll=&start=…&end=…`
+  and resource events from `/en/bookings/fullCalendarEvents?start=…&end=…`, both
   with the bearer token, `x-nx-app-name: portal` and `X-Use-Timezone: true`.
-  The endpoint returns every booking in the range; the page filters by pinned
+  The endpoints return every record in the range; the page filters by pinned
   `resourceId`. Do not add `resourceType` unless you also handle pins whose
   type is missing.
+- Events include space-wide happenings with `resourceId: 0`; only events whose
+  `resourceId` matches a pin are merged. Their `shortDescription` and
+  portal-relative `url` feed the expandable *Reserved* row.
+- Both `/en/...` feeds return UTC instants: `lib/overview.js::parseTimestamp`
+  converts them to the browser timezone. An `08:00Z` booking shows at 09:00 and
+  a `10:00Z` workshop at 11:00 in Berlin, matching the portal calendar and the
+  web app. Do not trust the `ignoreTimezone: true` flag on these payloads.
+- The REST `/api/bookings/fullCalendarEvents` endpoint used by the web app/CLI
+  returns a different wall-clock value (`11:00Z` for that workshop). The CLI's
+  `calendar_event_time` converts it again and prints 10:00, an hour early. This
+  page uses the portal's `/en/...` endpoint instead.
 - Extension pages bypass CORS through the manifest host permission. The space
   host only allows `https://members.motionlab.berlin` as a CORS origin, so a
-  plain web page could not call this endpoint.
-- Times are UTC instants despite the `ignoreTimezone: true` field. The portal
-  maps them with `DateTime.fromISO(value, { zone: "utc" })` and FullCalendar
-  renders them in the browser's timezone (a `08:00Z` booking shows as `09:00`
-  in Berlin). `lib/overview.js::parseTimestamp` does the same; do not read only
-  the literal date/time parts, which shifts every booking by the UTC offset.
+  plain web page could not call these endpoints.
 - The lookahead is 14 days, like the web app. Day labels mirror
   `short_day_label`: `Today`, then a short weekday for 1–6 days ahead, then
   `2 Nov`. Auto-refresh is 60 s while the page is visible.

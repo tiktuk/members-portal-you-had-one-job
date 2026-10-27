@@ -20,10 +20,12 @@ It does five things:
    group, so *Show all CNC Machining* keeps the category in view instead of
    jumping to the first resource of the whole type.
 3. **Pinned resources overview.** A standalone page shows every pinned resource
-   as a card with its bookings for the next 14 days, grouped by day like the
-   widgets in the Always in Motion dashboard. Open it from **Overview** in the
-   *Pinned* header of the Filters menu or from the toolbar popup. Each card
-   links back to the single-resource calendar and can unpin the resource.
+   as a card with its bookings and workshop reservations for the next 14 days,
+   grouped by day like the widgets in the Always in Motion dashboard. Workshops
+   appear with a *Reserved* badge and can be expanded for details. Open the page
+   from **Overview** in the *Pinned* header of the Filters menu or from the
+   toolbar popup. Each card links back to the single-resource calendar and can
+   unpin the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -118,15 +120,21 @@ space's API lives on its own subdomain, `https://<webAddress>.spaces.nexudus.com
   `access_token`), which is what lets the extension fetch resource groups
   without a background service worker.
 
-The pinned overview page fetches
-`GET /en/bookings/fullCalendarBookings?showAll=&start=…&end=…` from the space
-host with that same bearer token. The response contains every booking in the
-range (with `resourceId`), so the page keeps only the pinned resources and
-groups the next 14 days into day sections. The payload's `start`/`end` are UTC
-instants (the portal maps them with `DateTime.fromISO(value, { zone: "utc" })`),
-so the page renders them in the browser's timezone exactly like the calendar
-does. The page refreshes every minute while it is visible and can unpin
-resources without leaving the page.
+The pinned overview page fetches `/en/bookings/fullCalendarBookings` (bookings)
+and `/en/bookings/fullCalendarEvents` (workshops and other resource events) from
+the space host with that same bearer token. Both payloads contain every record
+in the range with a `resourceId`, so the page keeps the pinned resources and
+groups the next 14 days into day sections; events get a *Reserved* badge and an
+expandable description.
+
+Both feeds return UTC instants, despite the `ignoreTimezone: true` flag on the
+events. The page converts them to the browser's timezone, matching the portal
+calendar and the web app: an `08:00Z` booking shows at 09:00 in Berlin, and a
+`10:00Z` workshop at 11:00. The CLI uses the REST
+`/api/bookings/fullCalendarEvents` endpoint, which returns a different
+wall-clock value (`11:00Z`) and prints it without conversion, so its workshop
+time is an hour early. The page refreshes every minute while it is visible and
+can unpin resources without leaving the page.
 
 Two scripts do the work:
 

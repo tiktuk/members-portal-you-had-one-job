@@ -21,6 +21,7 @@
     model: null,
     loading: false,
     error: null,
+    eventsError: null,
     updatedAt: null,
   };
 
@@ -89,11 +90,19 @@
 
     state.loading = true;
     state.error = null;
+    state.eventsError = null;
     render();
 
     try {
-      const records = await fetchBookings(session);
-      state.model = O.buildModel(state.pins, records, new Date());
+      const [bookingsResult, eventsResult] = await Promise.allSettled([
+        fetchBookings(session),
+        fetchEvents(session),
+      ]);
+      if (bookingsResult.status === "rejected") throw bookingsResult.reason;
+
+      const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
+      state.eventsError = eventsResult.status === "rejected" ? eventsResult.reason : null;
+      state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events);
       state.updatedAt = new Date();
       state.webAddress = session.webAddress;
     } catch (error) {
@@ -105,13 +114,22 @@
   }
 
   async function fetchBookings(session) {
+    return fetchCalendar(session, "fullCalendarBookings");
+  }
+
+  async function fetchEvents(session) {
+    return fetchCalendar(session, "fullCalendarEvents");
+  }
+
+  async function fetchCalendar(session, endpoint) {
     const { start, end } = O.rangeFor(new Date());
     const params = new URLSearchParams({
-      showAll: "",
       start: O.toPortalIso(start),
       end: O.toPortalIso(end),
     });
-    const url = `${U.apiBaseUrl(session.webAddress)}/en/bookings/fullCalendarBookings?${params.toString()}`;
+    if (endpoint === "fullCalendarBookings") params.set("showAll", "");
+
+    const url = `${U.apiBaseUrl(session.webAddress)}/en/bookings/${endpoint}?${params.toString()}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), cfg.api.timeoutMs || 15000);
@@ -136,7 +154,7 @@
       if (!response.ok) throw new Error(`The portal returned HTTP ${response.status}.`);
 
       const payload = await response.json();
-      if (!Array.isArray(payload)) throw new Error("Unexpected bookings response.");
+      if (!Array.isArray(payload)) throw new Error("Unexpected calendar response.");
       return payload;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("The request timed out.");
@@ -172,10 +190,12 @@
           hour12: false,
         })}`
       : "";
-    return `${plural(state.pins.length, "pinned resource")} · ${plural(
-      state.model.total,
-      "booking",
-    )} in the next 14 days${updated}`;
+    const parts = [
+      plural(state.pins.length, "pinned resource"),
+      plural(state.model.bookingCount, "booking"),
+    ];
+    if (state.model.eventCount) parts.push(plural(state.model.eventCount, "event"));
+    return `${parts.join(" · ")} in the next 14 days${updated}`;
   }
 
   function renderNotice(session) {
@@ -218,12 +238,23 @@
       return;
     }
 
+    if (state.eventsError) {
+      showNotice({
+        title: "Couldn't load workshops",
+        message: `Bookings are shown, but workshop reservations may be missing. ${state.eventsError.message}`,
+        linkLabel: "Open members portal ↗",
+        href: `${cfg.portal.origin}/`,
+        warning: true,
+      });
+      return;
+    }
+
     hideNotice();
   }
 
-  function showNotice({ title, message, linkLabel, href, error }) {
+  function showNotice({ title, message, linkLabel, href, error, warning }) {
     notice.hidden = false;
-    notice.className = `notice${error ? " error" : ""}`;
+    notice.className = `notice${error ? " error" : warning ? " warning" : ""}`;
     notice.replaceChildren();
 
     const heading = document.createElement("h2");
@@ -320,7 +351,7 @@
     if (!card.sections.length) {
       const empty = document.createElement("p");
       empty.className = "card-empty";
-      empty.textContent = "No bookings in the next 14 days.";
+      empty.textContent = "No bookings or events in the next 14 days.";
       article.appendChild(empty);
       return article;
     }
@@ -346,37 +377,86 @@
     items.className = "day-bookings";
 
     for (const booking of section.bookings) {
-      const entry = document.createElement("div");
-      entry.className = "booking";
-
-      const time = document.createElement("span");
-      time.className = "booking-time";
-      time.textContent = booking.allDay ? "All day" : `${booking.startTime}–${booking.endTime}`;
-
-      const who = document.createElement("span");
-      who.className = "booking-who";
-      who.textContent = booking.coworker;
-
-      entry.append(time, who);
-
-      if (booking.tentative) {
-        entry.appendChild(badge("Tentative"));
-      } else if (booking.event) {
-        entry.appendChild(badge("Reserved"));
-      }
-
-      items.appendChild(entry);
+      items.appendChild(booking.event ? eventEntry(booking) : bookingEntry(booking));
     }
 
     row.append(label, items);
     return row;
   }
 
-  function badge(label) {
+  function bookingEntry(booking) {
+    const entry = document.createElement("div");
+    entry.className = "booking";
+
+    const who = document.createElement("span");
+    who.className = "booking-who";
+    who.textContent = booking.coworker;
+
+    entry.append(timeLabel(booking), who);
+    if (booking.tentative) entry.appendChild(badge("Tentative"));
+    return entry;
+  }
+
+  function eventEntry(booking) {
+    const entry = document.createElement("div");
+    entry.className = "booking booking-event";
+    entry.appendChild(timeLabel(booking));
+
+    const title = document.createElement("span");
+    title.className = "booking-who";
+    title.textContent = booking.coworker;
+
+    if (!booking.description && !booking.url) {
+      entry.append(title, badge("Reserved", "badge-event"));
+      return entry;
+    }
+
+    const details = document.createElement("details");
+    details.className = "event-details";
+
+    const summary = document.createElement("summary");
+    summary.className = "event-summary";
+    summary.append(title, badge("Reserved", "badge-event"));
+
+    const body = document.createElement("div");
+    body.className = "event-body";
+    if (booking.description) {
+      const description = document.createElement("p");
+      description.textContent = booking.description;
+      body.appendChild(description);
+    }
+    if (booking.url) {
+      const link = document.createElement("a");
+      link.href = eventHref(booking.url);
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "View event ↗";
+      body.appendChild(link);
+    }
+
+    details.append(summary, body);
+    entry.appendChild(details);
+    return entry;
+  }
+
+  function timeLabel(booking) {
+    const time = document.createElement("span");
+    time.className = "booking-time";
+    time.textContent = booking.allDay ? "All day" : `${booking.startTime}–${booking.endTime}`;
+    return time;
+  }
+
+  function badge(label, extraClass) {
     const element = document.createElement("span");
-    element.className = "badge";
+    element.className = `badge${extraClass ? ` ${extraClass}` : ""}`;
     element.textContent = label;
     return element;
+  }
+
+  function eventHref(url) {
+    if (!url) return "";
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${cfg.portal.origin}${url.startsWith("/") ? "" : "/"}${url}`;
   }
 
   function calendarHref(pin) {

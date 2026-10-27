@@ -181,6 +181,10 @@ h1 {
     color: #ffa94d;
   }
 
+  .badge-event {
+    color: #ffa94d;
+  }
+
   .resource-icon.type-labs,
   .resource-icon.type-kitchens {
     color: #63e6be;
@@ -319,6 +323,66 @@ h1 {
   white-space: nowrap;
 }
 
+.booking-event {
+  border-left: 2px solid #fd7e14;
+  padding-left: 0.5rem;
+  margin-left: -0.5rem;
+}
+
+.badge-event {
+  background: rgba(253, 126, 20, 0.16);
+  color: #c2410c;
+}
+
+.event-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.event-summary::-webkit-details-marker {
+  display: none;
+}
+
+.event-summary::after {
+  content: "▸";
+  margin-left: 0.3rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.event-details[open] .event-summary::after {
+  content: "▾";
+}
+
+.event-body {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.event-body p {
+  margin: 0 0 0.3rem;
+}
+
+.event-body a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.event-body a:hover {
+  text-decoration: underline;
+}
+
 .empty,
 .card-empty {
   margin: 0;
@@ -342,6 +406,11 @@ h1 {
 .notice.error {
   border-color: var(--danger);
   background: rgba(180, 35, 24, 0.08);
+}
+
+.notice.warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .notice h2 {

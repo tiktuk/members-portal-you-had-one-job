@@ -12,10 +12,10 @@
   const DAY_MS = 24 * 60 * 60 * 1000;
 
   /**
-   * The portal maps the payload's `start`/`end` with
-   * `DateTime.fromISO(value, { zone: "utc" })` and lets the calendar render
-   * them in the browser's timezone. Do the same: parse the instant and read the
-   * local date/time parts.
+   * Both `/en/...` feeds return UTC instants, despite the `ignoreTimezone:
+   * true` flag. The portal calendar and the web app convert them to the space
+   * timezone; read them in the browser's timezone (a `08:00Z` booking shows at
+   * 09:00 and a `10:00Z` workshop at 11:00 in Berlin).
    */
   function parseTimestamp(value) {
     if (typeof value !== "string") return null;
@@ -156,32 +156,47 @@
     return "";
   }
 
-  function normalizeBooking(record, resourceId) {
+  function normalizeItem(record, resourceId, kind) {
     const start = parseTimestamp(record.start);
     const end = parseTimestamp(record.end);
     if (!start || !end) return null;
 
+    const isEvent = kind === "event" || record.event === true;
+    const fallbackId = `${resourceId}-${start.stamp}`;
+
     return {
-      id: record.id != null ? String(record.id) : `${resourceId}-${start.stamp}`,
+      id: isEvent ? `event-${record.id ?? fallbackId}` : String(record.id ?? fallbackId),
       resourceId,
       day: start.day,
       startTime: start.time,
       endTime: end.time,
       allDay: Boolean(record.allDay),
-      coworker: String(record.coworkerFullName || "—"),
-      tentative: Boolean(record.tentative),
-      event: Boolean(record.event),
+      coworker: isEvent
+        ? String(record.title || "Untitled event")
+        : String(record.coworkerFullName || "—"),
+      tentative: !isEvent && Boolean(record.tentative),
+      event: isEvent,
+      description: isEvent ? String(record.shortDescription || "") : "",
+      url: isEvent ? String(record.url || "") : "",
       stamp: start.stamp,
       endStamp: end.stamp,
     };
   }
 
+  function normalizeBooking(record, resourceId) {
+    return normalizeItem(record, resourceId, "booking");
+  }
+
+  function normalizeEvent(record, resourceId) {
+    return normalizeItem(record, resourceId, "event");
+  }
+
   /**
    * Builds one card per pinned resource, mirroring the web app's widgets:
-   * bookings grouped into day sections, only upcoming items inside the
-   * lookahead window, sorted by start time.
+   * bookings and resource events grouped into day sections, only upcoming items
+   * inside the lookahead window, sorted by start time.
    */
-  function buildModel(pins, records, now) {
+  function buildModel(pins, records, now, events = []) {
     const today = dayKey(now);
     const nowStamp = localStamp(now);
     const rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -199,25 +214,30 @@
     for (const pin of normalizePins(pins)) pinsById.set(pin.id, pin);
 
     const byResource = new Map();
-    for (const record of Array.isArray(records) ? records : []) {
-      if (!record || record.resourceId == null) continue;
+    const addItem = (record, normalize) => {
+      if (!record || record.resourceId == null) return;
       const resourceId = String(record.resourceId);
-      if (!pinsById.has(resourceId)) continue;
+      if (!pinsById.has(resourceId)) return;
 
-      const booking = normalizeBooking(record, resourceId);
-      if (!booking) continue;
-      if (booking.endStamp <= nowStamp) continue;
-      if (booking.stamp >= rangeEnd) continue;
+      const item = normalize(record, resourceId);
+      if (!item) return;
+      if (item.endStamp <= nowStamp) return;
+      if (item.stamp >= rangeEnd) return;
 
       let items = byResource.get(resourceId);
       if (!items) {
         items = new Map();
         byResource.set(resourceId, items);
       }
-      if (!items.has(booking.id)) items.set(booking.id, booking);
-    }
+      if (!items.has(item.id)) items.set(item.id, item);
+    };
+
+    for (const record of Array.isArray(records) ? records : []) addItem(record, normalizeBooking);
+    for (const record of Array.isArray(events) ? events : []) addItem(record, normalizeEvent);
 
     let total = 0;
+    let bookingCount = 0;
+    let eventCount = 0;
     const cards = [];
     for (const pin of pinsById.values()) {
       const bookings = [...(byResource.get(pin.id)?.values() || [])].sort(
@@ -237,7 +257,12 @@
         }
       }
 
-      total += bookings.length;
+      for (const booking of bookings) {
+        total += 1;
+        if (booking.event) eventCount += 1;
+        else bookingCount += 1;
+      }
+
       cards.push({
         pin,
         icon: resourceIcon(pin),
@@ -247,7 +272,7 @@
       });
     }
 
-    return { cards, total, today, rangeStart, rangeEnd };
+    return { cards, total, bookingCount, eventCount, today, rangeStart, rangeEnd };
   }
 
   globalThis.NXPlusOverview = {

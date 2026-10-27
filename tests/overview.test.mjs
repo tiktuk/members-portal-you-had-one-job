@@ -53,6 +53,23 @@ function record(overrides) {
     tentative: false,
     event: false,
     allDay: false,
+    ignoreTimezone: true,
+    ...overrides,
+  };
+}
+
+function event(overrides) {
+  return {
+    id: 100,
+    resourceId: 1415309596,
+    title: "Workshop - Introduction to 3-Axis CNC Machining",
+    shortDescription: "Learn how to use the Routermax.",
+    url: "/en/Events/View/100/workshop",
+    start: "2026-10-30T10:00Z",
+    end: "2026-10-30T16:00Z",
+    allDay: false,
+    event: true,
+    ignoreTimezone: true,
     ...overrides,
   };
 }
@@ -106,7 +123,7 @@ test("buildModel groups bookings into day sections with web-app labels", () => {
   );
 });
 
-test("UTC timestamps are shown in the browser's local timezone", () => {
+test("booking timestamps are converted to the browser timezone", () => {
   const O = loadOverview();
   const model = O.buildModel(
     PINS,
@@ -118,6 +135,21 @@ test("UTC timestamps are shown in the browser's local timezone", () => {
   assert.equal(booking.startTime, "10:05");
   assert.equal(booking.endTime, "14:45");
   assert.equal(booking.day, "2026-10-27");
+});
+
+test("bookings and events are both converted from UTC", () => {
+  const O = loadOverview();
+  const model = O.buildModel(
+    PINS,
+    [record({ id: 1, start: "2026-10-30T09:00Z", end: "2026-10-30T10:00Z" })],
+    NOW,
+    [event({ id: 100, start: "2026-10-30T10:00Z", end: "2026-10-30T16:00Z" })],
+  );
+
+  const booking = model.cards[0].bookings.find((item) => !item.event);
+  const workshop = model.cards[0].bookings.find((item) => item.event);
+  assert.equal(booking.startTime, "10:00");
+  assert.equal(workshop.startTime, "11:00");
 });
 
 test("buildModel keeps an ongoing booking that started yesterday", () => {
@@ -138,7 +170,7 @@ test("buildModel de-duplicates repeated booking ids", () => {
   assert.equal(model.total, 1);
 });
 
-test("buildModel carries tentative, event and all-day flags", () => {
+test("buildModel carries tentative and all-day flags", () => {
   const O = loadOverview();
   const model = O.buildModel(
     PINS,
@@ -146,7 +178,6 @@ test("buildModel carries tentative, event and all-day flags", () => {
       record({ id: 1, tentative: true }),
       record({
         id: 2,
-        event: true,
         start: "2026-10-28T00:00Z",
         end: "2026-10-29T00:00Z",
         allDay: true,
@@ -156,8 +187,65 @@ test("buildModel carries tentative, event and all-day flags", () => {
   );
 
   assert.equal(model.cards[0].bookings[0].tentative, true);
-  assert.equal(model.cards[0].bookings[1].event, true);
   assert.equal(model.cards[0].bookings[1].allDay, true);
+});
+
+test("buildModel merges resource events into the same day sections", () => {
+  const O = loadOverview();
+  const model = O.buildModel(
+    PINS,
+    [record({ id: 1, start: "2026-10-30T09:00Z", end: "2026-10-30T10:00Z" })],
+    NOW,
+    [event()],
+  );
+
+  assert.equal(model.total, 2);
+  assert.equal(model.bookingCount, 1);
+  assert.equal(model.eventCount, 1);
+  assert.deepEqual(
+    plain(model.cards[0].bookings.map((booking) => booking.id)),
+    ["1", "event-100"],
+  );
+  assert.deepEqual(
+    plain(model.cards[0].sections.map((section) => [section.day, section.label, section.bookings.length])),
+    [["2026-10-30", "Fri", 2]],
+  );
+
+  const workshop = model.cards[0].bookings[1];
+  assert.equal(workshop.event, true);
+  assert.equal(workshop.startTime, "11:00");
+  assert.equal(workshop.endTime, "17:00");
+  assert.equal(workshop.coworker, "Workshop - Introduction to 3-Axis CNC Machining");
+  assert.equal(workshop.description, "Learn how to use the Routermax.");
+  assert.equal(workshop.url, "/en/Events/View/100/workshop");
+});
+
+test("buildModel ignores space-wide and unpinned events", () => {
+  const O = loadOverview();
+  const model = O.buildModel(
+    PINS,
+    [],
+    NOW,
+    [
+      event({ id: 100, resourceId: 0 }),
+      event({ id: 101, resourceId: 999 }),
+      event({ id: 102, resourceId: 1415309492 }),
+    ],
+  );
+
+  assert.equal(model.eventCount, 1);
+  assert.equal(model.cards[0].bookings.length, 0);
+  assert.equal(model.cards[1].bookings[0].id, "event-102");
+});
+
+test("event times are UTC instants regardless of ignoreTimezone", () => {
+  const O = loadOverview();
+  const withFlag = O.buildModel(PINS, [], NOW, [event({ ignoreTimezone: true })]);
+  const withoutFlag = O.buildModel(PINS, [], NOW, [event({ ignoreTimezone: false })]);
+
+  assert.equal(withFlag.cards[0].bookings[0].startTime, "11:00");
+  assert.equal(withFlag.cards[0].bookings[0].endTime, "17:00");
+  assert.equal(withoutFlag.cards[0].bookings[0].startTime, "11:00");
 });
 
 test("buildModel handles no pins and no records", () => {
