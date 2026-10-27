@@ -44,6 +44,16 @@ test("page-world scripts are web accessible to the portal", () => {
   assert.ok(matches.includes("https://members.motionlab.berlin/*"));
 });
 
+test("the pinned overview page can be opened from the portal", () => {
+  const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
+  assert.ok(resources.includes("overview.html"));
+});
+
+test("popup links to the pinned overview", () => {
+  const html = readFileSync(join(src, "popup.html"), "utf8");
+  assert.match(html, /id="overview-link"[^>]*href="overview\.html"/);
+});
+
 test("content script loads shared libraries before itself", () => {
   const [entry] = manifest.content_scripts;
   assert.deepEqual(entry.js, ["lib/config.js", "lib/url.js", "lib/groups.js", "content.js"]);

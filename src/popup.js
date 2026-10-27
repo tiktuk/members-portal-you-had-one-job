@@ -14,6 +14,8 @@
   const geoToggle = document.getElementById("geo-block");
   const refreshButton = document.getElementById("refresh");
   const status = document.getElementById("groups-status");
+  const pinsStatus = document.getElementById("pins-status");
+  const overviewLink = document.getElementById("overview-link");
 
   init();
 
@@ -31,6 +33,17 @@
       saveSettings({ geoBlockPrompt: geoToggle.checked }),
     );
 
+    overviewLink.addEventListener("click", (event) => {
+      if (overviewLink.classList.contains("is-disabled")) {
+        event.preventDefault();
+        return;
+      }
+      if (chrome.tabs?.create) {
+        event.preventDefault();
+        chrome.tabs.create({ url: chrome.runtime.getURL("overview.html") });
+      }
+    });
+
     refreshButton.addEventListener("click", async () => {
       refreshButton.disabled = true;
       refreshButton.textContent = "Refreshing…";
@@ -44,9 +57,11 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
       if (changes[cfg.storageKeys.groups]) renderGroups(changes[cfg.storageKeys.groups].newValue);
+      if (changes[cfg.storageKeys.pins]) renderPins(changes[cfg.storageKeys.pins].newValue);
     });
 
     renderGroups(await get(cfg.storageKeys.groups));
+    renderPins(await get(cfg.storageKeys.pins));
   }
 
   async function saveSettings(patch) {
@@ -63,6 +78,21 @@
     const typeCount = Object.keys(groups.groupsBySlug).length;
     const age = formatAge(groups.fetchedAt);
     status.textContent = `${groupCount} groups · ${typeCount} types${age ? ` · ${age}` : ""}`;
+  }
+
+  function renderPins(pins) {
+    const count = Array.isArray(pins) ? pins.filter((pin) => pin && pin.id).length : 0;
+    if (!count) {
+      pinsStatus.textContent = "No pinned resources yet — pin one in the portal’s Filters menu.";
+      overviewLink.classList.add("is-disabled");
+      overviewLink.setAttribute("aria-disabled", "true");
+      overviewLink.removeAttribute("href");
+      return;
+    }
+    pinsStatus.textContent = `${count} pinned resource${count === 1 ? "" : "s"}`;
+    overviewLink.classList.remove("is-disabled");
+    overviewLink.removeAttribute("aria-disabled");
+    overviewLink.href = "overview.html";
   }
 
   function formatAge(timestamp) {

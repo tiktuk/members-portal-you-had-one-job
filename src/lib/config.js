@@ -119,6 +119,11 @@
       groups: "nxplus:groups",
       /** Pinned resources: [{ id, name, group, type }]. */
       pins: "nxplus:pins",
+      /**
+       * Portal session for the pinned-overview page:
+       * { accessToken, webAddress, expiresAt, savedAt }.
+       */
+      session: "nxplus:session",
       refreshRequest: "nxplus:refresh-request",
       /** Mirror of `settings` in the page's localStorage (read synchronously). */
       settingsCache: "nxplus:settings-cache",

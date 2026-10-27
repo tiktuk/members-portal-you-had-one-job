@@ -33,7 +33,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/config.js", "lib/url.js", "page.js"],
+      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html"],
       "matches": ["https://members.motionlab.berlin/*"]
     }
   ]

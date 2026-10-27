@@ -23,12 +23,17 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
+- `src/lib/overview.js` — calendar payload → pinned-overview model (day
+  sections, timestamp parsing, icons); loaded by the page and the tests.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins, pinned banner, settings.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
-- `src/popup.*` — toolbar settings UI (three toggles, group cache status).
+- `src/overview.html` / `overview.js` / `overview.css` — standalone pinned
+  resources page (one card per pinned resource).
+- `src/popup.*` — toolbar settings UI (three toggles, group cache status, link
+  to the pinned overview).
 - `tests/` — `node --test` suites plus the browser fixture.
 
 ## Portal facts this relies on
@@ -119,6 +124,41 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   button is hover/focus-visible on desktop and always visible on touch.
 - `cache.groupsVersion` is 3 (v2 caches are still used as a fallback while the
   resource list is fetched).
+
+## Pinned resources overview
+
+- `overview.html` is a standalone extension page (opened from the popup's
+  **Overview →** link and from **Overview** in the pinned header of the Filters
+  menu). It renders one card per pin, mirroring the Django web app's dashboard
+  widgets: icon, name, group, day-grouped bookings and a link back to the
+  single-resource calendar.
+- Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
+  therefore mirrors a live session into `chrome.storage.local`
+  (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
+  portal load. If the page says "Connect to the members portal", the portal has
+  not been opened since install; if it says the session expired, open the
+  portal to renew it.
+- Bookings come from `GET https://<webAddress>.spaces.nexudus.com/en/bookings/fullCalendarBookings?showAll=&start=…&end=…`
+  with the bearer token, `x-nx-app-name: portal` and `X-Use-Timezone: true`.
+  The endpoint returns every booking in the range; the page filters by pinned
+  `resourceId`. Do not add `resourceType` unless you also handle pins whose
+  type is missing.
+- Extension pages bypass CORS through the manifest host permission. The space
+  host only allows `https://members.motionlab.berlin` as a CORS origin, so a
+  plain web page could not call this endpoint.
+- Times are UTC instants despite the `ignoreTimezone: true` field. The portal
+  maps them with `DateTime.fromISO(value, { zone: "utc" })` and FullCalendar
+  renders them in the browser's timezone (a `08:00Z` booking shows as `09:00`
+  in Berlin). `lib/overview.js::parseTimestamp` does the same; do not read only
+  the literal date/time parts, which shifts every booking by the UTC offset.
+- The lookahead is 14 days, like the web app. Day labels mirror
+  `short_day_label`: `Today`, then a short weekday for 1–6 days ahead, then
+  `2 Nov`. Auto-refresh is 60 s while the page is visible.
+- `overview.html` is listed in `web_accessible_resources` so the portal's
+  content script can `window.open(chrome.runtime.getURL("overview.html"))`.
+  Its scripts do not need to be listed (they load from the extension origin).
+- Unpinning from the page writes the same `nxplus:pins` array, so the portal
+  menu and the popup update through their `chrome.storage.onChanged` listeners.
 
 ## Gotchas
 

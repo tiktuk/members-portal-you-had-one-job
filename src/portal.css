@@ -50,6 +50,28 @@
   border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
+.nxplus-pinned-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0 0 0.15rem;
+}
+
+.nxplus-pinned-head .nxplus-pinned-title {
+  width: auto;
+  margin: 0;
+}
+
+.nxplus-overview-link {
+  flex: 0 0 auto;
+  padding: 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .nxplus-pinned-title {
   width: 100%;
   margin: 0 0 0.15rem;

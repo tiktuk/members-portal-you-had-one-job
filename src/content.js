@@ -75,6 +75,7 @@
       chrome.storage.onChanged.addListener(onStorageChanged);
     }
     state.pins = await loadPins();
+    rememberSession();
 
     observeNav();
     scheduleEnsure();
@@ -538,10 +539,29 @@
     const section = document.createElement("div");
     section.className = "nxplus-pinned";
 
+    const head = document.createElement("div");
+    head.className = "nxplus-pinned-head";
+
     const title = document.createElement("div");
     title.className = "nxplus-section-title nxplus-pinned-title";
     title.textContent = "Pinned";
-    section.appendChild(title);
+    head.appendChild(title);
+
+    if (hasExtensionApis) {
+      const overview = document.createElement("a");
+      overview.className = "nxplus-overview-link";
+      overview.href = "#";
+      overview.textContent = "Overview";
+      overview.title = "Open the pinned resources overview";
+      overview.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.open(chrome.runtime.getURL("overview.html"), "_blank", "noopener");
+      });
+      head.appendChild(overview);
+    }
+
+    section.appendChild(head);
 
     for (const pin of pins) {
       const resource = findResource(pin.id);
@@ -885,6 +905,36 @@
     if (!session || !session.access_token) return null;
     if (typeof session.expires_at === "number" && session.expires_at <= Date.now()) return null;
     return session.access_token;
+  }
+
+  /**
+   * The pinned-overview page runs on the extension origin, where the portal's
+   * AUTH_TOKEN cookie is not readable. Mirror the token into storage whenever
+   * the content script sees a live session.
+   */
+  function rememberSession() {
+    if (!hasExtensionApis) return;
+    const token = readAccessToken();
+    if (!token) return;
+
+    let expiresAt = 0;
+    const raw = readCookie(cfg.portal.authCookie);
+    if (raw) {
+      try {
+        const session = JSON.parse(decodeURIComponent(raw));
+        if (typeof session?.expires_at === "number") expiresAt = session.expires_at;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    storageSet(cfg.storageKeys.session, {
+      accessToken: token,
+      webAddress,
+      expiresAt,
+      savedAt: Date.now(),
+    });
   }
 
   function readCookie(name) {

@@ -3,7 +3,7 @@
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
 portal (<https://members.motionlab.berlin/motionlabberlin>).
 
-It does four things:
+It does five things:
 
 1. **Resource filters in the main menu.** A new **Filters** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -19,22 +19,28 @@ It does four things:
    the type. A *Pinned* banner above the calendar links back to that resource's
    group, so *Show all CNC Machining* keeps the category in view instead of
    jumping to the first resource of the whole type.
-3. **Calendar by default.** Bookings links open the calendar view instead of the
+3. **Pinned resources overview.** A standalone page shows every pinned resource
+   as a card with its bookings for the next 14 days, grouped by day like the
+   widgets in the Always in Motion dashboard. Open it from **Overview** in the
+   *Pinned* header of the Filters menu or from the toolbar popup. Each card
+   links back to the single-resource calendar and can unpin the resource.
+4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
-4. **No location prompt.** The portal asks for the browser location on every
+5. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
    makes the portal skip the request instead of prompting. The popup's *Block
    location prompt* toggle turns this off.
 
-All three toggles live in the toolbar popup; pins are managed from the menu
-itself.
+The three toggles live in the toolbar popup; pins are managed from the menu
+itself. The overview page uses the portal session the content script mirrors
+into extension storage, so open the portal once while signed in.
 
 ```
 Bookings ▾   Filters ▾   Store ▾   Memberships   Community
               ┌──────────────────────────────────────────────┐
-              │ PINNED                                        │
+              │ PINNED                            Overview │
               │ [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]      │
               │ MACHINES        LABS           MEETING ROOMS │
               │ All machines    All labs       All meeting…  │
@@ -92,6 +98,9 @@ location prompt* toggle.
 The menu is built from the portal's own navigation (which resource types it
 offers) plus `GET /api/public/resources/published/details` for the group and
 resource names. Pins are stored in `chrome.storage.local` under `nxplus:pins`.
+The portal session used by the overview page is mirrored into `nxplus:session`
+(`{ accessToken, webAddress, expiresAt, savedAt }`) whenever the portal loads
+with a live `AUTH_TOKEN` cookie.
 
 ## How it works
 
@@ -108,6 +117,16 @@ space's API lives on its own subdomain, `https://<webAddress>.spaces.nexudus.com
 - The SPA stores its session in a readable `AUTH_TOKEN` cookie (JSON with
   `access_token`), which is what lets the extension fetch resource groups
   without a background service worker.
+
+The pinned overview page fetches
+`GET /en/bookings/fullCalendarBookings?showAll=&start=…&end=…` from the space
+host with that same bearer token. The response contains every booking in the
+range (with `resourceId`), so the page keeps only the pinned resources and
+groups the next 14 days into day sections. The payload's `start`/`end` are UTC
+instants (the portal maps them with `DateTime.fromISO(value, { zone: "utc" })`),
+so the page renders them in the browser's timezone exactly like the calendar
+does. The page refreshes every minute while it is visible and can unpin
+resources without leaving the page.
 
 Two scripts do the work:
 
@@ -165,6 +184,10 @@ open http://localhost:8765/tests/fixture.html
   for the tab; pick *Calendar* in the portal's *View* dropdown to reset it.
 - **Only one resource is shown** — a pinned resource is active. Use *Show all
   …* in the banner above the calendar, or unpin it in the **Filters** menu.
+- **Overview says “Connect to the members portal”** — the extension has no
+  portal session yet. Open the portal while signed in (the content script
+  stores the token), then refresh the overview page. If it says the session
+  expired, open the portal once to renew it.
 - **Changes from the popup** apply on the next page load.
 - If Nexudus changes the markup, `src/content.js` selectors
   (`nav.navbar ul.navbar-nav`, `#resourceViewDropdown`) and `config.js` are the

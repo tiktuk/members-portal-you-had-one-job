@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Pinned resources — Nexudus Portal+</title>
+    <link rel="stylesheet" href="overview.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="page-heading">
+        <p class="eyebrow">Nexudus Portal+</p>
+        <h1>Pinned resources</h1>
+        <p id="summary" class="summary">Loading…</p>
+      </div>
+      <div class="actions">
+        <button type="button" id="refresh" class="button">Refresh</button>
+        <a id="portal-link" class="button button-ghost" href="https://members.motionlab.berlin/" target="_blank" rel="noopener">
+          Open portal ↗
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <div id="notice" class="notice" role="status" hidden></div>
+      <div id="cards" class="cards" aria-live="polite"></div>
+    </main>
+
+    <footer class="footer">
+      Pins are managed from the <strong>Filters</strong> menu in the members portal.
+    </footer>
+
+    <script src="lib/config.js"></script>
+    <script src="lib/url.js"></script>
+    <script src="lib/overview.js"></script>
+    <script src="overview.js"></script>
+  </body>
+</html>
