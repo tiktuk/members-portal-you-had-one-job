@@ -16,7 +16,9 @@ It does four things:
    pin icon next to a resource (for example *OLSK Large CNC*). Pinned resources
    appear at the top of the menu; clicking one opens the calendar with **only
    that resource**, so there is no horizontal scrolling through every machine of
-   the type. A *Pinned* banner above the calendar links back to the full type.
+   the type. A *Pinned* banner above the calendar links back to that resource's
+   group, so *Show all CNC Machining* keeps the category in view instead of
+   jumping to the first resource of the whole type.
 3. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.

@@ -103,6 +103,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   (`performance.getEntriesByType("navigation")`); a fresh navigation to a plain
   calendar URL clears it. SPA date changes keep it. The Previous/Next handler
   re-adds `nxplus-resource` to its `pushState` URL for the same reason.
+- The pinned banner's *Show all* link and the unpin navigation keep the
+  resource's group (`pinnedGroup()` in `content.js`), so the calendar returns to
+  the same category instead of the first resource of the whole type. The group
+  comes from the session pin, then the cached resource list, then the URL.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts

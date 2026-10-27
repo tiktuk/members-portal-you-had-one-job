@@ -674,7 +674,7 @@
     scheduleEnsure();
 
     // Unpinning the resource that is currently shown alone should return to
-    // the normal calendar instead of leaving a stale single-resource view.
+    // its group's calendar instead of leaving a stale single-resource view.
     if (exists && currentPinnedId() === id) {
       const href = showAllHref();
       clearPinnedResource();
@@ -726,6 +726,16 @@
     return session && session.id ? String(session.id) : "";
   }
 
+  /**
+   * The pinned resource's group. Keeping it in the "show all" link means the
+   * calendar returns to the same category (CNC Machining) instead of starting
+   * at the first resource of the whole type (3D printing).
+   */
+  function pinnedGroup(pin) {
+    const resource = pin?.id ? findResource(pin.id) : null;
+    return pin?.group || resource?.group || U.currentGroup(location.search);
+  }
+
   function showAllHref() {
     const info = U.parseBookingPath(location.pathname);
     const pin = readPinnedSession();
@@ -733,7 +743,7 @@
     const view = info?.view || cfg.defaultView;
     const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
     const { start, end } = U.currentRange(location.search);
-    return U.bookingHref({ webAddress, type, view, start, end });
+    return U.bookingHref({ webAddress, type, view, group: pinnedGroup(pin), start, end });
   }
 
   function ensurePinnedBanner() {
@@ -764,8 +774,11 @@
     const resource = findResource(pinnedId);
     const name = session?.name || resource?.name || `Resource ${pinnedId}`;
     const type = info.type || session?.type || resource?.type || "all";
+    const group = pinnedGroup(session);
     const href = showAllHref();
-    const label = `Show all ${G.typeLabel(type).toLowerCase()}`;
+    const label = group
+      ? `Show all ${G.displayGroupName(group, cfg.nav.stripGroupPrefix)}`
+      : `Show all ${G.typeLabel(type).toLowerCase()}`;
 
     const nameElement = banner.querySelector(".nxplus-pinned-name");
     if (nameElement.textContent !== name) nameElement.textContent = name;
