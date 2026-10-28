@@ -52,7 +52,7 @@
 
 .nxplus-pinned-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
@@ -64,12 +64,33 @@
   margin: 0;
 }
 
+.nxplus-overview-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .nxplus-overview-link {
   flex: 0 0 auto;
-  padding: 0 0.5rem;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--bs-primary-border-subtle, rgba(13, 110, 253, 0.35));
+  border-radius: 999px;
+  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.1));
+  color: var(--bs-primary, #0d6efd);
+  font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
+  text-decoration: none;
+}
+
+.nxplus-overview-link:hover,
+.nxplus-overview-link:focus-visible {
+  border-color: var(--bs-primary, #0d6efd);
+  background: var(--bs-primary, #0d6efd);
+  color: #fff;
+  text-decoration: none;
 }
 
 .nxplus-pinned-title {
@@ -350,6 +371,11 @@
 
 .nxplus-sheet-body .nxplus-link {
   padding: 0.5rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+.nxplus-sheet-body .nxplus-overview-link {
+  padding: 0.4rem 0.9rem;
   font-size: 0.95rem;
 }
 

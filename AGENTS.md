@@ -129,10 +129,12 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 ## Pinned resources overview
 
 - `overview.html` is a standalone extension page (opened from the popup's
-  **Overview →** link and from **Overview** in the pinned header of the Filters
-  menu). It renders one card per pin, mirroring the Django web app's dashboard
-  widgets: icon, name, group, day-grouped bookings and resource events. The card
-  title links to the single-resource calendar; the × button unpins it.
+  **Overview →** link and from the **Overview →** pill at the top of the Filters
+  menu, which is rendered even with no pins because the page still lists the
+  member's own bookings). It renders one card per pin, mirroring the Django web
+  app's dashboard widgets: icon, name, group, day-grouped bookings and resource
+  events. The card title links to the single-resource calendar; the × button
+  unpins it.
 - Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
   therefore mirrors a live session into `chrome.storage.local`
   (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every

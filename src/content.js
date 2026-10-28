@@ -422,6 +422,14 @@
     const content = document.createElement("div");
     content.className = "nxplus-menu-content";
 
+    const overview = renderOverviewLink();
+    if (overview) {
+      const row = document.createElement("div");
+      row.className = "nxplus-overview-row";
+      row.appendChild(overview);
+      content.appendChild(row);
+    }
+
     const pinned = renderPinnedSection({ webAddress, view, start, end, current, pinnedId });
     if (pinned) content.appendChild(pinned);
 
@@ -532,6 +540,26 @@
     return content;
   }
 
+  /**
+   * The pinned resources overview lives on its own extension page, so the link
+   * is always shown — the page lists personal bookings even without pins.
+   */
+  function renderOverviewLink() {
+    if (!hasExtensionApis) return null;
+
+    const overview = document.createElement("a");
+    overview.className = "nxplus-overview-link";
+    overview.href = "#";
+    overview.textContent = "Overview →";
+    overview.title = "Open the pinned resources overview";
+    overview.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.open(chrome.runtime.getURL("overview.html"), "_blank", "noopener");
+    });
+    return overview;
+  }
+
   function renderPinnedSection({ webAddress, view, start, end, current, pinnedId }) {
     const pins = state.pins.filter((pin) => pin && pin.id);
     if (!pins.length) return null;
@@ -546,20 +574,6 @@
     title.className = "nxplus-section-title nxplus-pinned-title";
     title.textContent = "Pinned";
     head.appendChild(title);
-
-    if (hasExtensionApis) {
-      const overview = document.createElement("a");
-      overview.className = "nxplus-overview-link";
-      overview.href = "#";
-      overview.textContent = "Overview";
-      overview.title = "Open the pinned resources overview";
-      overview.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        window.open(chrome.runtime.getURL("overview.html"), "_blank", "noopener");
-      });
-      head.appendChild(overview);
-    }
 
     section.appendChild(head);
 

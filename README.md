@@ -26,7 +26,7 @@ It does five things:
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
    appear with a *Reserved* badge and can be expanded for details. Open the page
-   from **Overview** in the *Pinned* header of the Filters menu or from the
+   from the **Overview →** button at the top of the Filters menu or from the
    toolbar popup. Each card's title links to the single-resource calendar, and
    its × button unpins the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
@@ -45,7 +45,8 @@ into extension storage, so open the portal once while signed in.
 ```
 Bookings ▾   Filters ▾   Store ▾   Memberships   Community
               ┌──────────────────────────────────────────────┐
-              │ PINNED                            Overview │
+              │ [ Overview → ]                               │
+              │ PINNED                                       │
               │ [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]      │
               │ MACHINES        LABS           MEETING ROOMS │
               │ All machines    All labs       All meeting…  │
