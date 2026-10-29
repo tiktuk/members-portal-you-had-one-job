@@ -117,11 +117,11 @@
 .nxplus-overview-panel {
   position: relative;
   display: flex;
-  /* Fills the window rather than a fixed size: the card grid then fits as many
-     columns as the viewport allows, and resizing reflows instead of scrolling.
-     The height is bounded, not content-sized, so the panel cannot grow as
-     bookings arrive. */
-  width: 100%;
+  /* Fills the window up to a sane maximum: on an ultrawide display a
+     full-width panel leaves the cards stranded in one corner. Below the cap
+     the grid reflows as the window changes; the height is bounded, not
+     content-sized, so the panel cannot grow as bookings arrive. */
+  width: min(1700px, 100%);
   height: 100%;
   max-height: 100%;
   min-height: 0;

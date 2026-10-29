@@ -65,10 +65,11 @@
 /* The overlay is wider than the page, so it fits four cards per row instead
    of three; fewer pins then fit without scrolling. 300px is deliberate: a
    1440px window leaves 1316px of content, and four 320px cards would need
-   1328px, so a 320px minimum silently stayed at three columns. */
-.overview.is-panel .cards,
-.overview.is-panel .my-bookings {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+   1328px, so a 320px minimum silently stayed at three columns.
+   auto-fit (not auto-fill) collapses the tracks no card uses, so a short pin
+   list stretches over the row instead of leaving a blank column at the end. */
+.overview.is-panel .cards {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .overview.is-panel h1 {
@@ -161,13 +162,14 @@ h1 {
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 1rem;
 }
 
 .my-bookings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* One card, so cap it instead of letting auto-fit stretch it across the row. */
+  grid-template-columns: minmax(0, 420px);
   gap: 1rem;
   margin-bottom: 1rem;
 }

@@ -149,14 +149,19 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The overlay injects `overview.css` as a `<style>` (fetched once per page via
   `chrome.runtime.getURL`) rather than a `<link>`: a link inside a shadow root
   loads after first paint, which showed the panel unstyled for a frame.
-- `.nxplus-overview-panel` fills the window (`100%` of the overlay's padded
-  box, `94dvh` as a bottom sheet on phones) instead of sizing to its content, so
-  the panel never grows as bookings arrive — a content-sized panel visibly jumps
-  on open. Width stays fluid so the card grid reflows on resize: it uses
-  `minmax(300px, 1fr)` in the panel (340px on the page), giving 5 columns at
+- `.nxplus-overview-panel` fills the window up to `min(1700px, 100%)` (`94dvh`
+  as a bottom sheet on phones) instead of sizing to its content, so the panel
+  never grows as bookings arrive — a content-sized panel visibly jumps on open.
+  Below the cap the width is fluid so the card grid reflows on resize. The cap
+  matters: full-width on an ultrawide strands the cards in one corner.
+- The card grid uses `auto-fit`, not `auto-fill`: with auto-fill a short pin
+  list leaves a blank track (and a big gap) to the right of the last card.
+  `minmax(300px, 1fr)` in the panel (340px on the page) gives 5 columns at
   1920px, 4 at 1440, 3 at 1100, 2 at 820 and 1 on phones. Do not raise that
   minimum back to 320px — a 1440px window leaves 1316px of content and four
   320px cards need 1328px, so it silently fell back to three columns.
+- `.my-bookings` holds a single card, so it is a fixed `minmax(0, 420px)` track;
+  auto-fit would stretch it across the whole row.
 - **Alt+O** (`config.overview.shortcut`) opens the overlay from anywhere on the
   portal. `matchesShortcut` compares `event.code`, because Option+O reports
   `key: "ø"` on macOS; the handler ignores keystrokes in inputs, textareas,
