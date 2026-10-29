@@ -155,7 +155,7 @@
         ],
       };
 
-      const settings = { calendarDefault: true, navMenu: true, geoBlockPrompt: true };
+      const settings = { calendarDefault: true, navMenu: true, lumaEvents: true, geoBlockPrompt: true };
       const store = {
         "nxplus:settings": settings,
         "nxplus:pins": [],
@@ -170,7 +170,26 @@
       const listeners = [];
       window.__fixtureStore = store;
       window.chrome = {
-        runtime: { id: "fixture", getURL: (path) => `/src/${path}` },
+        runtime: {
+          id: "fixture",
+          getURL: (path) => `/src/${path}`,
+          // The real extension proxies Luma through background.js (CORS).
+          sendMessage: (message, callback) => {
+            if (message?.type === "nxplus:luma-events") {
+              callback({ ok: true, entries: window.__fixtureLumaEvents });
+              return;
+            }
+            if (message?.type === "nxplus:luma-description") {
+              callback({
+                ok: true,
+                description:
+                  "Kickstart your morning at BreakfastinMotion — coffee, pastries and open networking.",
+              });
+              return;
+            }
+            callback({ ok: false, error: "Unknown fixture message." });
+          },
+        },
         storage: {
           local: {
             get: (keys, callback) => {
@@ -229,6 +248,19 @@
           title: "Laser Cutting 101",
           shortDescription: "Intro workshop for the E-Lab laser.",
           url: "/motionlabberlin/events/laser-cutting-101",
+        },
+      ];
+      window.__fixtureLumaEvents = [
+        {
+          api_id: "evt-fixture",
+          event: {
+            api_id: "evt-fixture",
+            name: "BreakfastInMotion",
+            start_at: iso(2, 9),
+            end_at: iso(2, 10),
+            url: "fixture-breakfast",
+            geo_address_info: { short_address: "Bouchéstraße 12, Berlin" },
+          },
         },
       ];
       window.__fixtureMyBookings = {

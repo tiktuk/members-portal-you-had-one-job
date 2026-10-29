@@ -6,7 +6,13 @@
   "description": "Adds resource filters and pinnable single-resource calendars to the members portal, and opens bookings in the calendar view by default.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],
-  "host_permissions": ["https://*.spaces.nexudus.com/*"],
+  "host_permissions": [
+    "https://*.spaces.nexudus.com/*",
+    "https://api.luma.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "Nexudus Portal+",
     "default_popup": "popup.html",

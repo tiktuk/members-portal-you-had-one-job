@@ -3,7 +3,7 @@
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
 portal (<https://members.motionlab.berlin/motionlabberlin>).
 
-It does five things:
+It does six things:
 
 1. **Resource filters in the main menu.** A new **Filters** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -39,8 +39,14 @@ It does five things:
    each visit; the extension hides `navigator.geolocation` from the page, which
    makes the portal skip the request instead of prompting. The popup's *Block
    location prompt* toggle turns this off.
+6. **Luma events.** With the *Luma events* toggle on, the pinned overview also
+   merges MotionLab.Berlin's upcoming Luma events into every card and the
+   **My bookings** card, with a purple *Event* badge. Expanding a row loads its
+   description and links to the event on Luma, like the Django dashboard. The
+   **Events** button in the overview header toggles the same setting as the
+   popup.
 
-The three toggles live in the toolbar popup; pins are managed from the menu
+The four toggles live in the toolbar popup; pins are managed from the menu
 itself. The overview page uses the portal session the content script mirrors
 into extension storage, so open the portal once while signed in.
 
@@ -88,8 +94,8 @@ same way if you want it on a phone.
 ## Configuration
 
 Everything tunable lives in `src/lib/config.js`. The popup's toggles are stored
-in `chrome.storage.local`; `geo.blockPrompt` below only seeds the *Block
-location prompt* toggle.
+in `chrome.storage.local`; `geo.blockPrompt` and `luma.enabled` below only seed
+the *Block location prompt* and *Luma events* toggles.
 
 | Key | Meaning |
 | --- | --- |
@@ -101,6 +107,8 @@ location prompt* toggle.
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
 | `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
+| `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
+| `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
 | `portal.origin` / `content_scripts.matches` | Change both to use this on another Nexudus portal. |
 
@@ -156,13 +164,26 @@ rest), and the **My bookings** title links to
 plain text: the portal's edit page only opens bookings that belong to the
 signed-in member.
 
+Luma events come from the public web API the luma.com site itself uses
+(`/user/profile/events-hosting` for a `usr-…` source, `/calendar/get-items` for
+a `cal-…` one), so no API key is needed. Those endpoints only allow
+`https://luma.com` as a CORS origin, and content scripts are subject to CORS,
+so `src/background.js` fetches them in the service worker where the
+`https://api.luma.com/*` host permission applies. The list is cached for five
+minutes and merged into every card (and **My bookings**) like the Django
+dashboard, capped at ten events per card. Expanding a row lazily calls
+`/event/get` (cached for an hour) and flattens Luma's ProseMirror description to
+plain text, mirroring the web app's HTMX endpoint. Luma timestamps are UTC
+instants, so they go through the same browser-timezone conversion as the portal
+feeds.
+
 The overview markup, fetching and styles live in `src/lib/overview-view.js` and
 `src/overview.css`, which are shared by the standalone page and the in-portal
 overlay. The overlay mounts the same module into a shadow root, so its generic
 class names (`.card`, `.notice`, `.button`) cannot collide with the portal's
 Bootstrap styles in either direction.
 
-Two scripts do the work:
+Three scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
   `calendar` **before the app boots**, injects the menu, caches groups and
@@ -171,6 +192,8 @@ Two scripts do the work:
   client-side navigation also lands on the calendar, and remembers an explicit
   *List* choice from the portal's *View* dropdown. It also hides
   `navigator.geolocation` before the app boots (see above).
+- `src/background.js` (service worker) proxies the Luma API for the overview,
+  since Luma's CORS policy blocks direct calls from the portal origin.
 
 A pinned link looks like
 `/motionlabberlin/bookings/machines/calendar?group=…&nxplus-resource=1415309496`.
@@ -195,7 +218,7 @@ view picker keep working.
 ## Development
 
 ```bash
-npm test                       # node --test (URL logic, menu model, manifest)
+npm test                       # node --test (URL logic, menu model, overview, Luma, manifest)
 python3 scripts/make-icons.py  # regenerate icons
 npm run build                  # dist/chrome, zip, Safari Xcode project
 ```
@@ -222,6 +245,9 @@ open http://localhost:8765/tests/fixture.html
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session
   expired, open the portal once to renew it.
+- **Luma events missing** — check the popup's *Luma events* toggle. If it is
+  on and the overview shows a warning, Luma's public API failed or changed;
+  verify `luma.source` in `config.js`.
 - **Changes from the popup** apply on the next page load.
 - If Nexudus changes the markup, `src/content.js` selectors
   (`nav.navbar ul.navbar-nav`, `#resourceViewDropdown`) and `config.js` are the

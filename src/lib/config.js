@@ -49,6 +49,28 @@
      */
     overview: { shortcut: "alt+o" },
 
+    /**
+     * Upcoming Luma events merged into the overview cards, mirroring the
+     * Django app's `Space.luma_source`. A public Luma user (`usr-…`) or
+     * calendar (`cal-…`) API ID, or any luma.com URL containing one.
+     */
+    luma: {
+      source: "usr-csfrCNKvDVPwE0L",
+      /** Default for the popup's "Luma events" toggle. */
+      enabled: true,
+      /**
+       * The public endpoints luma.com itself uses; they need no API key but
+       * are undocumented. Only the background worker calls them, because
+       * content scripts are subject to CORS and Luma only allows luma.com.
+       */
+      apiBaseUrl: "https://api.luma.com",
+      pageSize: 50,
+      maxPages: 10,
+      cacheTtlMs: 5 * 60 * 1000,
+      detailCacheTtlMs: 60 * 60 * 1000,
+      timeoutMs: 15000,
+    },
+
     nav: {
       enabled: true,
       /** Label of the injected top-level menu item. */

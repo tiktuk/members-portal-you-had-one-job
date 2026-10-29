@@ -87,6 +87,21 @@ function myRecord(overrides) {
   };
 }
 
+function lumaEvent(overrides) {
+  return {
+    api_id: "evt-1",
+    event: {
+      api_id: "evt-1",
+      name: "BreakfastInMotion",
+      start_at: "2026-10-30T09:00:00.000Z",
+      end_at: "2026-10-30T10:30:00.000Z",
+      url: "breakfast",
+      geo_address_info: { short_address: "Bouchéstraße 12, Berlin" },
+      ...overrides,
+    },
+  };
+}
+
 test("buildModel keeps only pinned resources and upcoming bookings", () => {
   const O = loadOverview();
   const model = O.buildModel(
@@ -260,6 +275,111 @@ test("event times are UTC instants regardless of ignoreTimezone", () => {
   assert.equal(withFlag.cards[0].bookings[0].startTime, "11:00");
   assert.equal(withFlag.cards[0].bookings[0].endTime, "17:00");
   assert.equal(withoutFlag.cards[0].bookings[0].startTime, "11:00");
+});
+
+test("buildModel merges Luma events into every pinned card", () => {
+  const O = loadOverview();
+  const model = O.buildModel(
+    PINS,
+    [record({ id: 1, start: "2026-10-30T08:00Z", end: "2026-10-30T09:00Z" })],
+    NOW,
+    [],
+    [lumaEvent()],
+  );
+
+  assert.equal(model.cards.length, 2);
+  assert.equal(model.bookingCount, 1);
+  assert.equal(model.eventCount, 0);
+  assert.equal(model.lumaCount, 1);
+  assert.equal(model.total, 2);
+
+  for (const card of model.cards) {
+    const luma = card.bookings.find((item) => item.luma);
+    assert.ok(luma);
+    assert.equal(luma.id, "luma-evt-1");
+    assert.equal(luma.kind, "luma");
+    assert.equal(luma.coworker, "BreakfastInMotion");
+    assert.equal(luma.startTime, "10:00");
+    assert.equal(luma.endTime, "11:30");
+    assert.equal(luma.day, "2026-10-30");
+    assert.equal(luma.url, "https://luma.com/breakfast");
+  }
+
+  assert.deepEqual(
+    plain(model.cards[0].sections.map((section) => [section.day, section.label, section.bookings.length])),
+    [["2026-10-30", "Fri", 2]],
+  );
+});
+
+test("buildModel caps Luma events at ten per card", () => {
+  const O = loadOverview();
+  const events = Array.from({ length: 12 }, (_, index) =>
+    lumaEvent({
+      api_id: `evt-${String(index).padStart(2, "0")}`,
+      start_at: `2026-10-30T09:${String(index).padStart(2, "0")}:00.000Z`,
+      end_at: `2026-10-30T09:${String(index).padStart(2, "0")}:30.000Z`,
+    }),
+  );
+
+  const model = O.buildModel(PINS, [], NOW, [], events);
+  assert.equal(model.lumaCount, 10);
+  assert.equal(model.cards[0].bookings.length, 10);
+  assert.equal(model.cards[1].bookings.length, 10);
+});
+
+test("buildModel drops Luma events outside the lookahead window", () => {
+  const O = loadOverview();
+  const model = O.buildModel(PINS, [], NOW, [], [
+    lumaEvent({ api_id: "evt-past", start_at: "2026-10-26T09:00:00.000Z", end_at: "2026-10-26T10:00:00.000Z" }),
+    lumaEvent({ api_id: "evt-far", start_at: "2026-11-20T09:00:00.000Z", end_at: "2026-11-20T10:00:00.000Z" }),
+    lumaEvent({ api_id: "evt-now", start_at: "2026-10-27T09:00:00.000Z", end_at: "2026-10-27T14:00:00.000Z" }),
+  ]);
+
+  assert.equal(model.lumaCount, 1);
+  assert.equal(model.cards[0].bookings[0].id, "luma-evt-now");
+});
+
+test("normalizeLumaEvent ignores malformed entries", () => {
+  const O = loadOverview();
+  assert.equal(O.normalizeLumaEvent({}), null);
+  assert.equal(O.normalizeLumaEvent({ event: { api_id: "evt-1" } }), null);
+  assert.equal(
+    O.normalizeLumaEvent({
+      event: { api_id: "evt-1", start_at: "nope", end_at: "2026-10-30T10:00:00Z" },
+    }),
+    null,
+  );
+});
+
+test("buildMyBookings merges Luma events and counts them separately", () => {
+  const O = loadOverview();
+  const model = O.buildMyBookings(
+    [myRecord({ Id: 1 })],
+    NOW,
+    [lumaEvent({ start_at: "2026-10-28T09:00:00.000Z", end_at: "2026-10-28T10:00:00.000Z" })],
+  );
+
+  assert.equal(model.count, 1);
+  assert.equal(model.eventCount, 1);
+  assert.equal(model.items.length, 2);
+  assert.equal(model.items[0].luma, false);
+  assert.equal(model.items[1].luma, true);
+  assert.deepEqual(
+    plain(model.sections.map((section) => [section.day, section.label, section.bookings.length])),
+    [
+      ["2026-10-27", "Today", 1],
+      ["2026-10-28", "Wed", 1],
+    ],
+  );
+});
+
+test("markOwnedBookings leaves Luma events unowned", () => {
+  const O = loadOverview();
+  const model = O.buildModel(PINS, [], NOW, [], [lumaEvent()]);
+  O.markOwnedBookings(model, O.buildMyBookings([myRecord({ Id: 1 })], NOW));
+
+  assert.equal(model.cards[0].bookings[0].luma, true);
+  assert.equal(model.cards[0].bookings[0].mine, false);
 });
 
 test("buildModel handles no pins and no records", () => {

@@ -151,6 +151,12 @@ h1 {
   background: transparent;
 }
 
+.button-toggle.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .button-icon {
   justify-content: center;
   width: 2.1rem;
@@ -394,9 +400,19 @@ h1 {
   margin-left: -0.5rem;
 }
 
+/* Luma events are space-wide happenings; resource events reserve a machine. */
+.booking-luma {
+  border-left-color: #6f42c1;
+}
+
 .badge-event {
   background: rgba(253, 126, 20, 0.16);
   color: #c2410c;
+}
+
+.badge-luma {
+  background: #6f42c1;
+  color: #fff;
 }
 
 .event-details {
@@ -436,6 +452,14 @@ h1 {
 
 .event-body p {
   margin: 0 0 0.3rem;
+}
+
+.event-description {
+  white-space: pre-line;
+}
+
+.event-description.error {
+  color: var(--danger);
 }
 
 .event-body a {

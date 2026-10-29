@@ -21,12 +21,15 @@
     return {
       pins: [],
       session: null,
+      settings: null,
       webAddress: cfg.portal.webAddress,
       model: null,
       myModel: null,
+      lumaEnabled: false,
       loading: false,
       error: null,
       eventsError: null,
+      lumaError: null,
       myBookingsError: null,
       updatedAt: null,
     };
@@ -44,6 +47,7 @@
     cards: null,
     myBookings: null,
     refreshButton: null,
+    lumaButton: null,
     timer: null,
     onStorageChanged: null,
   };
@@ -85,6 +89,7 @@
     ui.cards = null;
     ui.myBookings = null;
     ui.refreshButton = null;
+    ui.lumaButton = null;
     ui.timer = null;
     ui.onStorageChanged = null;
 
@@ -113,9 +118,18 @@
     heading.appendChild(ui.summary);
 
     const actions = el("div", "actions");
+
+    if (cfg.luma?.source) {
+      ui.lumaButton = el("button", "button button-toggle", "Events");
+      ui.lumaButton.type = "button";
+      ui.lumaButton.setAttribute("aria-pressed", "false");
+      ui.lumaButton.addEventListener("click", toggleLumaEvents);
+      actions.appendChild(ui.lumaButton);
+    }
+
     ui.refreshButton = el("button", "button", "Refresh");
     ui.refreshButton.type = "button";
-    ui.refreshButton.addEventListener("click", () => load());
+    ui.refreshButton.addEventListener("click", () => load({ force: true }));
     actions.appendChild(ui.refreshButton);
 
     if (ui.variant === "page") {
@@ -164,14 +178,16 @@
    * ------------------------------------------------------------------ */
 
   async function start() {
-    [state.pins, state.session] = await Promise.all([
+    [state.pins, state.session, state.settings] = await Promise.all([
       get(cfg.storageKeys.pins),
       get(cfg.storageKeys.session),
+      get(cfg.storageKeys.settings),
     ]);
     if (!ui.root) return;
 
     state.pins = O.normalizePins(state.pins);
     state.webAddress = state.session?.webAddress || state.webAddress;
+    state.lumaEnabled = isLumaEnabled(state.settings);
 
     ui.onStorageChanged = onStorageChanged;
     chrome.storage.onChanged.addListener(onStorageChanged);
@@ -199,7 +215,38 @@
       state.webAddress = state.session?.webAddress || cfg.portal.webAddress;
       reload = true;
     }
+    if (changes[cfg.storageKeys.settings]) {
+      state.settings = changes[cfg.storageKeys.settings].newValue || null;
+      const enabled = isLumaEnabled(state.settings);
+      if (enabled !== state.lumaEnabled) {
+        state.lumaEnabled = enabled;
+        reload = true;
+      }
+    }
     if (reload) load();
+  }
+
+  /** The popup toggle; `config.luma.enabled` is only the default. */
+  function isLumaEnabled(settings) {
+    if (!cfg.luma?.source) return false;
+    const stored = settings && typeof settings.lumaEvents === "boolean"
+      ? settings.lumaEvents
+      : cfg.luma.enabled !== false;
+    return stored;
+  }
+
+  /**
+   * The header's *Events* button and the popup switch write the same setting,
+   * so every open overview and the popup stay in sync.
+   */
+  async function toggleLumaEvents() {
+    const enabled = !state.lumaEnabled;
+    state.lumaEnabled = enabled;
+    state.settings = { ...(state.settings || {}), lumaEvents: enabled };
+    render();
+
+    await set(cfg.storageKeys.settings, state.settings);
+    if (ui.root) load();
   }
 
   function currentSession() {
@@ -215,7 +262,7 @@
     };
   }
 
-  async function load() {
+  async function load(options = {}) {
     if (!ui.root) return;
 
     const session = currentSession();
@@ -225,35 +272,44 @@
       state.myModel = null;
       state.error = null;
       state.eventsError = null;
+      state.lumaError = null;
       state.myBookingsError = null;
       render();
       return;
     }
 
     const hasPins = state.pins.length > 0;
+    const lumaEnabled = state.lumaEnabled;
     state.loading = true;
     state.error = null;
     state.eventsError = null;
+    state.lumaError = null;
     state.myBookingsError = null;
     render();
 
     try {
-      const [myResult, bookingsResult, eventsResult] = await Promise.allSettled([
+      const [myResult, bookingsResult, eventsResult, lumaResult] = await Promise.allSettled([
         fetchMyBookings(session),
         hasPins ? fetchBookings(session) : Promise.resolve([]),
         hasPins ? fetchEvents(session) : Promise.resolve([]),
+        lumaEnabled ? fetchLumaEvents(Boolean(options.force)) : Promise.resolve([]),
       ]);
       if (!ui.root) return;
 
+      const lumaEvents = lumaResult.status === "fulfilled" ? lumaResult.value : [];
+      state.lumaError = lumaResult.status === "rejected" ? lumaResult.reason : null;
+
       state.myBookingsError = myResult.status === "rejected" ? myResult.reason : null;
       state.myModel =
-        myResult.status === "fulfilled" ? O.buildMyBookings(myResult.value, new Date()) : null;
+        myResult.status === "fulfilled"
+          ? O.buildMyBookings(myResult.value, new Date(), lumaEvents)
+          : null;
 
       if (hasPins) {
         if (bookingsResult.status === "rejected") throw bookingsResult.reason;
         const events = eventsResult.status === "fulfilled" ? eventsResult.value : [];
         state.eventsError = eventsResult.status === "rejected" ? eventsResult.reason : null;
-        state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events);
+        state.model = O.buildModel(state.pins, bookingsResult.value, new Date(), events, lumaEvents);
         O.markOwnedBookings(state.model, state.myModel);
       } else {
         state.model = null;
@@ -275,6 +331,48 @@
 
   async function fetchEvents(session) {
     return fetchCalendar(session, "fullCalendarEvents");
+  }
+
+  /**
+   * Luma's public API only allows https://luma.com as a CORS origin, so both
+   * the extension page and the in-portal overlay ask the background worker to
+   * fetch it (the extension's host permission covers api.luma.com).
+   */
+  async function fetchLumaEvents(force) {
+    const response = await sendMessage({ type: "nxplus:luma-events", force });
+    return Array.isArray(response.entries) ? response.entries : [];
+  }
+
+  function fetchLumaDescription(eventId) {
+    return sendMessage({ type: "nxplus:luma-description", eventId }).then(
+      (response) => String(response.description || ""),
+    );
+  }
+
+  function sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      if (!chrome?.runtime?.sendMessage) {
+        reject(new Error("Luma events are unavailable."));
+        return;
+      }
+
+      chrome.runtime.sendMessage(message, (response) => {
+        const error = chrome.runtime.lastError;
+        if (error) {
+          reject(new Error(error.message || "Luma events are unavailable."));
+          return;
+        }
+        if (!response) {
+          reject(new Error("Luma events are unavailable."));
+          return;
+        }
+        if (!response.ok) {
+          reject(new Error(response.error || "Luma request failed."));
+          return;
+        }
+        resolve(response);
+      });
+    });
   }
 
   async function fetchCalendar(session, endpoint) {
@@ -361,6 +459,12 @@
     ui.refreshButton.disabled = state.loading;
     ui.refreshButton.textContent = state.loading ? "Refreshing…" : "Refresh";
 
+    if (ui.lumaButton) {
+      ui.lumaButton.setAttribute("aria-pressed", String(state.lumaEnabled));
+      ui.lumaButton.classList.toggle("is-active", state.lumaEnabled);
+      ui.lumaButton.title = state.lumaEnabled ? "Hide Luma events" : "Show Luma events";
+    }
+
     ui.summary.textContent = summaryText(session);
     renderNotice(session);
     renderMyBookings(session);
@@ -388,7 +492,9 @@
     if (!state.pins.length) {
       if (state.myBookingsError) return "Couldn't load your bookings.";
       if (!state.myModel) return "Loading your bookings…";
-      return `${plural(state.myModel.count, "booking")} of yours in the next 14 days${updated}`;
+      const parts = [`${plural(state.myModel.count, "booking")} of yours`];
+      if (state.myModel.eventCount) parts.push(plural(state.myModel.eventCount, "event"));
+      return `${parts.join(" · ")} in the next 14 days${updated}`;
     }
 
     if (!state.model) return "Loading bookings…";
@@ -397,7 +503,8 @@
       plural(state.pins.length, "pinned resource"),
       plural(state.model.bookingCount, "booking"),
     ];
-    if (state.model.eventCount) parts.push(plural(state.model.eventCount, "event"));
+    const events = state.model.eventCount + state.model.lumaCount;
+    if (events) parts.push(plural(events, "event"));
     return `${parts.join(" · ")} in the next 14 days${updated}`;
   }
 
@@ -439,6 +546,7 @@
     const warnings = [];
     if (state.myBookingsError) warnings.push("your own bookings");
     if (state.eventsError) warnings.push("workshop reservations");
+    if (state.lumaError) warnings.push("Luma events");
     if (warnings.length) {
       showNotice({
         title: "Some data couldn't load",
@@ -502,7 +610,9 @@
     if (state.myBookingsError) {
       subtitle.textContent = "Across every resource · unavailable";
     } else if (state.myModel) {
-      subtitle.textContent = `Across every resource · ${plural(state.myModel.count, "booking")}`;
+      const parts = [plural(state.myModel.count, "booking")];
+      if (state.myModel.eventCount) parts.push(plural(state.myModel.eventCount, "event"));
+      subtitle.textContent = `Across every resource · ${parts.join(" · ")}`;
     } else {
       subtitle.textContent = "Across every resource";
     }
@@ -606,7 +716,9 @@
     const items = el("div", "day-bookings");
 
     for (const booking of section.bookings) {
-      items.appendChild(booking.event ? eventEntry(booking) : bookingEntry(booking));
+      items.appendChild(
+        booking.luma ? lumaEntry(booking) : booking.event ? eventEntry(booking) : bookingEntry(booking),
+      );
     }
 
     row.append(label, items);
@@ -669,6 +781,73 @@
     details.append(summary, body);
     entry.appendChild(details);
     return entry;
+  }
+
+  /**
+   * Luma events are space-wide happenings, so they get a purple *Event* badge
+   * instead of the orange *Reserved* one. The description is fetched on the
+   * first expand, like the web app's HTMX endpoint.
+   */
+  function lumaEntry(item) {
+    const entry = el("div", "booking booking-event booking-luma");
+    entry.appendChild(timeLabel(item));
+
+    const details = el("details", "event-details");
+    const summary = el("summary", "event-summary");
+    summary.append(el("span", "booking-who", item.coworker), badge("Event", "badge-luma"));
+
+    const body = el("div", "event-body");
+    const description = el("p", "event-description");
+    body.appendChild(description);
+
+    if (item.url) {
+      const link = el("a", null, "View event on Luma ↗");
+      link.href = eventHref(item.url);
+      link.target = "_blank";
+      link.rel = "noopener";
+      body.appendChild(link);
+    }
+
+    details.addEventListener("toggle", () => {
+      if (details.open) fillLumaDescription(item, description);
+    });
+
+    details.append(summary, body);
+    entry.appendChild(details);
+    return entry;
+  }
+
+  function fillLumaDescription(item, node) {
+    if (item.descriptionLoaded) {
+      node.textContent = item.description || item.descriptionError || "No description.";
+      node.classList.toggle("error", Boolean(item.descriptionError));
+      return;
+    }
+    if (item.descriptionLoading) return;
+
+    item.descriptionLoading = true;
+    node.textContent = "Loading description…";
+    node.classList.remove("error");
+
+    fetchLumaDescription(item.eventId)
+      .then((description) => {
+        item.descriptionLoaded = true;
+        item.description = description;
+        item.descriptionError = "";
+        if (!ui.root) return;
+        node.textContent = description || "No description.";
+      })
+      .catch((error) => {
+        item.descriptionLoaded = true;
+        item.description = "";
+        item.descriptionError = error.message || "Couldn't load the description.";
+        if (!ui.root) return;
+        node.textContent = item.descriptionError;
+        node.classList.add("error");
+      })
+      .finally(() => {
+        item.descriptionLoading = false;
+      });
   }
 
   function timeLabel(booking) {

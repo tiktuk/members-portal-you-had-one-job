@@ -6,11 +6,13 @@
   const DEFAULTS = {
     calendarDefault: true,
     navMenu: true,
+    lumaEvents: cfg.luma?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
   };
 
   const calendarToggle = document.getElementById("calendar-default");
   const navToggle = document.getElementById("nav-menu");
+  const lumaToggle = document.getElementById("luma-events");
   const geoToggle = document.getElementById("geo-block");
   const refreshButton = document.getElementById("refresh");
   const status = document.getElementById("groups-status");
@@ -23,12 +25,16 @@
     const settings = { ...DEFAULTS, ...((await get(cfg.storageKeys.settings)) || {}) };
     calendarToggle.checked = settings.calendarDefault !== false;
     navToggle.checked = settings.navMenu !== false;
+    lumaToggle.checked = settings.lumaEvents !== false;
     geoToggle.checked = settings.geoBlockPrompt !== false;
 
     calendarToggle.addEventListener("change", () =>
       saveSettings({ calendarDefault: calendarToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
+    lumaToggle.addEventListener("change", () =>
+      saveSettings({ lumaEvents: lumaToggle.checked }),
+    );
     geoToggle.addEventListener("change", () =>
       saveSettings({ geoBlockPrompt: geoToggle.checked }),
     );

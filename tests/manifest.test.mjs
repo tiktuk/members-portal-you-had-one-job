@@ -20,6 +20,7 @@ test("manifest is a valid MV3 web extension manifest", () => {
 test("every file referenced by the manifest exists", () => {
   const referenced = new Set();
   referenced.add(manifest.action.default_popup);
+  referenced.add(manifest.background.service_worker);
   Object.values(manifest.action.default_icon).forEach((file) => referenced.add(file));
   Object.values(manifest.icons).forEach((file) => referenced.add(file));
   manifest.content_scripts.forEach((entry) => {
@@ -76,4 +77,14 @@ test("popup loads the shared config", () => {
   const html = readFileSync(join(src, "popup.html"), "utf8");
   assert.match(html, /<script src="lib\/config\.js"><\/script>/);
   assert.match(html, /<script src="popup\.js"><\/script>/);
+});
+
+test("the background worker can reach the Luma API", () => {
+  assert.equal(manifest.background.service_worker, "background.js");
+  assert.ok(manifest.host_permissions.includes("https://api.luma.com/*"));
+});
+
+test("popup exposes the Luma events toggle", () => {
+  const html = readFileSync(join(src, "popup.html"), "utf8");
+  assert.match(html, /id="luma-events"/);
 });

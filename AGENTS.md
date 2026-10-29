@@ -23,9 +23,12 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
-- `src/lib/overview.js` — bookings/events payload → pinned-overview model and
-  personal-bookings model (day sections, timestamp parsing, icons); loaded by
-  the page and the tests.
+- `src/lib/overview.js` — bookings/events/Luma payloads → pinned-overview model
+  and personal-bookings model (day sections, timestamp parsing, icons); loaded
+  by the page and the tests.
+- `src/lib/luma.js` — Luma public API helpers (source parsing, list/event URLs,
+  ProseMirror description flattening); loaded by the background worker and the
+  tests, never by the page.
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
   `NXPlusOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
@@ -35,10 +38,12 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
+- `src/background.js` — service worker that proxies Luma's public API (CORS and
+  caching); the only place that talks to `api.luma.com`.
 - `src/overview.html` / `overview.js` — standalone pinned resources page; the
   body is empty and `overview.js` mounts the shared view into it.
 - `src/overview.css` — stylesheet for both variants (page and overlay).
-- `src/popup.*` — toolbar settings UI (three toggles, group cache status, link
+- `src/popup.*` — toolbar settings UI (four toggles, group cache status, link
   to the pinned overview).
 - `tests/` — `node --test` suites plus the browser fixture.
 
@@ -192,8 +197,9 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The **My bookings** card fetches `/api/public/bookings/my` with the same
   session and window (`from_Booking_FromTime`/`to_Booking_FromTime` in
   `YYYY-MM-DDTHH:MM` local, `orderBy=FromTime`, `dir=0`, `size=100`), following
-  `HasNextPage`. It skips `Cancelled` bookings and does not merge events: they
-  are not the member's bookings. Rows show `ResourceName`.
+  `HasNextPage`. It skips `Cancelled` bookings. Rows show `ResourceName`. It
+  never merges Nexudus resource events (they are not the member's bookings) but
+  does merge Luma events when the Luma toggle is on.
 - `FromTime`/`ToTime` from `/api/public/bookings/my` are naive local wall-clock
   strings (no `Z`), unlike the `/en/...` feeds. `parseTimestamp` parses them as
   local, so no conversion is needed.
@@ -220,6 +226,53 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   Its scripts do not need to be listed (they load from the extension origin).
 - Unpinning from the page writes the same `nxplus:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.
+
+## Luma events
+
+- Mirrors the Django app's `Space.luma_source` + `SpaceMembership.show_luma_events`.
+  `config.luma.source` is a public Luma user (`usr-…`) or calendar (`cal-…`)
+  API ID, or any luma.com URL containing one; `config.luma.enabled` only seeds
+  the popup toggle (`settings.lumaEvents` in `nxplus:settings`).
+- The overview header also has an *Events* pill (`ui.lumaButton`, only when
+  `config.luma.source` is set) that writes the same `settings.lumaEvents`.
+  `render()` keeps its `aria-pressed`/`is-active` state in sync, so changing the
+  popup updates an open overview through `onStorageChanged`.
+- `lib/luma.js::parseSource` extracts the ID. The list endpoints are
+  `/user/profile/events-hosting?user_api_id=…&period=future` and
+  `/calendar/get-items?calendar_api_id=…&period=future`, with
+  `pagination_limit` + `pagination_cursor`, following `has_more`. No API key.
+  The documented `public-api.luma.com` is calendar-scoped and needs Luma Plus,
+  so do not switch to it.
+- **Only `background.js` may fetch Luma.** `api.luma.com` only allows
+  `https://luma.com` as a CORS origin (`vary: Origin`, no `*`), and content
+  scripts are subject to CORS, so the in-portal overlay could not call it. The
+  service worker uses the `https://api.luma.com/*` host permission instead.
+  Both the page and the overlay ask it via `chrome.runtime.sendMessage`
+  (`nxplus:luma-events`, `nxplus:luma-description`).
+- List responses are cached in the worker for 5 minutes (`config.luma.cacheTtlMs`),
+  descriptions for 1 hour (`detailCacheTtlMs`), mirroring the Django cache.
+  The overview's *Refresh* button passes `force: true`; the 60 s auto-refresh
+  reuses the cached list.
+- Luma entries are `{ api_id, event: { api_id, name, start_at, end_at, url,
+  geo_address_info } }`. `start_at`/`end_at` are UTC instants and go through
+  `parseTimestamp` like the portal feeds. `event.url` is a slug, not a full URL.
+- Luma events are **space-wide**, not tied to a resource, so `buildModel` merges
+  them into every pinned card and `buildMyBookings` merges them into the
+  My bookings card. `MAX_LUMA_EVENTS = 10` per card mirrors the web app's
+  `MAX_EVENTS`; `lumaCount` counts unique events (they repeat across cards).
+  `markOwnedBookings` never links them.
+- They render with a purple *Event* badge (`badge-luma` / `booking-luma`) to
+  stay distinct from the orange *Reserved* resource events, like the web app's
+  `.badge-event-luma`. The description is fetched on first expand and flattened
+  with `lib/luma.js::flattenDescription` (ProseMirror/TipTap), matching the
+  Django `_rich_text_to_plain`; the *View event on Luma ↗* link is absolute.
+- `background.js` only describes event IDs present in its last list cache (when
+  one exists), like the web app's description endpoint, and rejects IDs that do
+  not match `[A-Za-z0-9_-]+`.
+- A Luma failure is non-blocking: `state.lumaError` adds "Luma events" to the
+  overview warning while bookings keep rendering.
+- Safari supports `background.service_worker` in MV3, and `importScripts` is
+  fine because the worker is a classic script (no `"type": "module"`).
 
 ## Gotchas
 

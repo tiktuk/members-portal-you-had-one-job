@@ -10,6 +10,8 @@
   /** Same lookahead as the dashboard widgets in the web app. */
   const LOOKAHEAD_DAYS = 14;
   const DAY_MS = 24 * 60 * 60 * 1000;
+  /** Mirrors MAX_EVENTS in the web app: at most this many Luma events per card. */
+  const MAX_LUMA_EVENTS = 10;
 
   /**
    * Both `/en/...` feeds return UTC instants, despite the `ignoreTimezone:
@@ -187,6 +189,8 @@
 
     return {
       id: isEvent ? `event-${record.id ?? fallbackId}` : String(record.id ?? fallbackId),
+      kind: isEvent ? "event" : "booking",
+      luma: false,
       resourceId,
       day: start.day,
       startTime: start.time,
@@ -213,6 +217,51 @@
     return normalizeItem(record, resourceId, "event");
   }
 
+  /**
+   * Luma list entries look like `{ api_id, event: { api_id, name, start_at,
+   * end_at, url, geo_address_info } }`. `start_at`/`end_at` are UTC instants,
+   * so `parseTimestamp` converts them to the browser timezone like the portal
+   * feeds. The description is loaded lazily from `/event/get` when a row is
+   * expanded, mirroring the web app's HTMX endpoint.
+   */
+  function normalizeLumaEvent(entry) {
+    const event = entry && entry.event;
+    if (!event || typeof event !== "object") return null;
+
+    const eventId = String(event.api_id || entry.api_id || "");
+    const start = parseTimestamp(event.start_at);
+    const end = parseTimestamp(event.end_at);
+    if (!eventId || !start || !end) return null;
+
+    const rawUrl = String(event.url || "");
+    const url = rawUrl
+      ? /^https?:\/\//i.test(rawUrl)
+        ? rawUrl
+        : `https://luma.com/${rawUrl.replace(/^\/+/, "")}`
+      : "";
+
+    return {
+      id: `luma-${eventId}`,
+      eventId,
+      kind: "luma",
+      luma: true,
+      event: true,
+      resourceId: "",
+      day: start.day,
+      startTime: start.time,
+      endTime: end.time,
+      allDay: false,
+      coworker: String(event.name || "Untitled event"),
+      tentative: false,
+      mine: false,
+      description: "",
+      descriptionLoaded: false,
+      url,
+      stamp: start.stamp,
+      endStamp: end.stamp,
+    };
+  }
+
   function groupByDay(items, today) {
     const sections = [];
     for (const item of items) {
@@ -229,12 +278,29 @@
     return sections;
   }
 
+  /** Upcoming Luma events in the lookahead window, capped like the web app. */
+  function upcomingLumaEvents(records, nowStamp, rangeEnd) {
+    const items = [];
+    for (const record of Array.isArray(records) ? records : []) {
+      const item = normalizeLumaEvent(record);
+      if (!item) continue;
+      if (item.endStamp <= nowStamp) continue;
+      if (item.stamp >= rangeEnd) continue;
+      items.push(item);
+    }
+
+    items.sort((a, b) => a.stamp - b.stamp || a.id.localeCompare(b.id));
+    return items.slice(0, MAX_LUMA_EVENTS);
+  }
+
   /**
    * Builds one card per pinned resource, mirroring the web app's widgets:
-   * bookings and resource events grouped into day sections, only upcoming items
-   * inside the lookahead window, sorted by start time.
+   * bookings, resource events and space-wide Luma events grouped into day
+   * sections, only upcoming items inside the lookahead window, sorted by start
+   * time. Luma events are merged into every card (and My bookings), because
+   * they happen at the space rather than occupying a single resource.
    */
-  function buildModel(pins, records, now, events = []) {
+  function buildModel(pins, records, now, events = [], lumaEvents = []) {
     const today = dayKey(now);
     const nowStamp = localStamp(now);
     const rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -265,19 +331,33 @@
     for (const record of Array.isArray(records) ? records : []) addItem(record, normalizeBooking);
     for (const record of Array.isArray(events) ? events : []) addItem(record, normalizeEvent);
 
-    let total = 0;
+    const lumaItems = upcomingLumaEvents(lumaEvents, nowStamp, rangeEnd);
+
     let bookingCount = 0;
     let eventCount = 0;
+    let lumaCount = 0;
+    const seenLuma = new Set();
     const cards = [];
     for (const pin of pinsById.values()) {
-      const bookings = [...(byResource.get(pin.id)?.values() || [])].sort(
+      const merged = new Map(byResource.get(pin.id) || []);
+      for (const item of lumaItems) merged.set(item.id, item);
+
+      const bookings = [...merged.values()].sort(
         (a, b) => a.stamp - b.stamp || a.id.localeCompare(b.id),
       );
 
       for (const booking of bookings) {
-        total += 1;
-        if (booking.event) eventCount += 1;
-        else bookingCount += 1;
+        if (booking.luma) {
+          // The same event is shown in every card; count it once.
+          if (!seenLuma.has(booking.id)) {
+            seenLuma.add(booking.id);
+            lumaCount += 1;
+          }
+        } else if (booking.event) {
+          eventCount += 1;
+        } else {
+          bookingCount += 1;
+        }
       }
 
       cards.push({
@@ -289,7 +369,17 @@
       });
     }
 
-    return { cards, total, bookingCount, eventCount, today, rangeStart, rangeEnd };
+    const total = bookingCount + eventCount + lumaCount;
+    return {
+      cards,
+      total,
+      bookingCount,
+      eventCount,
+      lumaCount,
+      today,
+      rangeStart,
+      rangeEnd,
+    };
   }
 
   /**
@@ -306,6 +396,8 @@
 
     return {
       id: String(record.Id ?? `${record.ResourceId}-${start.stamp}`),
+      kind: "booking",
+      luma: false,
       resourceId: record.ResourceId != null ? String(record.ResourceId) : "",
       resourceName,
       day: start.day,
@@ -323,13 +415,14 @@
     };
   }
 
-  function buildMyBookings(records, now) {
+  function buildMyBookings(records, now, lumaEvents = []) {
     const today = dayKey(now);
     const nowStamp = localStamp(now);
     const rangeEnd = lookaheadEnd(now);
 
     const items = [];
     const seen = new Set();
+    let count = 0;
     for (const record of Array.isArray(records) ? records : []) {
       if (!record || record.Cancelled === true) continue;
       const item = normalizeMyBooking(record);
@@ -339,10 +432,23 @@
       if (seen.has(item.id)) continue;
       seen.add(item.id);
       items.push(item);
+      count += 1;
+    }
+
+    const lumaItems = upcomingLumaEvents(lumaEvents, nowStamp, rangeEnd);
+    for (const item of lumaItems) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      items.push(item);
     }
 
     items.sort((a, b) => a.stamp - b.stamp || a.id.localeCompare(b.id));
-    return { items, sections: groupByDay(items, today), count: items.length };
+    return {
+      items,
+      sections: groupByDay(items, today),
+      count,
+      eventCount: lumaItems.length,
+    };
   }
 
   /**
@@ -360,10 +466,12 @@
 
   globalThis.NXPlusOverview = {
     LOOKAHEAD_DAYS,
+    MAX_LUMA_EVENTS,
     buildModel,
     buildMyBookings,
     dayLabel,
     markOwnedBookings,
+    normalizeLumaEvent,
     normalizePins,
     parseTimestamp,
     rangeFor,
