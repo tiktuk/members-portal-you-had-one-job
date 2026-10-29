@@ -153,8 +153,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   box, `94dvh` as a bottom sheet on phones) instead of sizing to its content, so
   the panel never grows as bookings arrive — a content-sized panel visibly jumps
   on open. Width stays fluid so the card grid reflows on resize: it uses
-  `minmax(320px, 1fr)` in the panel (340px on the page), giving 5 columns at
-  1920px, 4 at 1500, 3 at 1100, 2 at 820 and 1 on phones.
+  `minmax(300px, 1fr)` in the panel (340px on the page), giving 5 columns at
+  1920px, 4 at 1440, 3 at 1100, 2 at 820 and 1 on phones. Do not raise that
+  minimum back to 320px — a 1440px window leaves 1316px of content and four
+  320px cards need 1328px, so it silently fell back to three columns.
 - **Alt+O** (`config.overview.shortcut`) opens the overlay from anywhere on the
   portal. `matchesShortcut` compares `event.code`, because Option+O reports
   `key: "ø"` on macOS; the handler ignores keystrokes in inputs, textareas,

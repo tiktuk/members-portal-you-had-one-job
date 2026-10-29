@@ -63,10 +63,12 @@
 }
 
 /* The overlay is wider than the page, so it fits four cards per row instead
-   of three; fewer pins then fit without scrolling. */
+   of three; fewer pins then fit without scrolling. 300px is deliberate: a
+   1440px window leaves 1316px of content, and four 320px cards would need
+   1328px, so a 320px minimum silently stayed at three columns. */
 .overview.is-panel .cards,
 .overview.is-panel .my-bookings {
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
 .overview.is-panel h1 {
