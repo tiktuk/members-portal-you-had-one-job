@@ -149,12 +149,12 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The overlay injects `overview.css` as a `<style>` (fetched once per page via
   `chrome.runtime.getURL`) rather than a `<link>`: a link inside a shadow root
   loads after first paint, which showed the panel unstyled for a frame.
-- `.nxplus-overview-panel` has a fixed height (`min(820px, 100%)`, `94dvh` on
-  phones) instead of sizing to content, so the panel does not grow as bookings
-  arrive. Keep it fixed; a content-sized panel visibly jumps on open. It is
-  `min(1400px, 100%)` wide, and the panel's card grid uses
-  `minmax(320px, 1fr)` (vs 340px on the page) so four cards fit per row on a
-  large screen without horizontal or vertical scrolling.
+- `.nxplus-overview-panel` fills the window (`100%` of the overlay's padded
+  box, `94dvh` as a bottom sheet on phones) instead of sizing to its content, so
+  the panel never grows as bookings arrive — a content-sized panel visibly jumps
+  on open. Width stays fluid so the card grid reflows on resize: it uses
+  `minmax(320px, 1fr)` in the panel (340px on the page), giving 5 columns at
+  1920px, 4 at 1500, 3 at 1100, 2 at 820 and 1 on phones.
 - **Alt+O** (`config.overview.shortcut`) opens the overlay from anywhere on the
   portal. `matchesShortcut` compares `event.code`, because Option+O reports
   `key: "ø"` on macOS; the handler ignores keystrokes in inputs, textareas,
