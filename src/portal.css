@@ -118,7 +118,7 @@
   position: relative;
   display: flex;
   /* Fixed, not content-sized: the panel must not grow as bookings arrive. */
-  width: min(1100px, 100%);
+  width: min(1400px, 100%);
   height: min(820px, 100%);
   max-height: 100%;
   min-height: 0;

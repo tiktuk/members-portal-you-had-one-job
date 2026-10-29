@@ -248,8 +248,11 @@
       const realFetch = window.fetch.bind(window);
       window.fetch = async (url, init) => {
         const target = String(url);
-        // Extension resources (overview.css) are served by the dev server.
-        if (target.includes("/src/")) return realFetch(url, init);
+        // Extension resources (overview.css) are served by the dev server;
+        // bust its heuristic cache so edits show up without a hard reload.
+        if (target.includes("/src/")) {
+          return realFetch(`${target}${target.includes("?") ? "&" : "?"}t=${Date.now()}`, init);
+        }
         if (target.includes("fullCalendarBookings")) return json(window.__fixtureBookings);
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);

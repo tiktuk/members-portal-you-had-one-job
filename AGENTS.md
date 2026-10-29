@@ -151,7 +151,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   loads after first paint, which showed the panel unstyled for a frame.
 - `.nxplus-overview-panel` has a fixed height (`min(820px, 100%)`, `94dvh` on
   phones) instead of sizing to content, so the panel does not grow as bookings
-  arrive. Keep it fixed; a content-sized panel visibly jumps on open.
+  arrive. Keep it fixed; a content-sized panel visibly jumps on open. It is
+  `min(1400px, 100%)` wide, and the panel's card grid uses
+  `minmax(320px, 1fr)` (vs 340px on the page) so four cards fit per row on a
+  large screen without horizontal or vertical scrolling.
 - **Alt+O** (`config.overview.shortcut`) opens the overlay from anywhere on the
   portal. `matchesShortcut` compares `event.code`, because Option+O reports
   `key: "ø"` on macOS; the handler ignores keystrokes in inputs, textareas,
