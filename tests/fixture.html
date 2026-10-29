@@ -156,7 +156,17 @@
       };
 
       const settings = { calendarDefault: true, navMenu: true, geoBlockPrompt: true };
-      const store = { "nxplus:settings": settings, "nxplus:pins": [] };
+      const store = {
+        "nxplus:settings": settings,
+        "nxplus:pins": [],
+        // Lets the pinned overview overlay load without the real portal.
+        "nxplus:session": {
+          accessToken: "fixture-token",
+          webAddress: "motionlabberlin",
+          expiresAt: Date.now() + 3600000,
+          savedAt: Date.now(),
+        },
+      };
       const listeners = [];
       window.__fixtureStore = store;
       window.chrome = {
@@ -178,11 +188,73 @@
               if (callback) callback();
             },
           },
-          onChanged: { addListener: (listener) => listeners.push(listener) },
+          onChanged: {
+            addListener: (listener) => listeners.push(listener),
+            removeListener: (listener) => {
+              const index = listeners.indexOf(listener);
+              if (index >= 0) listeners.splice(index, 1);
+            },
+          },
         },
       };
 
-      window.fetch = async () => ({ ok: true, json: async () => window.__fixturePayload });
+      // Sample payloads for the pinned overview, relative to today.
+      const at = (days, hour) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        date.setHours(hour, 0, 0, 0);
+        return date;
+      };
+      const iso = (days, hour) => at(days, hour).toISOString();
+      const naive = (days, hour) => {
+        const date = at(days, hour);
+        const pad = (value) => String(value).padStart(2, "0");
+        return (
+          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+          `T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
+        );
+      };
+
+      window.__fixtureBookings = [
+        { id: 9001, resourceId: 1415309496, start: iso(1, 8), end: iso(1, 10), coworkerFullName: "Alex Kim" },
+        { id: 9002, resourceId: 1415309496, start: iso(1, 9), end: iso(1, 11), coworkerFullName: "Sam Ortiz", tentative: true },
+        { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerFullName: "Jo Weber" },
+      ];
+      window.__fixtureEvents = [
+        {
+          id: 9101,
+          resourceId: 1415309591,
+          start: iso(1, 13),
+          end: iso(1, 15),
+          title: "Laser Cutting 101",
+          shortDescription: "Intro workshop for the E-Lab laser.",
+          url: "/motionlabberlin/events/laser-cutting-101",
+        },
+      ];
+      window.__fixtureMyBookings = {
+        Records: [
+          {
+            Id: 9001,
+            ResourceId: 1415309496,
+            ResourceName: "OLSK Large CNC",
+            FromTime: naive(1, 8),
+            ToTime: naive(1, 10),
+          },
+        ],
+        HasNextPage: false,
+      };
+
+      const json = (payload) => ({ ok: true, status: 200, json: async () => payload });
+      const realFetch = window.fetch.bind(window);
+      window.fetch = async (url, init) => {
+        const target = String(url);
+        // Extension resources (overview.css) are served by the dev server.
+        if (target.includes("/src/")) return realFetch(url, init);
+        if (target.includes("fullCalendarBookings")) return json(window.__fixtureBookings);
+        if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
+        if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
+        return json(window.__fixturePayload);
+      };
 
       const bar = document.getElementById("fixture-bar");
       const render = () => {
@@ -195,6 +267,8 @@
     <script src="/src/lib/config.js"></script>
     <script src="/src/lib/url.js"></script>
     <script src="/src/lib/groups.js"></script>
+    <script src="/src/lib/overview.js"></script>
+    <script src="/src/lib/overview-view.js"></script>
     <script src="/src/content.js"></script>
   </body>
 </html>

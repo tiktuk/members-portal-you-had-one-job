@@ -93,6 +93,56 @@
   text-decoration: none;
 }
 
+/* ------------------------------------------------------------------ *
+ * Pinned overview overlay (the page itself is rendered in a shadow root
+ * from lib/overview-view.js + overview.css)
+ * ------------------------------------------------------------------ */
+
+.nxplus-overview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.nxplus-overview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.nxplus-overview-panel {
+  position: relative;
+  display: flex;
+  /* Fixed, not content-sized: the panel must not grow as bookings arrive. */
+  width: min(1100px, 100%);
+  height: min(820px, 100%);
+  max-height: 100%;
+  min-height: 0;
+}
+
+.nxplus-overview-host {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  .nxplus-overview-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .nxplus-overview-panel {
+    width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+  }
+}
+
 .nxplus-pinned-title {
   width: 100%;
   margin: 0 0 0.15rem;

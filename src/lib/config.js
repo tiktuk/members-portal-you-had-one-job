@@ -41,6 +41,14 @@
      */
     geo: { blockPrompt: true },
 
+    /**
+     * Keyboard shortcut that opens the pinned resources overview from the
+     * portal. Modifiers joined with "+" (alt, ctrl, meta, shift) plus one key,
+     * e.g. "alt+o". Matched on the physical key, so it survives Option/Alt
+     * layouts that type a different character.
+     */
+    overview: { shortcut: "alt+o" },
+
     nav: {
       enabled: true,
       /** Label of the injected top-level menu item. */

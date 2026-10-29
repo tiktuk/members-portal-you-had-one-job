@@ -26,14 +26,21 @@
   "content_scripts": [
     {
       "matches": ["https://members.motionlab.berlin/*"],
-      "js": ["lib/config.js", "lib/url.js", "lib/groups.js", "content.js"],
+      "js": [
+        "lib/config.js",
+        "lib/url.js",
+        "lib/groups.js",
+        "lib/overview.js",
+        "lib/overview-view.js",
+        "content.js"
+      ],
       "css": ["portal.css"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html"],
+      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css"],
       "matches": ["https://members.motionlab.berlin/*"]
     }
   ]

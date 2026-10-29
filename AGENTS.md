@@ -18,21 +18,26 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 ## Layout
 
 - `src/manifest.json` — MV3 manifest; content scripts load `lib/config.js`,
-  `lib/url.js`, `lib/groups.js` **before** `content.js` (classic scripts, shared
-  via `globalThis`).
+  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/overview-view.js`
+  **before** `content.js` (classic scripts, shared via `globalThis`).
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
 - `src/lib/overview.js` — bookings/events payload → pinned-overview model and
   personal-bookings model (day sections, timestamp parsing, icons); loaded by
   the page and the tests.
+- `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
+  `NXPlusOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
+  standalone page and the in-portal overlay.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
-  group/resource fetching and caching, pins, pinned banner, settings.
+  group/resource fetching and caching, pins, pinned banner, settings, and the
+  overview overlay.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
-- `src/overview.html` / `overview.js` / `overview.css` — standalone pinned
-  resources page (one card per pinned resource).
+- `src/overview.html` / `overview.js` — standalone pinned resources page; the
+  body is empty and `overview.js` mounts the shared view into it.
+- `src/overview.css` — stylesheet for both variants (page and overlay).
 - `src/popup.*` — toolbar settings UI (three toggles, group cache status, link
   to the pinned overview).
 - `tests/` — `node --test` suites plus the browser fixture.
@@ -129,12 +134,28 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 ## Pinned resources overview
 
 - `overview.html` is a standalone extension page (opened from the popup's
-  **Overview →** link and from the **Overview →** pill at the top of the Filters
-  menu, which is rendered even with no pins because the page still lists the
-  member's own bookings). It renders one card per pin, mirroring the Django web
-  app's dashboard widgets: icon, name, group, day-grouped bookings and resource
+  **Overview →** link). The **Overview →** pill at the top of the Filters menu
+  opens the same view as an overlay inside the portal instead; the pill is
+  rendered even with no pins because the overview still lists the member's own
+  bookings. Both render one card per pin, mirroring the Django web app's
+  dashboard widgets: icon, name, group, day-grouped bookings and resource
   events. The card title links to the single-resource calendar; the × button
   unpins it.
+- The overview markup, fetching and styles live in `src/lib/overview-view.js` and
+  `src/overview.css`, which are shared by the standalone page and the in-portal
+  overlay. The overlay mounts the same module into a shadow root, so its generic
+  class names (`.card`, `.notice`, `.button`) cannot collide with the portal's
+  Bootstrap styles in either direction.
+- The overlay injects `overview.css` as a `<style>` (fetched once per page via
+  `chrome.runtime.getURL`) rather than a `<link>`: a link inside a shadow root
+  loads after first paint, which showed the panel unstyled for a frame.
+- `.nxplus-overview-panel` has a fixed height (`min(820px, 100%)`, `94dvh` on
+  phones) instead of sizing to content, so the panel does not grow as bookings
+  arrive. Keep it fixed; a content-sized panel visibly jumps on open.
+- **Alt+O** (`config.overview.shortcut`) opens the overlay from anywhere on the
+  portal. `matchesShortcut` compares `event.code`, because Option+O reports
+  `key: "ø"` on macOS; the handler ignores keystrokes in inputs, textareas,
+  selects and contenteditable elements.
 - Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
   therefore mirrors a live session into `chrome.storage.local`
   (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
@@ -182,8 +203,10 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The lookahead is 14 days, like the web app. Day labels mirror
   `short_day_label`: `Today`, then a short weekday for 1–6 days ahead, then
   `2 Nov`. Auto-refresh is 60 s while the page is visible.
-- `overview.html` is listed in `web_accessible_resources` so the portal's
-  content script can `window.open(chrome.runtime.getURL("overview.html"))`.
+- `overview.html` and `overview.css` are listed in `web_accessible_resources`
+  so the portal's content script can load them from the page's origin. The
+  overlay only needs `overview.css` there (it injects the text as a `<style>`);
+  `overview.html` stays listed for the popup's standalone tab and future use.
   Its scripts do not need to be listed (they load from the extension origin).
 - Unpinning from the page writes the same `nxplus:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.

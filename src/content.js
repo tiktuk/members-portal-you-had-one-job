@@ -47,6 +47,8 @@
     ensureTimer: 0,
   };
 
+  let overviewOverlay = null;
+
   // 1. Must happen synchronously, before the app's own scripts read the URL.
   if (state.settings.calendarDefault !== false && !U.isListAllowed()) {
     const nextPath = U.pathWithView(location.pathname, "calendar");
@@ -127,9 +129,17 @@
 
     document.addEventListener("click", onDocumentClick, true);
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      closeMenu();
-      closeSheet();
+      if (event.key === "Escape") {
+        closeMenu();
+        closeSheet();
+        return;
+      }
+      if (!isEditableTarget(event.target) && matchesShortcut(event)) {
+        event.preventDefault();
+        closeMenu();
+        closeSheet();
+        openOverviewOverlay();
+      }
     });
     window.addEventListener("popstate", scheduleEnsure);
 
@@ -541,8 +551,9 @@
   }
 
   /**
-   * The pinned resources overview lives on its own extension page, so the link
-   * is always shown — the page lists personal bookings even without pins.
+   * The pinned resources overview also opens from the popup as a standalone
+   * page, so the link is always shown — the overview lists personal bookings
+   * even without pins.
    */
   function renderOverviewLink() {
     if (!hasExtensionApis) return null;
@@ -551,13 +562,164 @@
     overview.className = "nxplus-overview-link";
     overview.href = "#";
     overview.textContent = "Overview →";
-    overview.title = "Open the pinned resources overview";
+    overview.title = `Open the pinned resources overview (${shortcutLabel()})`;
     overview.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      window.open(chrome.runtime.getURL("overview.html"), "_blank", "noopener");
+      closeMenu();
+      closeSheet();
+      openOverviewOverlay();
     });
     return overview;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Keyboard shortcut
+   * ------------------------------------------------------------------ */
+
+  const OVERVIEW_SHORTCUT = parseShortcut(cfg.overview?.shortcut || "alt+o");
+
+  function parseShortcut(value) {
+    const parts = String(value)
+      .toLowerCase()
+      .split("+")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const key = parts.pop() || "";
+
+    return {
+      key,
+      code: /^[a-z]$/.test(key)
+        ? `Key${key.toUpperCase()}`
+        : /^[0-9]$/.test(key)
+          ? `Digit${key}`
+          : "",
+      alt: parts.includes("alt"),
+      ctrl: parts.includes("ctrl") || parts.includes("control"),
+      meta: parts.includes("meta") || parts.includes("cmd") || parts.includes("command"),
+      shift: parts.includes("shift"),
+    };
+  }
+
+  /** Physical key match: Option+O types "ø" on macOS, but the code stays KeyO. */
+  function matchesShortcut(event) {
+    const combo = OVERVIEW_SHORTCUT;
+    if (!combo.key || event.repeat) return false;
+    if (event.altKey !== combo.alt || event.ctrlKey !== combo.ctrl) return false;
+    if (event.metaKey !== combo.meta || event.shiftKey !== combo.shift) return false;
+    return combo.code ? event.code === combo.code : event.key.toLowerCase() === combo.key;
+  }
+
+  function shortcutLabel() {
+    const combo = OVERVIEW_SHORTCUT;
+    const parts = [];
+    if (combo.ctrl) parts.push("Ctrl");
+    if (combo.meta) parts.push("Cmd");
+    if (combo.alt) parts.push("Alt");
+    if (combo.shift) parts.push("Shift");
+    parts.push(combo.key.toUpperCase());
+    return parts.join("+");
+  }
+
+  function isEditableTarget(target) {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "SELECT" ||
+      target.isContentEditable
+    );
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Pinned overview overlay
+   * ------------------------------------------------------------------ */
+
+  let overviewStyles = null;
+  let overviewOpening = false;
+
+  /** Cached once per page: injected as <style> so the panel never flashes. */
+  function loadOverviewStyles() {
+    if (!overviewStyles) {
+      overviewStyles = fetch(chrome.runtime.getURL("overview.css"))
+        .then((response) => (response.ok ? response.text() : ""))
+        .catch(() => "");
+    }
+    return overviewStyles;
+  }
+
+  async function openOverviewOverlay() {
+    if (overviewOverlay || overviewOpening || !hasExtensionApis) return;
+    overviewOpening = true;
+
+    try {
+      const css = await loadOverviewStyles();
+
+      const overlay = document.createElement("div");
+      overlay.className = "nxplus-overview-overlay";
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "nxplus-overview-backdrop";
+      backdrop.addEventListener("click", closeOverviewOverlay);
+
+      const panel = document.createElement("div");
+      panel.className = "nxplus-overview-panel";
+      panel.setAttribute("role", "dialog");
+      panel.setAttribute("aria-modal", "true");
+      panel.setAttribute("aria-label", "Pinned resources overview");
+
+      const host = document.createElement("div");
+      host.className = "nxplus-overview-host";
+
+      // The overview markup and stylesheet are shared with overview.html; the
+      // shadow root keeps its generic class names out of the portal.
+      const shadow = host.attachShadow({ mode: "open" });
+      const styles = document.createElement("style");
+      styles.textContent = css;
+      const root = document.createElement("div");
+      shadow.append(styles, root);
+
+      panel.appendChild(host);
+      overlay.append(backdrop, panel);
+
+      const previousFocus = document.activeElement;
+      const previousOverflow = document.documentElement.style.overflow;
+
+      document.documentElement.style.overflow = "hidden";
+      document.addEventListener("keydown", onOverviewKeydown, true);
+      document.body.appendChild(overlay);
+
+      overviewOverlay = {
+        overlay,
+        previousFocus,
+        previousOverflow,
+        view: NXPlusOverviewView.mount(root, {
+          variant: "panel",
+          onClose: closeOverviewOverlay,
+        }),
+      };
+    } finally {
+      overviewOpening = false;
+    }
+  }
+
+  function closeOverviewOverlay() {
+    if (!overviewOverlay) return;
+    const { overlay, previousFocus, previousOverflow, view } = overviewOverlay;
+    overviewOverlay = null;
+
+    document.removeEventListener("keydown", onOverviewKeydown, true);
+    document.documentElement.style.overflow = previousOverflow;
+    view.destroy();
+    overlay.remove();
+
+    if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
+  }
+
+  function onOverviewKeydown(event) {
+    if (event.key !== "Escape") return;
+    event.stopPropagation();
+    closeOverviewOverlay();
   }
 
   function renderPinnedSection({ webAddress, view, start, end, current, pinnedId }) {

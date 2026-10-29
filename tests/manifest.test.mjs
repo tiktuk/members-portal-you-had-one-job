@@ -56,8 +56,20 @@ test("popup links to the pinned overview", () => {
 
 test("content script loads shared libraries before itself", () => {
   const [entry] = manifest.content_scripts;
-  assert.deepEqual(entry.js, ["lib/config.js", "lib/url.js", "lib/groups.js", "content.js"]);
+  assert.deepEqual(entry.js, [
+    "lib/config.js",
+    "lib/url.js",
+    "lib/groups.js",
+    "lib/overview.js",
+    "lib/overview-view.js",
+    "content.js",
+  ]);
   assert.equal(entry.run_at, "document_start");
+});
+
+test("the overview stylesheet is web accessible to the shadow root", () => {
+  const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
+  assert.ok(resources.includes("overview.css"));
 });
 
 test("popup loads the shared config", () => {

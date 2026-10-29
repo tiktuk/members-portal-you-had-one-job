@@ -19,16 +19,18 @@ It does five things:
    the type. A *Pinned* banner above the calendar links back to that resource's
    group, so *Show all CNC Machining* keeps the category in view instead of
    jumping to the first resource of the whole type.
-3. **Pinned resources overview.** A standalone page shows every pinned resource
-   as a card with its bookings and workshop reservations for the next 14 days,
+3. **Pinned resources overview.** An overview shows every pinned resource as a
+   card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
    **My bookings** card above them lists only your own bookings across every
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
-   appear with a *Reserved* badge and can be expanded for details. Open the page
-   from the **Overview →** button at the top of the Filters menu or from the
-   toolbar popup. Each card's title links to the single-resource calendar, and
-   its × button unpins the resource.
+   appear with a *Reserved* badge and can be expanded for details. Open it from
+   the **Overview →** button at the top of the Filters menu, which shows it in
+   an overlay inside the portal (Esc, the × button or a click on the backdrop
+   closes it), with **Alt+O** anywhere on the portal page; the toolbar popup
+   opens the same overview as a standalone page in a new tab. Each card's title
+   links to the single-resource calendar, and its × button unpins the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -98,6 +100,7 @@ location prompt* toggle.
 | `geo.blockPrompt` | Default for the popup's *Block location prompt* toggle: hide `navigator.geolocation` so the portal stops asking for the location (`true`). |
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
+| `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
 | `portal.origin` / `content_scripts.matches` | Change both to use this on another Nexudus portal. |
 
@@ -153,6 +156,12 @@ rest), and the **My bookings** title links to
 plain text: the portal's edit page only opens bookings that belong to the
 signed-in member.
 
+The overview markup, fetching and styles live in `src/lib/overview-view.js` and
+`src/overview.css`, which are shared by the standalone page and the in-portal
+overlay. The overlay mounts the same module into a shadow root, so its generic
+class names (`.card`, `.notice`, `.button`) cannot collide with the portal's
+Bootstrap styles in either direction.
+
 Two scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
@@ -192,8 +201,8 @@ npm run build                  # dist/chrome, zip, Safari Xcode project
 ```
 
 `tests/fixture.html` is a harness that mirrors the portal navigation and stubs
-the extension APIs and the resources endpoint, so the menu can be inspected
-without signing in:
+the extension APIs, the resources endpoint and the overview endpoints, so the
+menu and the overview overlay can be inspected without signing in:
 
 ```bash
 python3 -m http.server 8765    # from this folder
