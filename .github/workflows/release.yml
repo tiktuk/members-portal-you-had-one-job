@@ -56,7 +56,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          name="$(node -p "require('./src/manifest.json').name")"
           gh release create "$GITHUB_REF_NAME" \
             dist/members-portal-you-had-one-job.zip \
-            --title "Nexudus, you had one job $GITHUB_REF_NAME" \
+            --title "$name $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
