@@ -25,6 +25,12 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   and bump both files. Semver: patch = fix, minor = new feature or setting,
   major = something that breaks existing installs (renamed storage keys, new
   host permissions, a different manifest identity).
+- Then push a `v<version>` tag. `.github/workflows/release.yml` fails when the
+  tag disagrees with `src/manifest.json`, runs `npm test`, builds on Linux and
+  attaches `dist/nexudus-you-had-one-job.zip` to a GitHub release, with the
+  matching changelog section as the body. That zip is the *load unpacked*
+  channel; the Web Store (public or unlisted) stays the only auto-updating one
+  for Windows and macOS.
 
 ## Layout
 

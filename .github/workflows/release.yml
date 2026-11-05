@@ -1,0 +1,62 @@
+name: Release
+
+# Pushing a v* tag runs the tests, builds the extension and attaches the
+# unpacked zip to a GitHub release. That is the "load unpacked" distribution
+# path: the Chrome Web Store (public or unlisted) stays the only way to get
+# auto-updating installs on Windows and macOS.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tag matches the manifest version
+        run: |
+          version="$(node -p "require('./src/manifest.json').version")"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the manifest version $version."
+            exit 1
+          fi
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Write the release notes
+        run: |
+          version="$(node -p "require('./src/manifest.json').version")"
+          {
+            echo "Unpacked build for Chrome, Edge and Brave. Download the zip,"
+            echo "extract it, open \`chrome://extensions\`, turn on **Developer mode**"
+            echo "and choose **Load unpacked** for the extracted folder. Unpacked"
+            echo "installs do not update themselves; repeat this for every release."
+            echo
+            echo "Safari needs the signed app wrapper (\`npm run build\` on macOS)."
+            echo
+            awk -v heading="## [$version]" \
+              'index($0, heading) == 1 { inside = 1; next } inside && /^## \[/ { exit } inside' \
+              CHANGELOG.md | sed '/./,$!d'
+          } > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/nexudus-you-had-one-job.zip \
+            --title "Nexudus, you had one job $GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

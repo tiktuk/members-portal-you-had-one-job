@@ -81,6 +81,11 @@ Then open `chrome://extensions`, enable *Developer mode*, choose
 **Load unpacked** and select `dist/chrome` (or the `src` folder directly while
 developing). Reload the portal tab afterwards.
 
+You can skip the local build: every `v*` tag runs the tests, builds on Linux and
+attaches that zip to a
+[release](https://github.com/tiktuk/nexudus-you-had-one-job/releases). Unpacked
+installs never update themselves, so repeat the last step for each release.
+
 ### Safari
 
 Safari needs a signed app wrapper; Apple's converter generates it:
