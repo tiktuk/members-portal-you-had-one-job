@@ -1,4 +1,4 @@
-/* global chrome, NXPlusConfig, NXPlusUrl, NXPlusOverview */
+/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview */
 
 /**
  * The pinned resources overview, shared by the standalone page (overview.html)
@@ -8,9 +8,9 @@
 (() => {
   "use strict";
 
-  const cfg = NXPlusConfig;
-  const U = NXPlusUrl;
-  const O = NXPlusOverview;
+  const cfg = OneJobConfig;
+  const U = OneJobUrl;
+  const O = OneJobOverview;
 
   const REFRESH_MS = 60 * 1000;
 
@@ -52,7 +52,7 @@
     onStorageChanged: null,
   };
 
-  globalThis.NXPlusOverviewView = { mount, destroy };
+  globalThis.OneJobOverviewView = { mount, destroy };
 
   /**
    * Renders the overview into `root`.
@@ -112,7 +112,7 @@
 
     const header = el("header", "page-header");
     const heading = el("div", "page-heading");
-    if (ui.variant === "page") heading.appendChild(el("p", "eyebrow", "Nexudus Portal+"));
+    if (ui.variant === "page") heading.appendChild(el("p", "eyebrow", "Nexudus, you had one job"));
     heading.appendChild(el("h1", null, "Pinned resources"));
     ui.summary = el("p", "summary", "Loading…");
     heading.appendChild(ui.summary);
@@ -339,12 +339,12 @@
    * fetch it (the extension's host permission covers api.luma.com).
    */
   async function fetchLumaEvents(force) {
-    const response = await sendMessage({ type: "nxplus:luma-events", force });
+    const response = await sendMessage({ type: "onejob:luma-events", force });
     return Array.isArray(response.entries) ? response.entries : [];
   }
 
   function fetchLumaDescription(eventId) {
-    return sendMessage({ type: "nxplus:luma-description", eventId }).then(
+    return sendMessage({ type: "onejob:luma-description", eventId }).then(
       (response) => String(response.description || ""),
     );
   }

@@ -1,4 +1,4 @@
-# Nexudus Portal+
+# Nexudus, you had one job
 
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
 portal (<https://members.motionlab.berlin/motionlabberlin>).
@@ -70,7 +70,7 @@ Bookings ▾   Filters ▾   Store ▾   Memberships   Community
 ### Chrome / Edge / Brave
 
 ```bash
-npm run build          # produces dist/chrome and dist/nexudus-portal-plus.zip
+npm run build          # produces dist/chrome and dist/nexudus-you-had-one-job.zip
 ```
 
 Then open `chrome://extensions`, enable *Developer mode*, choose
@@ -83,11 +83,11 @@ Safari needs a signed app wrapper; Apple's converter generates it:
 
 ```bash
 npm run build          # also runs safari-web-extension-converter (needs Xcode)
-open "dist/safari/Nexudus Portal+/Nexudus Portal+.xcodeproj"
+open "dist/safari/Nexudus, you had one job/Nexudus, you had one job.xcodeproj"
 ```
 
-In Xcode run the **Nexudus Portal+ (macOS)** scheme once. Then in Safari:
-*Settings → Extensions → Nexudus Portal+* → enable it and allow it on
+In Xcode run the **Nexudus, you had one job (macOS)** scheme once. Then in Safari:
+*Settings → Extensions → Nexudus, you had one job* → enable it and allow it on
 `members.motionlab.berlin`. The iOS project in the same Xcode project works the
 same way if you want it on a phone.
 
@@ -105,7 +105,7 @@ the *Block location prompt* and *Luma events* toggles.
 | `defaultView` | View used by the injected links (`calendar`). |
 | `geo.blockPrompt` | Default for the popup's *Block location prompt* toggle: hide `navigator.geolocation` so the portal stops asking for the location (`true`). |
 | `resourceTypeOrder` | Column order of the menu. |
-| `nav.resourceParam` | Query parameter used for single-resource links (`nxplus-resource`). |
+| `nav.resourceParam` | Query parameter used for single-resource links (`onejob-resource`). |
 | `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
 | `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
@@ -114,8 +114,8 @@ the *Block location prompt* and *Luma events* toggles.
 
 The menu is built from the portal's own navigation (which resource types it
 offers) plus `GET /api/public/resources/published/details` for the group and
-resource names. Pins are stored in `chrome.storage.local` under `nxplus:pins`.
-The portal session used by the overview page is mirrored into `nxplus:session`
+resource names. Pins are stored in `chrome.storage.local` under `onejob:pins`.
+The portal session used by the overview page is mirrored into `onejob:session`
 (`{ accessToken, webAddress, expiresAt, savedAt }`) whenever the portal loads
 with a live `AUTH_TOKEN` cookie.
 
@@ -196,7 +196,7 @@ Three scripts do the work:
   since Luma's CORS policy blocks direct calls from the portal origin.
 
 A pinned link looks like
-`/motionlabberlin/bookings/machines/calendar?group=…&nxplus-resource=1415309496`.
+`/motionlabberlin/bookings/machines/calendar?group=…&onejob-resource=1415309496`.
 The portal ignores the extra parameter, so `page.js` narrows the
 `/api/public/resources/published/details` response down to that id before the
 calendar renders, and makes the portal's filters no-ops while pinned (only the

@@ -1,5 +1,5 @@
 /**
- * Shared configuration for the Nexudus Portal+ extension.
+ * Shared configuration for the Nexudus, you had one job extension.
  *
  * Loaded first in both worlds: the isolated content-script world and the page
  * world (see content.js / page.js). Everything here is plain data so it can be
@@ -83,7 +83,7 @@
        * Query parameter that narrows the calendar to one resource. The value is
        * the Nexudus resource id; the portal itself ignores it (see page.js).
        */
-      resourceParam: "nxplus-resource",
+      resourceParam: "onejob-resource",
     },
 
     cache: {
@@ -145,22 +145,22 @@
     ],
 
     storageKeys: {
-      settings: "nxplus:settings",
-      groups: "nxplus:groups",
+      settings: "onejob:settings",
+      groups: "onejob:groups",
       /** Pinned resources: [{ id, name, group, type }]. */
-      pins: "nxplus:pins",
+      pins: "onejob:pins",
       /**
        * Portal session for the pinned-overview page:
        * { accessToken, webAddress, expiresAt, savedAt }.
        */
-      session: "nxplus:session",
-      refreshRequest: "nxplus:refresh-request",
+      session: "onejob:session",
+      refreshRequest: "onejob:refresh-request",
       /** Mirror of `settings` in the page's localStorage (read synchronously). */
-      settingsCache: "nxplus:settings-cache",
+      settingsCache: "onejob:settings-cache",
       /** sessionStorage marker for the pinned resource of the current tab. */
-      pinnedSession: "nxplus:pinned-resource",
+      pinnedSession: "onejob:pinned-resource",
     },
   };
 
-  globalThis.NXPlusConfig = config;
+  globalThis.OneJobConfig = config;
 })();

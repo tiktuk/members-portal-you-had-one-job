@@ -13,7 +13,7 @@ function loadLuma() {
   vm.runInContext(readFileSync(join(src, "lib/luma.js"), "utf8"), context, {
     filename: "lib/luma.js",
   });
-  return context.NXPlusLuma;
+  return context.OneJobLuma;
 }
 
 test("parseSource accepts API IDs and public luma.com URLs", () => {

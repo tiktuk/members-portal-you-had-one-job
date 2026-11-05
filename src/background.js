@@ -1,4 +1,4 @@
-/* global chrome, NXPlusConfig, NXPlusLuma */
+/* global chrome, OneJobConfig, OneJobLuma */
 
 /**
  * Background service worker.
@@ -13,8 +13,8 @@
  */
 importScripts("lib/config.js", "lib/luma.js");
 
-const cfg = NXPlusConfig;
-const L = NXPlusLuma;
+const cfg = OneJobConfig;
+const L = OneJobLuma;
 
 const eventsCache = new Map();
 const descriptionsCache = new Map();
@@ -22,14 +22,14 @@ const descriptionsCache = new Map();
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string") return undefined;
 
-  if (message.type === "nxplus:luma-events") {
+  if (message.type === "onejob:luma-events") {
     loadEvents(Boolean(message.force))
       .then((entries) => sendResponse({ ok: true, entries }))
       .catch((error) => sendResponse({ ok: false, error: errorMessage(error) }));
     return true;
   }
 
-  if (message.type === "nxplus:luma-description") {
+  if (message.type === "onejob:luma-description") {
     loadDescription(String(message.eventId || ""))
       .then((description) => sendResponse({ ok: true, description }))
       .catch((error) => sendResponse({ ok: false, error: errorMessage(error) }));

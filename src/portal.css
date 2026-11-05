@@ -1,20 +1,20 @@
-/* Nexudus Portal+ — styles for the injected "Filters" menu.
-   Scoped to .nxplus-* so nothing else in the portal is affected. */
+/* Nexudus, you had one job — styles for the injected "Filters" menu.
+   Scoped to .onejob-* so nothing else in the portal is affected. */
 
-.nxplus-nav-item {
+.onejob-nav-item {
   position: relative;
 }
 
-.nxplus-nav-item .nxplus-toggle {
+.onejob-nav-item .onejob-toggle {
   white-space: nowrap;
 }
 
 /* The button already contains the theme's chevron; drop Bootstrap's CSS caret. */
-.nxplus-nav-item .nxplus-toggle::after {
+.onejob-nav-item .onejob-toggle::after {
   display: none;
 }
 
-.nxplus-menu {
+.onejob-menu {
   width: max-content;
   min-width: 280px;
   max-width: min(92vw, 880px);
@@ -24,13 +24,13 @@
   border-radius: 1rem;
 }
 
-.nxplus-menu-content {
+.onejob-menu-content {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.nxplus-columns {
+.onejob-columns {
   display: grid;
   /* content.js sets an explicit track count; this is the fallback */
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -41,7 +41,7 @@
  * Pinned resources
  * ------------------------------------------------------------------ */
 
-.nxplus-pinned {
+.onejob-pinned {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -50,7 +50,7 @@
   border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
-.nxplus-pinned-head {
+.onejob-pinned-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -59,17 +59,17 @@
   margin: 0 0 0.15rem;
 }
 
-.nxplus-pinned-head .nxplus-pinned-title {
+.onejob-pinned-head .onejob-pinned-title {
   width: auto;
   margin: 0;
 }
 
-.nxplus-overview-row {
+.onejob-overview-row {
   display: flex;
   justify-content: flex-start;
 }
 
-.nxplus-overview-link {
+.onejob-overview-link {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -85,8 +85,8 @@
   text-decoration: none;
 }
 
-.nxplus-overview-link:hover,
-.nxplus-overview-link:focus-visible {
+.onejob-overview-link:hover,
+.onejob-overview-link:focus-visible {
   border-color: var(--bs-primary, #0d6efd);
   background: var(--bs-primary, #0d6efd);
   color: #fff;
@@ -98,7 +98,7 @@
  * from lib/overview-view.js + overview.css)
  * ------------------------------------------------------------------ */
 
-.nxplus-overview-overlay {
+.onejob-overview-overlay {
   position: fixed;
   inset: 0;
   z-index: 2000;
@@ -108,13 +108,13 @@
   padding: clamp(1rem, 2.5vw, 2.5rem);
 }
 
-.nxplus-overview-backdrop {
+.onejob-overview-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
 }
 
-.nxplus-overview-panel {
+.onejob-overview-panel {
   position: relative;
   display: flex;
   /* Fills the window up to a sane maximum: on an ultrawide display a
@@ -127,31 +127,31 @@
   min-height: 0;
 }
 
-.nxplus-overview-host {
+.onejob-overview-host {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
 }
 
 @media (max-width: 640px) {
-  .nxplus-overview-overlay {
+  .onejob-overview-overlay {
     align-items: flex-end;
     padding: 0;
   }
 
-  .nxplus-overview-panel {
+  .onejob-overview-panel {
     width: 100%;
     height: 94dvh;
     max-height: 94dvh;
   }
 }
 
-.nxplus-pinned-title {
+.onejob-pinned-title {
   width: 100%;
   margin: 0 0 0.15rem;
 }
 
-.nxplus-pinned-item {
+.onejob-pinned-item {
   display: flex;
   align-items: center;
   gap: 0.1rem;
@@ -162,7 +162,7 @@
   background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
 }
 
-.nxplus-pinned-item .nxplus-link {
+.onejob-pinned-item .onejob-link {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -170,18 +170,18 @@
   font-weight: 600;
 }
 
-.nxplus-group-row {
+.onejob-group-row {
   display: flex;
   align-items: center;
   gap: 0.15rem;
 }
 
-.nxplus-group-row .nxplus-link {
+.onejob-group-row .onejob-link {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.nxplus-group-toggle {
+.onejob-group-toggle {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -193,41 +193,41 @@
   color: var(--bs-secondary-color, #6c757d);
 }
 
-.nxplus-group-toggle:hover,
-.nxplus-group-toggle:focus-visible {
+.onejob-group-toggle:hover,
+.onejob-group-toggle:focus-visible {
   background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
   color: var(--bs-body-color, #212529);
 }
 
-.nxplus-group-toggle svg {
+.onejob-group-toggle svg {
   transform: rotate(-90deg);
   transition: transform 0.15s ease;
 }
 
-.nxplus-group-toggle[aria-expanded="true"] svg {
+.onejob-group-toggle[aria-expanded="true"] svg {
   transform: rotate(0deg);
 }
 
-.nxplus-resource-list {
+.onejob-resource-list {
   margin: 0 0 0.35rem 0.6rem;
   padding-left: 0.35rem;
   border-left: 1px solid var(--bs-border-color, #dee2e6);
 }
 
-.nxplus-resource-row {
+.onejob-resource-row {
   display: flex;
   align-items: center;
   gap: 0.1rem;
 }
 
-.nxplus-resource-row .nxplus-link {
+.onejob-resource-row .onejob-link {
   flex: 1 1 auto;
   min-width: 0;
   padding: 0.25rem 0.4rem;
   font-size: 0.84rem;
 }
 
-.nxplus-pin-button {
+.onejob-pin-button {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -240,38 +240,38 @@
   opacity: 0;
 }
 
-.nxplus-resource-row:hover .nxplus-pin-button,
-.nxplus-pin-button:focus-visible,
-.nxplus-pin-button.is-pinned {
+.onejob-resource-row:hover .onejob-pin-button,
+.onejob-pin-button:focus-visible,
+.onejob-pin-button.is-pinned {
   opacity: 1;
 }
 
-.nxplus-pin-button:hover,
-.nxplus-pin-button:focus-visible {
+.onejob-pin-button:hover,
+.onejob-pin-button:focus-visible {
   background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
   color: var(--bs-body-color, #212529);
 }
 
-.nxplus-pin-button.is-pinned {
+.onejob-pin-button.is-pinned {
   color: var(--bs-primary, #0d6efd);
 }
 
-.nxplus-pinned-item .nxplus-pin-button {
+.onejob-pinned-item .onejob-pin-button {
   opacity: 1;
 }
 
 @media (hover: none) {
-  .nxplus-pin-button {
+  .onejob-pin-button {
     opacity: 1;
   }
 }
 
-.nxplus-section {
+.onejob-section {
   min-width: 0;
   padding-bottom: 0.25rem;
 }
 
-.nxplus-section-title {
+.onejob-section-title {
   margin: 0.35rem 0 0.4rem;
   padding: 0 0.5rem;
   font-size: 0.7rem;
@@ -284,7 +284,7 @@
   text-overflow: ellipsis;
 }
 
-.nxplus-link {
+.onejob-link {
   display: block;
   padding: 0.32rem 0.5rem;
   border-radius: 0.5rem;
@@ -297,27 +297,27 @@
   text-overflow: ellipsis;
 }
 
-.nxplus-link:hover,
-.nxplus-link:focus-visible {
+.onejob-link:hover,
+.onejob-link:focus-visible {
   background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
   color: var(--bs-body-color, #212529);
   text-decoration: none;
 }
 
-.nxplus-link.is-active {
+.onejob-link.is-active {
   font-weight: 600;
   color: var(--bs-primary, #0d6efd);
   background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
 }
 
-.nxplus-empty {
+.onejob-empty {
   padding: 0.5rem;
   font-size: 0.9rem;
   color: var(--bs-secondary-color, #6c757d);
 }
 
 /* Banner shown on the calendar when only one pinned resource is visible. */
-.nxplus-pinned-banner {
+.onejob-pinned-banner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -331,7 +331,7 @@
   font-size: 0.9rem;
 }
 
-.nxplus-pinned-badge {
+.onejob-pinned-badge {
   padding: 0.05rem 0.4rem;
   border: 1px solid currentColor;
   border-radius: 999px;
@@ -342,15 +342,15 @@
   text-transform: uppercase;
 }
 
-.nxplus-pinned-text {
+.onejob-pinned-text {
   min-width: 0;
 }
 
-.nxplus-pinned-text strong {
+.onejob-pinned-text strong {
   font-weight: 600;
 }
 
-.nxplus-pinned-show-all {
+.onejob-pinned-show-all {
   margin-left: auto;
   white-space: nowrap;
 }
@@ -360,13 +360,13 @@
  * 1200px and hides the top navigation).
  * ------------------------------------------------------------------ */
 
-.nxplus-dock-button svg {
+.onejob-dock-button svg {
   width: 24px;
   height: 24px;
   display: block;
 }
 
-.nxplus-sheet-root {
+.onejob-sheet-root {
   position: fixed;
   inset: 0;
   z-index: 2000;
@@ -374,17 +374,17 @@
   align-items: flex-end;
 }
 
-.nxplus-sheet-root[hidden] {
+.onejob-sheet-root[hidden] {
   display: none;
 }
 
-.nxplus-sheet-backdrop {
+.onejob-sheet-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
 }
 
-.nxplus-sheet-panel {
+.onejob-sheet-panel {
   position: relative;
   width: 100%;
   max-height: 82dvh;
@@ -397,7 +397,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.nxplus-sheet-header {
+.onejob-sheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -406,39 +406,39 @@
   border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
-.nxplus-sheet-title {
+.onejob-sheet-title {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
 }
 
-.nxplus-sheet-body {
+.onejob-sheet-body {
   padding: 0.35rem 1rem 1.1rem;
   overflow: auto;
 }
 
-.nxplus-sheet-body .nxplus-columns {
+.onejob-sheet-body .onejob-columns {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 0.5rem 1rem;
 }
 
-.nxplus-sheet-body .nxplus-link {
+.onejob-sheet-body .onejob-link {
   padding: 0.5rem 0.5rem;
   font-size: 0.95rem;
 }
 
-.nxplus-sheet-body .nxplus-overview-link {
+.onejob-sheet-body .onejob-overview-link {
   padding: 0.4rem 0.9rem;
   font-size: 0.95rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .nxplus-sheet-panel {
-    animation: nxplus-sheet-in 0.18s ease-out;
+  .onejob-sheet-panel {
+    animation: onejob-sheet-in 0.18s ease-out;
   }
 }
 
-@keyframes nxplus-sheet-in {
+@keyframes onejob-sheet-in {
   from {
     transform: translateY(16px);
     opacity: 0.6;

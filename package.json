@@ -1,5 +1,5 @@
 {
-  "name": "nexudus-portal-extension",
+  "name": "nexudus-you-had-one-job",
   "version": "1.0.0",
   "private": true,
   "description": "Browser extension that adds resource filters and pinned single-resource calendars to the MotionLab.Berlin Nexudus members portal.",

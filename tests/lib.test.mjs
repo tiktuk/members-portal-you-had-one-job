@@ -40,32 +40,32 @@ function loadLibs(href = PAGE) {
 }
 
 test("parseBookingPath understands bookings routes", () => {
-  const { NXPlusUrl } = loadLibs();
-  assert.deepEqual(plain(NXPlusUrl.parseBookingPath("/motionlabberlin/bookings/machines/list")), {
+  const { OneJobUrl } = loadLibs();
+  assert.deepEqual(plain(OneJobUrl.parseBookingPath("/motionlabberlin/bookings/machines/list")), {
     webAddress: "motionlabberlin",
     type: "machines",
     view: "list",
   });
-  assert.equal(NXPlusUrl.parseBookingPath("/motionlabberlin/bookings/labs/calendar").view, "calendar");
-  assert.equal(NXPlusUrl.parseBookingPath("/motionlabberlin/bookings/all/floorplan").type, "all");
-  assert.equal(NXPlusUrl.parseBookingPath("/motionlabberlin/community"), null);
-  assert.equal(NXPlusUrl.parseBookingPath("/motionlabberlin/bookings/machines"), null);
+  assert.equal(OneJobUrl.parseBookingPath("/motionlabberlin/bookings/labs/calendar").view, "calendar");
+  assert.equal(OneJobUrl.parseBookingPath("/motionlabberlin/bookings/all/floorplan").type, "all");
+  assert.equal(OneJobUrl.parseBookingPath("/motionlabberlin/community"), null);
+  assert.equal(OneJobUrl.parseBookingPath("/motionlabberlin/bookings/machines"), null);
 });
 
 test("pathWithView only rewrites actual bookings views", () => {
-  const { NXPlusUrl } = loadLibs();
+  const { OneJobUrl } = loadLibs();
   assert.equal(
-    NXPlusUrl.pathWithView("/motionlabberlin/bookings/machines/list", "calendar"),
+    OneJobUrl.pathWithView("/motionlabberlin/bookings/machines/list", "calendar"),
     "/motionlabberlin/bookings/machines/calendar",
   );
-  assert.equal(NXPlusUrl.pathWithView("/motionlabberlin/bookings/machines/calendar", "calendar"), null);
-  assert.equal(NXPlusUrl.pathWithView("/motionlabberlin/bookings", "calendar"), null);
-  assert.equal(NXPlusUrl.pathWithView("/motionlabberlin/store", "calendar"), null);
+  assert.equal(OneJobUrl.pathWithView("/motionlabberlin/bookings/machines/calendar", "calendar"), null);
+  assert.equal(OneJobUrl.pathWithView("/motionlabberlin/bookings", "calendar"), null);
+  assert.equal(OneJobUrl.pathWithView("/motionlabberlin/store", "calendar"), null);
 });
 
 test("toCalendarUrl keeps the query string untouched", () => {
-  const { NXPlusUrl } = loadLibs();
-  const rewritten = NXPlusUrl.toCalendarUrl(PAGE);
+  const { OneJobUrl } = loadLibs();
+  const rewritten = OneJobUrl.toCalendarUrl(PAGE);
   assert.equal(
     rewritten,
     "/motionlabberlin/bookings/machines/calendar?group=Machines%3A+CNC+Machining&start=2026-10-26T21%3A45%3A00.000%2B01%3A00",
@@ -73,23 +73,23 @@ test("toCalendarUrl keeps the query string untouched", () => {
 });
 
 test("toCalendarUrl handles relative and absolute same-origin URLs", () => {
-  const { NXPlusUrl } = loadLibs();
+  const { OneJobUrl } = loadLibs();
   assert.equal(
-    NXPlusUrl.toCalendarUrl("/motionlabberlin/bookings/labs/list"),
+    OneJobUrl.toCalendarUrl("/motionlabberlin/bookings/labs/list"),
     "/motionlabberlin/bookings/labs/calendar",
   );
   assert.equal(
-    NXPlusUrl.toCalendarUrl(`${ORIGIN}/motionlabberlin/bookings/labs/list`),
+    OneJobUrl.toCalendarUrl(`${ORIGIN}/motionlabberlin/bookings/labs/list`),
     "/motionlabberlin/bookings/labs/calendar",
   );
-  assert.equal(NXPlusUrl.toCalendarUrl("https://example.com/motionlabberlin/bookings/labs/list"), null);
-  assert.equal(NXPlusUrl.toCalendarUrl("/motionlabberlin/bookings/labs/calendar"), null);
+  assert.equal(OneJobUrl.toCalendarUrl("https://example.com/motionlabberlin/bookings/labs/list"), null);
+  assert.equal(OneJobUrl.toCalendarUrl("/motionlabberlin/bookings/labs/calendar"), null);
 });
 
 test("bookingHref encodes group names the way the portal expects", () => {
-  const { NXPlusUrl } = loadLibs();
+  const { OneJobUrl } = loadLibs();
   assert.equal(
-    NXPlusUrl.bookingHref({
+    OneJobUrl.bookingHref({
       webAddress: "motionlabberlin",
       type: "labs",
       view: "calendar",
@@ -98,45 +98,45 @@ test("bookingHref encodes group names the way the portal expects", () => {
     "/motionlabberlin/bookings/labs/calendar?group=Labs%3A+Outdoor+Lab",
   );
   assert.equal(
-    NXPlusUrl.bookingHref({ webAddress: "motionlabberlin", type: "machines", view: "calendar" }),
+    OneJobUrl.bookingHref({ webAddress: "motionlabberlin", type: "machines", view: "calendar" }),
     "/motionlabberlin/bookings/machines/calendar",
   );
 });
 
 test("bookingHref can pin a single resource", () => {
-  const { NXPlusUrl } = loadLibs();
+  const { OneJobUrl } = loadLibs();
   assert.equal(
-    NXPlusUrl.bookingHref({
+    OneJobUrl.bookingHref({
       webAddress: "motionlabberlin",
       type: "machines",
       view: "calendar",
       group: "Machines: CNC Machining ",
       resource: 1415309496,
     }),
-    "/motionlabberlin/bookings/machines/calendar?group=Machines%3A+CNC+Machining+&nxplus-resource=1415309496",
+    "/motionlabberlin/bookings/machines/calendar?group=Machines%3A+CNC+Machining+&onejob-resource=1415309496",
   );
-  assert.equal(NXPlusUrl.RESOURCE_PARAM, "nxplus-resource");
-  assert.equal(NXPlusUrl.currentPinnedResource("?nxplus-resource=1415309496"), "1415309496");
-  assert.equal(NXPlusUrl.currentPinnedResource(""), "");
+  assert.equal(OneJobUrl.RESOURCE_PARAM, "onejob-resource");
+  assert.equal(OneJobUrl.currentPinnedResource("?onejob-resource=1415309496"), "1415309496");
+  assert.equal(OneJobUrl.currentPinnedResource(""), "");
 });
 
 test("currentRange/currentGroup read the active query", () => {
-  const { NXPlusUrl } = loadLibs();
-  assert.deepEqual(plain(NXPlusUrl.currentRange("?start=2026-10-26T21%3A45%3A00.000%2B01%3A00&end=2026-10-26T22%3A45%3A00.000%2B01%3A00")), {
+  const { OneJobUrl } = loadLibs();
+  assert.deepEqual(plain(OneJobUrl.currentRange("?start=2026-10-26T21%3A45%3A00.000%2B01%3A00&end=2026-10-26T22%3A45%3A00.000%2B01%3A00")), {
     start: "2026-10-26T21:45:00.000+01:00",
     end: "2026-10-26T22:45:00.000+01:00",
   });
-  assert.equal(NXPlusUrl.currentGroup("?group=Labs%3A+Outdoor+Lab"), "Labs: Outdoor Lab");
-  assert.equal(NXPlusUrl.currentGroup(""), "");
+  assert.equal(OneJobUrl.currentGroup("?group=Labs%3A+Outdoor+Lab"), "Labs: Outdoor Lab");
+  assert.equal(OneJobUrl.currentGroup(""), "");
 });
 
 test("the explicit list choice is remembered for the tab", () => {
-  const { NXPlusUrl } = loadLibs();
-  assert.equal(NXPlusUrl.isListAllowed(), false);
-  NXPlusUrl.setListAllowed(true);
-  assert.equal(NXPlusUrl.isListAllowed(), true);
-  NXPlusUrl.setListAllowed(false);
-  assert.equal(NXPlusUrl.isListAllowed(), false);
+  const { OneJobUrl } = loadLibs();
+  assert.equal(OneJobUrl.isListAllowed(), false);
+  OneJobUrl.setListAllowed(true);
+  assert.equal(OneJobUrl.isListAllowed(), true);
+  OneJobUrl.setListAllowed(false);
+  assert.equal(OneJobUrl.isListAllowed(), false);
 });
 
 const PAYLOAD = {
@@ -152,8 +152,8 @@ const PAYLOAD = {
 };
 
 test("groupsBySlugFromPayload groups, preserves exact names and de-duplicates", () => {
-  const { NXPlusGroups } = loadLibs();
-  assert.deepEqual(plain(NXPlusGroups.groupsBySlugFromPayload(PAYLOAD)), {
+  const { OneJobGroups } = loadLibs();
+  assert.deepEqual(plain(OneJobGroups.groupsBySlugFromPayload(PAYLOAD)), {
     machines: ["Machines: 3D printing", "Machines: CNC Machining"],
     labs: ["Labs: Outdoor Lab "],
     "meeting-rooms": ["Meeting Rooms"],
@@ -162,8 +162,8 @@ test("groupsBySlugFromPayload groups, preserves exact names and de-duplicates", 
 });
 
 test("resourceListFromPayload exposes individual resources", () => {
-  const { NXPlusGroups } = loadLibs();
-  const resources = plain(NXPlusGroups.resourceListFromPayload(PAYLOAD));
+  const { OneJobGroups } = loadLibs();
+  const resources = plain(OneJobGroups.resourceListFromPayload(PAYLOAD));
   assert.deepEqual(
     resources.map((resource) => resource.id),
     ["1415309496", "1415309596", "1415309571", "1415309502", "1415299774", "1415299775", "1415309999"],
@@ -176,9 +176,9 @@ test("resourceListFromPayload exposes individual resources", () => {
 });
 
 test("buildMenuModel keeps the portal's type order and strips prefixes", () => {
-  const { NXPlusGroups } = loadLibs();
-  const groups = NXPlusGroups.groupsBySlugFromPayload(PAYLOAD);
-  const model = NXPlusGroups.buildMenuModel(
+  const { OneJobGroups } = loadLibs();
+  const groups = OneJobGroups.groupsBySlugFromPayload(PAYLOAD);
+  const model = OneJobGroups.buildMenuModel(
     groups,
     [
       { slug: "meeting-rooms", label: "Meeting rooms" },
@@ -202,9 +202,9 @@ test("buildMenuModel keeps the portal's type order and strips prefixes", () => {
 });
 
 test("buildMenuModel can keep prefixes and empty types", () => {
-  const { NXPlusGroups } = loadLibs();
-  const groups = NXPlusGroups.groupsBySlugFromPayload(PAYLOAD);
-  const model = NXPlusGroups.buildMenuModel(groups, [{ slug: "hot-desks", label: "Hot desks" }], {
+  const { OneJobGroups } = loadLibs();
+  const groups = OneJobGroups.groupsBySlugFromPayload(PAYLOAD);
+  const model = OneJobGroups.buildMenuModel(groups, [{ slug: "hot-desks", label: "Hot desks" }], {
     stripPrefix: false,
     hideEmptyTypes: false,
   });
@@ -214,13 +214,13 @@ test("buildMenuModel can keep prefixes and empty types", () => {
 });
 
 test("unknown resource types are skipped", () => {
-  const { NXPlusGroups } = loadLibs();
-  assert.equal(NXPlusGroups.slugForType(1234), null);
-  assert.equal(NXPlusGroups.slugForType("10"), "machines");
+  const { OneJobGroups } = loadLibs();
+  assert.equal(OneJobGroups.slugForType(1234), null);
+  assert.equal(OneJobGroups.slugForType("10"), "machines");
 });
 
 test("apiBaseUrl targets the space's own Nexudus subdomain", () => {
-  const { NXPlusUrl } = loadLibs();
-  assert.equal(NXPlusUrl.apiBaseUrl("motionlabberlin"), "https://motionlabberlin.spaces.nexudus.com");
-  assert.equal(NXPlusUrl.apiBaseUrl(), "https://motionlabberlin.spaces.nexudus.com");
+  const { OneJobUrl } = loadLibs();
+  assert.equal(OneJobUrl.apiBaseUrl("motionlabberlin"), "https://motionlabberlin.spaces.nexudus.com");
+  assert.equal(OneJobUrl.apiBaseUrl(), "https://motionlabberlin.spaces.nexudus.com");
 });

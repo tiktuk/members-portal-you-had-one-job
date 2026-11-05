@@ -1,8 +1,8 @@
-/* global chrome, NXPlusConfig */
+/* global chrome, OneJobConfig */
 (() => {
   "use strict";
 
-  const cfg = NXPlusConfig;
+  const cfg = OneJobConfig;
   const DEFAULTS = {
     calendarDefault: true,
     navMenu: true,

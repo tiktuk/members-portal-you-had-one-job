@@ -1,4 +1,4 @@
-# Agent notes — Nexudus Portal+ extension
+# Agent notes — Nexudus, you had one job extension
 
 Browser extension (MV3) for the MotionLab.Berlin Nexudus members portal. No
 build step for the extension itself: `src/` is the unpacked extension.
@@ -30,7 +30,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   ProseMirror description flattening); loaded by the background worker and the
   tests, never by the page.
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
-  `NXPlusOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
+  `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins, pinned banner, settings, and the
@@ -54,7 +54,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - Filters are query params: `group=<exact GroupName>`, `type=<id>`,
   `Allocation`, `customFields`. Both the list and the calendar filter by them.
   There is no per-resource query param; the extension adds
-  `nxplus-resource=<Resource.Id>` and handles it in `page.js`.
+  `onejob-resource=<Resource.Id>` and handles it in `page.js`.
 - `GroupName` values frequently end with a space (`"Machines: CNC Machining "`).
   The portal compares the query value with `!==`, so keep the raw string for
   links and only trim it for display — trimming the URL value silently returns
@@ -81,16 +81,16 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   (`nav[aria-label="Main navigation"]`, CSS-module classes like `_dockBtn_…`).
   The dock button copies the class names of an existing dock button at runtime,
   so hashed class renames do not break it; its sheet is our own markup
-  (`.nxplus-sheet-*`) appended to `<body>`.
+  (`.onejob-sheet-*`) appended to `<body>`.
 
 ## Pinned resources
 
-- Pins live in `chrome.storage.local` (`nxplus:pins`) as
+- Pins live in `chrome.storage.local` (`onejob:pins`) as
   `[{ id, name, group, type }]`; the menu mirrors the raw `group` string so a
   pinned link still works if the cache is stale.
-- The per-tab marker `nxplus:pinned-resource` is in `sessionStorage` and holds
+- The per-tab marker `onejob:pinned-resource` is in `sessionStorage` and holds
   `{ id, name, group, type }`. The content script writes it on click; `page.js`
-  also writes it from a shared `?nxplus-resource=<id>` URL. The portal strips
+  also writes it from a shared `?onejob-resource=<id>` URL. The portal strips
   unknown query params while normalising the bookings URL, so the marker is what
   keeps the view alive after boot.
 - `page.js` filters the `/api/public/resources/published/details` XHR response
@@ -107,7 +107,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   the portal caches the filtered resources in React Query, so an SPA-only
   navigation would keep the one-resource payload.
 - The portal's own *Bookings* menu and *View* dropdown links carry no
-  `nxplus-resource` (the View links can even copy the current parameter), and
+  `onejob-resource` (the View links can even copy the current parameter), and
   React Router ignores a navigation to the URL already in the address bar. A
   capture-phase click handler therefore clears the marker for any normal
   calendar/list link of the pinned type and navigates in full. The View
@@ -115,15 +115,15 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   single-resource view stuck around and hid every other booking.
 - `pinnedActive` (in-memory) says whether the pinned view is live for this
   document. The marker alone is not enough: the portal normalises the URL to
-  drop `nxplus-resource`. On boot the marker is only kept for a `reload`
+  drop `onejob-resource`. On boot the marker is only kept for a `reload`
   (`performance.getEntriesByType("navigation")`); a fresh navigation to a plain
   calendar URL clears it. SPA date changes keep it. The Previous/Next handler
-  re-adds `nxplus-resource` to its `pushState` URL for the same reason.
+  re-adds `onejob-resource` to its `pushState` URL for the same reason.
 - The pinned banner's *Show all* link and the unpin navigation keep the
   resource's group (`pinnedGroup()` in `content.js`), so the calendar returns to
   the same category instead of the first resource of the whole type. The group
   comes from the session pin, then the cached resource list, then the URL.
-- The banner is wrapped in a `.container` div (`nxplus-pinned-banner-wrap`) so
+- The banner is wrapped in a `.container` div (`onejob-pinned-banner-wrap`) so
   it lines up with the portal's calendar container instead of spanning the full
   `<main>`. `ensurePinnedBanner` wraps a banner left over from an older version.
 - The calendar's Previous/Next buttons are horizontal scrollers for
@@ -154,7 +154,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - The overlay injects `overview.css` as a `<style>` (fetched once per page via
   `chrome.runtime.getURL`) rather than a `<link>`: a link inside a shadow root
   loads after first paint, which showed the panel unstyled for a frame.
-- `.nxplus-overview-panel` fills the window up to `min(1700px, 100%)` (`94dvh`
+- `.onejob-overview-panel` fills the window up to `min(1700px, 100%)` (`94dvh`
   as a bottom sheet on phones) instead of sizing to its content, so the panel
   never grows as bookings arrive — a content-sized panel visibly jumps on open.
   Below the cap the width is fluid so the card grid reflows on resize. The cap
@@ -173,7 +173,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   selects and contenteditable elements.
 - Extension pages cannot read the portal's `AUTH_TOKEN` cookie. `content.js`
   therefore mirrors a live session into `chrome.storage.local`
-  (`nxplus:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
+  (`onejob:session`, `{ accessToken, webAddress, expiresAt, savedAt }`) on every
   portal load. If the page says "Connect to the members portal", the portal has
   not been opened since install; if it says the session expired, open the
   portal to renew it.
@@ -224,7 +224,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   overlay only needs `overview.css` there (it injects the text as a `<style>`);
   `overview.html` stays listed for the popup's standalone tab and future use.
   Its scripts do not need to be listed (they load from the extension origin).
-- Unpinning from the page writes the same `nxplus:pins` array, so the portal
+- Unpinning from the page writes the same `onejob:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.
 
 ## Luma events
@@ -232,7 +232,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 - Mirrors the Django app's `Space.luma_source` + `SpaceMembership.show_luma_events`.
   `config.luma.source` is a public Luma user (`usr-…`) or calendar (`cal-…`)
   API ID, or any luma.com URL containing one; `config.luma.enabled` only seeds
-  the popup toggle (`settings.lumaEvents` in `nxplus:settings`).
+  the popup toggle (`settings.lumaEvents` in `onejob:settings`).
 - The overview header also has an *Events* pill (`ui.lumaButton`, only when
   `config.luma.source` is set) that writes the same `settings.lumaEvents`.
   `render()` keeps its `aria-pressed`/`is-active` state in sync, so changing the
@@ -248,7 +248,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
   scripts are subject to CORS, so the in-portal overlay could not call it. The
   service worker uses the `https://api.luma.com/*` host permission instead.
   Both the page and the overlay ask it via `chrome.runtime.sendMessage`
-  (`nxplus:luma-events`, `nxplus:luma-description`).
+  (`onejob:luma-events`, `onejob:luma-description`).
 - List responses are cached in the worker for 5 minutes (`config.luma.cacheTtlMs`),
   descriptions for 1 hour (`detailCacheTtlMs`), mirroring the Django cache.
   The overview's *Refresh* button passes `force: true`; the 60 s auto-refresh
@@ -278,7 +278,7 @@ Run `npm test` after changing anything in `src/lib/`. After changing
 
 - The initial rewrite must be synchronous in `content.js` (`document_start`,
   before the SPA reads the URL). `page.js` covers everything after boot.
-- Settings are mirrored into the page's `localStorage` (`nxplus:settings-cache`)
+- Settings are mirrored into the page's `localStorage` (`onejob:settings-cache`)
   so the synchronous rewrite can respect the toggle; `chrome.storage` is the
   source of truth.
 - Never fetch the resources endpoint with `credentials: "include"`: the API

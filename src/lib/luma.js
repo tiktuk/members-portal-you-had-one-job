@@ -78,7 +78,7 @@
     return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
 
-  globalThis.NXPlusLuma = {
+  globalThis.OneJobLuma = {
     eventUrl,
     flattenDescription,
     listUrl,

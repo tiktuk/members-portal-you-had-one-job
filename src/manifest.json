@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Nexudus Portal+",
-  "short_name": "Portal+",
+  "name": "Nexudus, you had one job",
+  "short_name": "One job",
   "version": "1.0.0",
   "description": "Adds resource filters and pinnable single-resource calendars to the members portal, and opens bookings in the calendar view by default.",
   "minimum_chrome_version": "111",
@@ -14,7 +14,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Nexudus Portal+",
+    "default_title": "Nexudus, you had one job",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",

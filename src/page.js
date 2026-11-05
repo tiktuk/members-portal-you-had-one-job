@@ -10,19 +10,19 @@
  * file covers client-side navigation (e.g. home -> Bookings -> Machines).
  *
  * It also implements single-resource calendars: when a pinned resource link is
- * opened (`?nxplus-resource=<id>`), the resources payload is narrowed down to
+ * opened (`?onejob-resource=<id>`), the resources payload is narrowed down to
  * that resource and the portal's filters are ignored, so the calendar renders
  * one column instead of every resource of the type.
  */
 (() => {
   "use strict";
 
-  const U = globalThis.NXPlusUrl;
-  const config = globalThis.NXPlusConfig;
+  const U = globalThis.OneJobUrl;
+  const config = globalThis.OneJobConfig;
   if (!U || !config) return;
 
-  const RESOURCE_PARAM = U.RESOURCE_PARAM || "nxplus-resource";
-  const PINNED_KEY = config.storageKeys?.pinnedSession || "nxplus:pinned-resource";
+  const RESOURCE_PARAM = U.RESOURCE_PARAM || "onejob-resource";
+  const PINNED_KEY = config.storageKeys?.pinnedSession || "onejob:pinned-resource";
 
   const script = document.currentScript;
   let settings = { calendarDefault: true, geoBlockPrompt: config.geo?.blockPrompt !== false };
@@ -36,7 +36,7 @@
   window.addEventListener("message", (event) => {
     if (event.source !== window) return;
     const data = event.data;
-    if (!data || data.type !== "nxplus:settings") return;
+    if (!data || data.type !== "onejob:settings") return;
     settings = { ...settings, ...data.settings };
     applyGeoBlock(settings.geoBlockPrompt !== false);
   });
@@ -243,13 +243,13 @@
   const originalSend = XMLHttpRequest.prototype.send;
 
   XMLHttpRequest.prototype.open = function (method, url) {
-    this.__nxplusUrl = String(url || "");
+    this.__onejobUrl = String(url || "");
     return originalOpen.apply(this, arguments);
   };
 
   XMLHttpRequest.prototype.send = function () {
     const pin = pinned();
-    const url = this.__nxplusUrl || "";
+    const url = this.__onejobUrl || "";
     if (pin && /\/api\/public\/resources\/published\/details(?:[?#]|$)/.test(url)) {
       this.addEventListener("load", () => {
         try {

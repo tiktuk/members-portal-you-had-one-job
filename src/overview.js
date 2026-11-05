@@ -1,6 +1,6 @@
-/* global NXPlusOverviewView */
+/* global OneJobOverviewView */
 (() => {
   "use strict";
 
-  NXPlusOverviewView.mount(document.body, { variant: "page" });
+  OneJobOverviewView.mount(document.body, { variant: "page" });
 })();

@@ -4,7 +4,7 @@
 (() => {
   "use strict";
 
-  const config = globalThis.NXPlusConfig;
+  const config = globalThis.OneJobConfig;
 
   function slugForType(systemResourceType) {
     return config.resourceTypeSlugs[Number(systemResourceType)] || null;
@@ -111,7 +111,7 @@
     return index === -1 ? config.resourceTypeOrder.length : index;
   }
 
-  globalThis.NXPlusGroups = {
+  globalThis.OneJobGroups = {
     slugForType,
     typeLabel,
     displayGroupName,

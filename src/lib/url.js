@@ -7,8 +7,8 @@
 
   const BOOKING_VIEWS = ["list", "calendar", "floorplan", "map"];
   const BOOKING_PATH_RE = /^\/([^/]+)\/bookings\/([^/]+)\/(list|calendar|floorplan|map)\/?$/;
-  const ALLOW_LIST_KEY = "nxplus:allow-list";
-  const RESOURCE_PARAM = globalThis.NXPlusConfig?.nav?.resourceParam || "nxplus-resource";
+  const ALLOW_LIST_KEY = "onejob:allow-list";
+  const RESOURCE_PARAM = globalThis.OneJobConfig?.nav?.resourceParam || "onejob-resource";
 
   function parseBookingPath(pathname) {
     const match = BOOKING_PATH_RE.exec(pathname || "");
@@ -50,7 +50,7 @@
 
   /** Each Nexudus space is served from https://<webAddress>.spaces.nexudus.com. */
   function apiBaseUrl(webAddress) {
-    const config = globalThis.NXPlusConfig;
+    const config = globalThis.OneJobConfig;
     const template = config?.api?.baseUrlTemplate;
     const address = webAddress || config?.portal?.webAddress;
     if (template && address) return template.replace("{webAddress}", address);
@@ -115,7 +115,7 @@
     }
   }
 
-  globalThis.NXPlusUrl = {
+  globalThis.OneJobUrl = {
     BOOKING_VIEWS,
     RESOURCE_PARAM,
     parseBookingPath,

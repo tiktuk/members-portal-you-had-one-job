@@ -17,7 +17,7 @@ function loadOverview() {
   vm.runInContext(readFileSync(join(src, "lib/overview.js"), "utf8"), context, {
     filename: "lib/overview.js",
   });
-  return context.NXPlusOverview;
+  return context.OneJobOverview;
 }
 
 /** Values created inside the vm context use a different realm's prototypes. */

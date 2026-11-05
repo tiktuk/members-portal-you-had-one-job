@@ -1,5 +1,5 @@
 /**
- * Nexudus Portal+ content script (isolated world).
+ * Nexudus, you had one job content script (isolated world).
  *
  * Responsibilities:
  *  1. Rewrite a bookings "list" URL to "calendar" before the SPA boots.
@@ -10,17 +10,17 @@
 (() => {
   "use strict";
 
-  const cfg = globalThis.NXPlusConfig;
-  const U = globalThis.NXPlusUrl;
-  const G = globalThis.NXPlusGroups;
+  const cfg = globalThis.OneJobConfig;
+  const U = globalThis.OneJobUrl;
+  const G = globalThis.OneJobGroups;
   if (!cfg || !U || !G) return;
 
-  const NAV_ID = "nxplus-nav-item";
-  const MENU_ID = "nxplus-menu";
-  const DOCK_ID = "nxplus-dock-button";
-  const SHEET_ID = "nxplus-sheet";
-  const PINNED_BANNER_ID = "nxplus-pinned-banner";
-  const PINNED_BANNER_WRAP_ID = "nxplus-pinned-banner-wrap";
+  const NAV_ID = "onejob-nav-item";
+  const MENU_ID = "onejob-menu";
+  const DOCK_ID = "onejob-dock-button";
+  const SHEET_ID = "onejob-sheet";
+  const PINNED_BANNER_ID = "onejob-pinned-banner";
+  const PINNED_BANNER_WRAP_ID = "onejob-pinned-banner-wrap";
   const DEFAULT_SETTINGS = {
     calendarDefault: true,
     navMenu: true,
@@ -93,7 +93,7 @@
     if (!hasExtensionApis) return;
     const root = document.head || document.documentElement;
     if (!root) return;
-    if (document.querySelector("script[data-nxplus-page]")) return;
+    if (document.querySelector("script[data-onejob-page]")) return;
 
     const scripts = [
       { file: "lib/config.js" },
@@ -105,7 +105,7 @@
       const element = document.createElement("script");
       element.src = chrome.runtime.getURL(file);
       element.async = false;
-      element.dataset.nxplusPage = "1";
+      element.dataset.onejobPage = "1";
       if (config) element.dataset.config = JSON.stringify(config);
       root.appendChild(element);
     }
@@ -113,7 +113,7 @@
 
   function notifyPage(settings) {
     try {
-      window.postMessage({ type: "nxplus:settings", settings }, location.origin);
+      window.postMessage({ type: "onejob:settings", settings }, location.origin);
     } catch {
       /* ignore */
     }
@@ -244,7 +244,7 @@
     const existing = document.getElementById(DOCK_ID);
     if (existing && dock.contains(existing)) return;
 
-    const buttons = [...dock.querySelectorAll("button")].filter((button) => !button.id.startsWith("nxplus"));
+    const buttons = [...dock.querySelectorAll("button")].filter((button) => !button.id.startsWith("onejob"));
     const reference = buttons[0];
     if (!reference) return;
 
@@ -252,7 +252,7 @@
     button.type = "button";
     button.id = DOCK_ID;
     // Reuse the portal's own dock classes so the button looks native.
-    button.className = `${reference.className} nxplus-dock-button`;
+    button.className = `${reference.className} onejob-dock-button`;
     button.setAttribute("aria-label", cfg.nav.label);
     button.setAttribute("aria-haspopup", "dialog");
     button.setAttribute("aria-expanded", "false");
@@ -282,23 +282,23 @@
 
     const root = document.createElement("div");
     root.id = SHEET_ID;
-    root.className = "nxplus-sheet-root";
+    root.className = "onejob-sheet-root";
     root.hidden = true;
 
     const backdrop = document.createElement("div");
-    backdrop.className = "nxplus-sheet-backdrop";
+    backdrop.className = "onejob-sheet-backdrop";
     backdrop.addEventListener("click", closeSheet);
 
     const panel = document.createElement("div");
-    panel.className = "nxplus-sheet-panel";
+    panel.className = "onejob-sheet-panel";
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "true");
     panel.setAttribute("aria-label", cfg.nav.label);
 
     const header = document.createElement("div");
-    header.className = "nxplus-sheet-header";
+    header.className = "onejob-sheet-header";
     const title = document.createElement("h2");
-    title.className = "nxplus-sheet-title";
+    title.className = "onejob-sheet-title";
     title.textContent = cfg.nav.label;
     const close = document.createElement("button");
     close.type = "button";
@@ -308,7 +308,7 @@
     header.append(title, close);
 
     const body = document.createElement("div");
-    body.className = "nxplus-sheet-body";
+    body.className = "onejob-sheet-body";
 
     panel.append(header, body);
     root.append(backdrop, panel);
@@ -341,19 +341,19 @@
   }
 
   function fillSheet() {
-    const body = ensureSheet().querySelector(".nxplus-sheet-body");
+    const body = ensureSheet().querySelector(".onejob-sheet-body");
     if (body) body.replaceChildren(renderMenuContent({ explicitColumns: false }));
   }
 
   function buildNavItem() {
     const item = document.createElement("li");
-    item.className = "nav-item dropdown nxplus-nav-item";
+    item.className = "nav-item dropdown onejob-nav-item";
     item.id = NAV_ID;
 
     const button = document.createElement("button");
     button.type = "button";
     button.className =
-      "cursor-pointer nav-link arrow-none d-flex align-items-center gap-1 dropdown-toggle nxplus-toggle";
+      "cursor-pointer nav-link arrow-none d-flex align-items-center gap-1 dropdown-toggle onejob-toggle";
     button.setAttribute("aria-haspopup", "true");
     button.setAttribute("aria-expanded", "false");
     button.innerHTML = FUNNEL_ICON;
@@ -366,7 +366,7 @@
     });
 
     const menu = document.createElement("div");
-    menu.className = "dropdown-menu nxplus-menu";
+    menu.className = "dropdown-menu onejob-menu";
     menu.id = MENU_ID;
     menu.setAttribute("role", "menu");
     // Bootstrap positions [data-bs-popper] menus below their toggle.
@@ -379,7 +379,7 @@
 
   function toggleMenu(item) {
     const menu = item.querySelector(`#${MENU_ID}`);
-    const button = item.querySelector(".nxplus-toggle");
+    const button = item.querySelector(".onejob-toggle");
     if (!menu || !button) return;
     const open = !menu.classList.contains("show");
     menu.classList.toggle("show", open);
@@ -391,7 +391,7 @@
     const item = document.getElementById(NAV_ID);
     if (!item) return;
     item.querySelector(`#${MENU_ID}`)?.classList.remove("show");
-    item.querySelector(".nxplus-toggle")?.setAttribute("aria-expanded", "false");
+    item.querySelector(".onejob-toggle")?.setAttribute("aria-expanded", "false");
     item.classList.remove("show");
   }
 
@@ -430,12 +430,12 @@
     const pinnedId = currentPinnedId();
 
     const content = document.createElement("div");
-    content.className = "nxplus-menu-content";
+    content.className = "onejob-menu-content";
 
     const overview = renderOverviewLink();
     if (overview) {
       const row = document.createElement("div");
-      row.className = "nxplus-overview-row";
+      row.className = "onejob-overview-row";
       row.appendChild(overview);
       content.appendChild(row);
     }
@@ -444,7 +444,7 @@
     if (pinned) content.appendChild(pinned);
 
     const columns = document.createElement("div");
-    columns.className = "nxplus-columns";
+    columns.className = "onejob-columns";
     if (explicitColumns) {
       // The menu sizes to its content, so the track count has to be explicit.
       columns.style.gridTemplateColumns = `repeat(${Math.min(Math.max(model.length, 1), 4)}, minmax(160px, 1fr))`;
@@ -452,10 +452,10 @@
 
     for (const type of model) {
       const section = document.createElement("div");
-      section.className = "nxplus-section";
+      section.className = "onejob-section";
 
       const title = document.createElement("div");
-      title.className = "nxplus-section-title";
+      title.className = "onejob-section-title";
       title.textContent = type.label;
       section.appendChild(title);
 
@@ -474,7 +474,7 @@
         const expanded = state.expandedGroups.has(key);
 
         const row = document.createElement("div");
-        row.className = "nxplus-group-row";
+        row.className = "onejob-group-row";
         row.appendChild(
           menuLink({
             label: group.label,
@@ -488,7 +488,7 @@
         if (resources.length) {
           const toggle = document.createElement("button");
           toggle.type = "button";
-          toggle.className = "nxplus-group-toggle";
+          toggle.className = "onejob-group-toggle";
           toggle.title = expanded ? "Hide resources" : "Show resources";
           toggle.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${group.label} resources`);
           toggle.setAttribute("aria-expanded", String(expanded));
@@ -504,12 +504,12 @@
 
         if (resources.length) {
           const resourceList = document.createElement("div");
-          resourceList.className = "nxplus-resource-list";
+          resourceList.className = "onejob-resource-list";
           resourceList.hidden = !expanded;
 
           for (const resource of resources) {
             const resourceRow = document.createElement("div");
-            resourceRow.className = "nxplus-resource-row";
+            resourceRow.className = "onejob-resource-row";
             resourceRow.appendChild(
               menuLink({
                 label: resource.name || `Resource ${resource.id}`,
@@ -539,7 +539,7 @@
 
     if (!model.length) {
       const empty = document.createElement("div");
-      empty.className = "nxplus-empty";
+      empty.className = "onejob-empty";
       empty.textContent = hasGroups
         ? "No bookable resource groups found."
         : "Resource groups are loading. Open this menu again in a moment.";
@@ -559,7 +559,7 @@
     if (!hasExtensionApis) return null;
 
     const overview = document.createElement("a");
-    overview.className = "nxplus-overview-link";
+    overview.className = "onejob-overview-link";
     overview.href = "#";
     overview.textContent = "Overview →";
     overview.title = `Open the pinned resources overview (${shortcutLabel()})`;
@@ -656,20 +656,20 @@
       const css = await loadOverviewStyles();
 
       const overlay = document.createElement("div");
-      overlay.className = "nxplus-overview-overlay";
+      overlay.className = "onejob-overview-overlay";
 
       const backdrop = document.createElement("div");
-      backdrop.className = "nxplus-overview-backdrop";
+      backdrop.className = "onejob-overview-backdrop";
       backdrop.addEventListener("click", closeOverviewOverlay);
 
       const panel = document.createElement("div");
-      panel.className = "nxplus-overview-panel";
+      panel.className = "onejob-overview-panel";
       panel.setAttribute("role", "dialog");
       panel.setAttribute("aria-modal", "true");
       panel.setAttribute("aria-label", "Pinned resources overview");
 
       const host = document.createElement("div");
-      host.className = "nxplus-overview-host";
+      host.className = "onejob-overview-host";
 
       // The overview markup and stylesheet are shared with overview.html; the
       // shadow root keeps its generic class names out of the portal.
@@ -693,7 +693,7 @@
         overlay,
         previousFocus,
         previousOverflow,
-        view: NXPlusOverviewView.mount(root, {
+        view: OneJobOverviewView.mount(root, {
           variant: "panel",
           onClose: closeOverviewOverlay,
         }),
@@ -727,13 +727,13 @@
     if (!pins.length) return null;
 
     const section = document.createElement("div");
-    section.className = "nxplus-pinned";
+    section.className = "onejob-pinned";
 
     const head = document.createElement("div");
-    head.className = "nxplus-pinned-head";
+    head.className = "onejob-pinned-head";
 
     const title = document.createElement("div");
-    title.className = "nxplus-section-title nxplus-pinned-title";
+    title.className = "onejob-section-title onejob-pinned-title";
     title.textContent = "Pinned";
     head.appendChild(title);
 
@@ -746,7 +746,7 @@
       const name = pin.name || resource?.name || `Resource ${pin.id}`;
 
       const item = document.createElement("div");
-      item.className = "nxplus-pinned-item";
+      item.className = "onejob-pinned-item";
       item.appendChild(
         menuLink({
           label: name,
@@ -759,7 +759,7 @@
 
       const unpin = document.createElement("button");
       unpin.type = "button";
-      unpin.className = "nxplus-pin-button is-pinned";
+      unpin.className = "onejob-pin-button is-pinned";
       unpin.title = "Unpin resource";
       unpin.setAttribute("aria-label", `Unpin ${name}`);
       unpin.setAttribute("aria-pressed", "true");
@@ -820,7 +820,7 @@
 
   function menuLink({ label, href, active, title, onActivate }) {
     const link = document.createElement("a");
-    link.className = `nxplus-link${active ? " is-active" : ""}`;
+    link.className = `onejob-link${active ? " is-active" : ""}`;
     link.href = href;
     link.appendChild(document.createTextNode(label));
     link.setAttribute("role", "menuitem");
@@ -837,7 +837,7 @@
     const pinned = state.pins.some((pin) => pin.id === resource.id);
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `nxplus-pin-button${pinned ? " is-pinned" : ""}`;
+    button.className = `onejob-pin-button${pinned ? " is-pinned" : ""}`;
     button.title = pinned ? "Unpin resource" : "Pin resource";
     button.setAttribute("aria-label", `${pinned ? "Unpin" : "Pin"} ${resource.name || resource.id}`);
     button.setAttribute("aria-pressed", String(pinned));
@@ -961,11 +961,11 @@
     if (!banner) {
       banner = document.createElement("div");
       banner.id = PINNED_BANNER_ID;
-      banner.className = "nxplus-pinned-banner";
+      banner.className = "onejob-pinned-banner";
       banner.innerHTML =
-        '<span class="nxplus-pinned-badge">Pinned</span>' +
-        '<span class="nxplus-pinned-text">Showing only <strong class="nxplus-pinned-name"></strong></span>' +
-        '<a class="nxplus-pinned-show-all" href="#"></a>';
+        '<span class="onejob-pinned-badge">Pinned</span>' +
+        '<span class="onejob-pinned-text">Showing only <strong class="onejob-pinned-name"></strong></span>' +
+        '<a class="onejob-pinned-show-all" href="#"></a>';
       if (!wrap) {
         wrap = document.createElement("div");
         wrap.id = PINNED_BANNER_WRAP_ID;
@@ -993,10 +993,10 @@
       ? `Show all ${G.displayGroupName(group, cfg.nav.stripGroupPrefix)}`
       : `Show all ${G.typeLabel(type).toLowerCase()}`;
 
-    const nameElement = banner.querySelector(".nxplus-pinned-name");
+    const nameElement = banner.querySelector(".onejob-pinned-name");
     if (nameElement.textContent !== name) nameElement.textContent = name;
 
-    const link = banner.querySelector(".nxplus-pinned-show-all");
+    const link = banner.querySelector(".onejob-pinned-show-all");
     if (link.getAttribute("href") !== href) link.href = href;
     if (link.textContent !== label) link.textContent = label;
     link.onclick = () => clearPinnedResource();

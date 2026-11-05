@@ -464,7 +464,7 @@
     return model;
   }
 
-  globalThis.NXPlusOverview = {
+  globalThis.OneJobOverview = {
     LOOKAHEAD_DAYS,
     MAX_LUMA_EVENTS,
     buildModel,
