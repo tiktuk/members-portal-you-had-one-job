@@ -1,7 +1,8 @@
 # Nexudus, you had one job
 
 A small Safari / Chrome extension that improves the MotionLab.Berlin members
-portal (<https://members.motionlab.berlin/motionlabberlin>).
+portal (<https://members.motionlab.berlin/motionlabberlin>). See
+[CHANGELOG.md](CHANGELOG.md) for the version history.
 
 It does six things:
 

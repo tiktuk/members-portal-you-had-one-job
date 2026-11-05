@@ -15,6 +15,17 @@ python3 -m http.server 8765    # then open /tests/fixture.html
 Run `npm test` after changing anything in `src/lib/`. After changing
 `content.js` behaviour, also check the fixture in a browser.
 
+## Versioning
+
+- The version lives in `package.json` and `src/manifest.json`; `npm test` fails
+  if they differ or if `CHANGELOG.md` has no released entry matching it.
+- Every user-visible change adds a bullet under `## [Unreleased]` in
+  `CHANGELOG.md` (Added / Changed / Fixed / Removed, Keep a Changelog format).
+- To release, move those bullets into a new `## [x.y.z] - YYYY-MM-DD` section
+  and bump both files. Semver: patch = fix, minor = new feature or setting,
+  major = something that breaks existing installs (renamed storage keys, new
+  host permissions, a different manifest identity).
+
 ## Layout
 
 - `src/manifest.json` — MV3 manifest; content scripts load `lib/config.js`,

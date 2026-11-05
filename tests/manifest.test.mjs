@@ -84,6 +84,21 @@ test("the background worker can reach the Luma API", () => {
   assert.ok(manifest.host_permissions.includes("https://api.luma.com/*"));
 });
 
+test("the version matches the package and the newest changelog entry", () => {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  assert.equal(manifest.version, pkg.version);
+
+  const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+  assert.match(changelog, /^## \[Unreleased\]$/m);
+  const releases = [...changelog.matchAll(/^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/gm)];
+  assert.ok(releases.length > 0, "CHANGELOG.md needs a released version");
+  assert.equal(
+    releases[0][1],
+    manifest.version,
+    "the newest changelog entry must match the manifest version",
+  );
+});
+
 test("popup exposes the Luma events toggle", () => {
   const html = readFileSync(join(src, "popup.html"), "utf8");
   assert.match(html, /id="luma-events"/);
