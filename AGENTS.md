@@ -6,14 +6,16 @@ build step for the extension itself: `src/` is the unpacked extension.
 ## Commands
 
 ```bash
-npm test                       # node --test tests/  (no dependencies)
+npm test                       # node --test tests/*.test.mjs  (no dependencies)
 python3 scripts/make-icons.py  # regenerate src/icons/*.png
 npm run build                  # dist/chrome, dist/*.zip, dist/safari Xcode project
 python3 -m http.server 8765    # then open /tests/fixture.html
 ```
 
 Run `npm test` after changing anything in `src/lib/`. After changing
-`content.js` behaviour, also check the fixture in a browser.
+`content.js` behaviour, also check the fixture in a browser. The script passes
+the test files explicitly because Node 22 (what CI runs) resolves a bare
+directory argument as a module path instead of discovering tests in it.
 
 ## Versioning
 
