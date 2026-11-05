@@ -57,6 +57,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            dist/nexudus-you-had-one-job.zip \
+            dist/members-portal-you-had-one-job.zip \
             --title "Nexudus, you had one job $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/release-notes.md"

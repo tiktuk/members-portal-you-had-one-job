@@ -29,7 +29,7 @@ directory argument as a module path instead of discovering tests in it.
   host permissions, a different manifest identity).
 - Then push a `v<version>` tag. `.github/workflows/release.yml` fails when the
   tag disagrees with `src/manifest.json`, runs `npm test`, builds on Linux and
-  attaches `dist/nexudus-you-had-one-job.zip` to a GitHub release, with the
+  attaches `dist/members-portal-you-had-one-job.zip` to a GitHub release, with the
   matching changelog section as the body. That zip is the *load unpacked*
   channel; the Web Store (public or unlisted) stays the only auto-updating one
   for Windows and macOS.

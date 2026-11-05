@@ -74,7 +74,7 @@ Bookings ▾   Filters ▾   Store ▾   Memberships   Community
 ### Chrome / Edge / Brave
 
 ```bash
-npm run build          # produces dist/chrome and dist/nexudus-you-had-one-job.zip
+npm run build          # produces dist/chrome and dist/members-portal-you-had-one-job.zip
 ```
 
 Then open `chrome://extensions`, enable *Developer mode*, choose
@@ -83,7 +83,7 @@ developing). Reload the portal tab afterwards.
 
 You can skip the local build: every `v*` tag runs the tests, builds on Linux and
 attaches that zip to a
-[release](https://github.com/tiktuk/nexudus-you-had-one-job/releases). Unpacked
+[release](https://github.com/tiktuk/members-portal-you-had-one-job/releases). Unpacked
 installs never update themselves, so repeat the last step for each release.
 
 ### Safari

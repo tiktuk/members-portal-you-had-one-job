@@ -9,16 +9,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
-### Changed
-
-- Renamed to **Members portal, you had one job** (from *Nexudus, you had one
-  job*), including the toolbar popup, the overview page and the Safari app name.
-  The store listing needs a name that does not contain a third-party trademark;
-  the extension still says which portals it works with in its description.
-
 ## [1.0.0] - 2026-11-05
 
-First release, published as **Nexudus, you had one job**.
+First release, published as **Members portal, you had one job**.
 
 ### Added
 
@@ -53,9 +46,10 @@ First release, published as **Nexudus, you had one job**.
 
 - Booking links open the calendar view instead of the list view. Choosing *List*
   in the portal's own *View* dropdown still works and is remembered per tab.
-- The extension is now called **Nexudus, you had one job** (previously *Nexudus
-  Portal+*), including the Safari app name, the bundle identifier, the npm
-  package name and the build artifacts.
+- The extension is now called **Members portal, you had one job** (previously
+  *Nexudus Portal+*), including the Safari app name, the bundle identifier, the
+  npm package name and the build artifacts. The name avoids a third-party
+  trademark; the description still says which portals it works with.
 - The internal namespace prefix is `onejob` — `onejob:pins`, `OneJobUrl`,
   `.onejob-*` classes and the `?onejob-resource=` query parameter — instead of
   `nxplus`. Pins, settings and the mirrored session from the old keys are not
