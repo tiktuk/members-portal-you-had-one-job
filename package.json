@@ -2,7 +2,7 @@
   "name": "nexudus-you-had-one-job",
   "version": "1.0.0",
   "private": true,
-  "description": "Browser extension that adds resource filters and pinned single-resource calendars to the MotionLab.Berlin Nexudus members portal.",
+  "description": "Browser extension that adds resource filters and pinned single-resource calendars to Nexudus members portals.",
   "scripts": {
     "test": "node --test tests/",
     "icons": "python3 scripts/make-icons.py",

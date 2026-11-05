@@ -10,6 +10,11 @@
 
   const config = {
     portal: {
+      /**
+       * The built-in portal: the manifest ships a content script for it, so it
+       * needs no permission prompt. Other Nexudus spaces are added at runtime
+       * from the popup (see lib/portal.js) and stored under `onejob:portals`.
+       */
       origin: "https://members.motionlab.berlin",
       /** Fallback when the web address cannot be read from the current URL. */
       webAddress: "motionlabberlin",
@@ -151,9 +156,11 @@
       pins: "onejob:pins",
       /**
        * Portal session for the pinned-overview page:
-       * { accessToken, webAddress, expiresAt, savedAt }.
+       * { accessToken, webAddress, origin, expiresAt, savedAt }.
        */
       session: "onejob:session",
+      /** Portal origins added from the popup, e.g. ["https://members.space.com"]. */
+      portals: "onejob:portals",
       refreshRequest: "onejob:refresh-request",
       /** Mirror of `settings` in the page's localStorage (read synchronously). */
       settingsCache: "onejob:settings-cache",

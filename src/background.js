@@ -1,23 +1,33 @@
-/* global chrome, OneJobConfig, OneJobLuma */
+/* global chrome, OneJobConfig, OneJobLuma, OneJobPortal */
 
 /**
  * Background service worker.
  *
- * The only job is proxying Luma's public API. Content scripts are subject to
- * CORS (the portal origin), and api.luma.com only allows https://luma.com, so
- * the overview's in-portal overlay could not fetch it directly. Extension
- * pages and service workers may cross-origin fetch with a host permission.
+ * Two jobs: proxying Luma's public API, and keeping the content script
+ * registrations for portals added from the popup in step with their host
+ * permissions.
+ *
+ * The Luma API is proxied because content scripts are subject to CORS (the
+ * portal origin), and api.luma.com only allows https://luma.com, so the
+ * overview's in-portal overlay could not fetch it directly. Extension pages and
+ * service workers may cross-origin fetch with a host permission.
  *
  * Responses are cached in memory like the Django app's Django-cache entries:
  * five minutes for the event list, one hour for a single event description.
  */
-importScripts("lib/config.js", "lib/luma.js");
+importScripts("lib/config.js", "lib/luma.js", "lib/portal.js");
 
 const cfg = OneJobConfig;
 const L = OneJobLuma;
+const P = OneJobPortal;
 
 const eventsCache = new Map();
 const descriptionsCache = new Map();
+
+// A dynamic content script survives restarts, but its host permission can be
+// revoked on its own; reconcile the two whenever the browser starts.
+chrome.runtime.onInstalled.addListener(() => syncPortals());
+chrome.runtime.onStartup.addListener(() => syncPortals());
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string") return undefined;
@@ -38,6 +48,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return undefined;
 });
+
+async function syncPortals() {
+  const stored = await chrome.storage.local.get(cfg.storageKeys.portals);
+  return P.syncRegistrations(stored?.[cfg.storageKeys.portals]);
+}
 
 async function loadEvents(force) {
   const source = L.parseSource(cfg.luma?.source);

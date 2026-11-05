@@ -66,6 +66,119 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
+.portal {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.portal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.portal-status {
+  flex: 0 1 auto;
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.portal-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+}
+
+.portal-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.portal-connect {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.portal-connect:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.portal-list {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.portal-item-host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-remove {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.portal-remove:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.row-hint.is-error {
+  color: #c0392b;
+}
+
+.row.is-disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.row.is-disabled .switch {
+  cursor: default;
+}
+
 .pinned-head {
   display: flex;
   align-items: baseline;

@@ -1108,6 +1108,8 @@
     storageSet(cfg.storageKeys.session, {
       accessToken: token,
       webAddress,
+      /** Which portal this came from, so the overview links back to it. */
+      origin: location.origin,
       expiresAt,
       savedAt: Date.now(),
     });

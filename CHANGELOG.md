@@ -35,6 +35,12 @@ First release, published as **Nexudus, you had one job**.
   worker proxies the requests and caches the results.
 - A toolbar popup with toggles for *Block location prompt* and *Luma events*,
   the pinned resource list, the group cache status and a link to the overview.
+- Support for any Nexudus members portal, not just the built-in one. The popup
+  has a **Members portal** field: enter another space's address, accept the
+  site-access prompt, and the extension registers its content script for that
+  origin at runtime (`chrome.scripting`). Added portals are listed with a
+  **Remove** button, and the background worker re-checks registrations and
+  permissions on every browser start.
 
 ### Changed
 
@@ -47,6 +53,16 @@ First release, published as **Nexudus, you had one job**.
   `.onejob-*` classes and the `?onejob-resource=` query parameter — instead of
   `nxplus`. Pins, settings and the mirrored session from the old keys are not
   carried over; re-pin and open the portal once after updating.
+- The manifest asks for the `scripting` permission and the optional host
+  permission `https://*/*`, and `web_accessible_resources` matches `https://*/*`
+  instead of the one portal origin, so a portal added at runtime can load the
+  page-world script.
+- Overview links (*Open portal*, *My bookings*, booking edit pages, resource
+  calendars and event links) follow the portal that mirrored the session instead
+  of the hard-coded origin, so they stay correct on other spaces.
+- Luma events are limited to the built-in portal: `config.luma.source` belongs
+  to MotionLab.Berlin, so the toggle is disabled while another space is active
+  rather than merging the wrong space's events.
 
 ### Fixed
 

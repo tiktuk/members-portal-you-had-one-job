@@ -142,6 +142,11 @@ h1 {
   background: var(--accent-soft);
 }
 
+/* `display: inline-flex` above outranks the UA rule for [hidden]. */
+.button[hidden] {
+  display: none;
+}
+
 .button:disabled {
   opacity: 0.55;
   cursor: default;

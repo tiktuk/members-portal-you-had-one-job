@@ -3,13 +3,14 @@
   "name": "Nexudus, you had one job",
   "short_name": "One job",
   "version": "1.0.0",
-  "description": "Adds resource filters and pinnable single-resource calendars to the members portal, and opens bookings in the calendar view by default.",
+  "description": "Adds resource filters and pinnable single-resource calendars to Nexudus members portals, and opens bookings in the calendar view by default.",
   "minimum_chrome_version": "111",
-  "permissions": ["storage"],
+  "permissions": ["storage", "scripting"],
   "host_permissions": [
     "https://*.spaces.nexudus.com/*",
     "https://api.luma.com/*"
   ],
+  "optional_host_permissions": ["https://*/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -47,7 +48,7 @@
   "web_accessible_resources": [
     {
       "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css"],
-      "matches": ["https://members.motionlab.berlin/*"]
+      "matches": ["https://*/*"]
     }
   ]
 }

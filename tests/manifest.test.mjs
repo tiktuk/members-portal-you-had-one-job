@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -10,11 +11,20 @@ const src = join(root, "src");
 
 const manifest = JSON.parse(readFileSync(join(src, "manifest.json"), "utf8"));
 
+/** lib/config.js + lib/portal.js, which must not need `chrome` at load time. */
+function loadPortalLib() {
+  const context = vm.createContext({ URL, URLSearchParams, console });
+  for (const file of ["lib/config.js", "lib/portal.js"]) {
+    vm.runInContext(readFileSync(join(src, file), "utf8"), context, { filename: file });
+  }
+  return { P: context.OneJobPortal, cfg: context.OneJobConfig };
+}
+
 test("manifest is a valid MV3 web extension manifest", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.ok(manifest.name);
   assert.ok(manifest.version);
-  assert.deepEqual(manifest.permissions, ["storage"]);
+  assert.deepEqual(manifest.permissions, ["storage", "scripting"]);
 });
 
 test("every file referenced by the manifest exists", () => {
@@ -36,13 +46,42 @@ test("every file referenced by the manifest exists", () => {
   }
 });
 
-test("page-world scripts are web accessible to the portal", () => {
+test("page-world scripts are web accessible to any connected portal", () => {
   const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
   for (const file of ["lib/config.js", "lib/url.js", "page.js"]) {
     assert.ok(resources.includes(file), `${file} must be web accessible`);
   }
+  // Portals added at runtime live on their own domains, and there is no dynamic
+  // equivalent of web_accessible_resources, so the match has to be broad.
   const matches = manifest.web_accessible_resources.flatMap((entry) => entry.matches);
-  assert.ok(matches.includes("https://members.motionlab.berlin/*"));
+  assert.ok(matches.includes("https://*/*"), "runtime portals need a broad match");
+});
+
+test("the built-in portal runs without a permission prompt", () => {
+  const { cfg } = loadPortalLib();
+  const matches = manifest.content_scripts.flatMap((entry) => entry.matches);
+  assert.deepEqual(matches, [`${cfg.portal.origin}/*`]);
+  assert.ok(manifest.host_permissions.includes("https://*.spaces.nexudus.com/*"));
+});
+
+test("other Nexudus portals can be granted at runtime", () => {
+  assert.ok(manifest.optional_host_permissions?.includes("https://*/*"));
+  assert.ok(manifest.permissions.includes("scripting"));
+});
+
+test("the runtime registration mirrors the static content script", () => {
+  const { P } = loadPortalLib();
+  const [entry] = manifest.content_scripts;
+
+  assert.deepEqual([...P.CONTENT_SCRIPT_FILES], entry.js);
+  assert.deepEqual([...P.CONTENT_SCRIPT_CSS], entry.css);
+
+  const script = P.scriptFor("https://members.otherspace.com");
+  assert.deepEqual([...script.js], entry.js);
+  assert.deepEqual([...script.css], entry.css);
+  assert.deepEqual([...script.matches], ["https://members.otherspace.com/*"]);
+  assert.equal(script.runAt, entry.run_at);
+  assert.equal(script.persistAcrossSessions, true);
 });
 
 test("the pinned overview page can be opened from the portal", () => {

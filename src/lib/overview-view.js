@@ -23,6 +23,8 @@
       session: null,
       settings: null,
       webAddress: cfg.portal.webAddress,
+      /** Origin of the portal the session came from; absolute links use it. */
+      origin: cfg.portal.origin,
       model: null,
       myModel: null,
       lumaEnabled: false,
@@ -48,6 +50,7 @@
     myBookings: null,
     refreshButton: null,
     lumaButton: null,
+    portalLink: null,
     timer: null,
     onStorageChanged: null,
   };
@@ -90,6 +93,7 @@
     ui.myBookings = null;
     ui.refreshButton = null;
     ui.lumaButton = null;
+    ui.portalLink = null;
     ui.timer = null;
     ui.onStorageChanged = null;
 
@@ -123,6 +127,7 @@
       ui.lumaButton = el("button", "button button-toggle", "Events");
       ui.lumaButton.type = "button";
       ui.lumaButton.setAttribute("aria-pressed", "false");
+      ui.lumaButton.hidden = !lumaAvailable();
       ui.lumaButton.addEventListener("click", toggleLumaEvents);
       actions.appendChild(ui.lumaButton);
     }
@@ -133,11 +138,11 @@
     actions.appendChild(ui.refreshButton);
 
     if (ui.variant === "page") {
-      const portalLink = el("a", "button button-ghost", "Open portal ↗");
-      portalLink.href = `${cfg.portal.origin}/`;
-      portalLink.target = "_blank";
-      portalLink.rel = "noopener";
-      actions.appendChild(portalLink);
+      ui.portalLink = el("a", "button button-ghost", "Open portal ↗");
+      ui.portalLink.href = `${portalOrigin()}/`;
+      ui.portalLink.target = "_blank";
+      ui.portalLink.rel = "noopener";
+      actions.appendChild(ui.portalLink);
     } else {
       const close = el("button", "button button-icon", "×");
       close.type = "button";
@@ -187,6 +192,7 @@
 
     state.pins = O.normalizePins(state.pins);
     state.webAddress = state.session?.webAddress || state.webAddress;
+    state.origin = state.session?.origin || state.origin;
     state.lumaEnabled = isLumaEnabled(state.settings);
 
     ui.onStorageChanged = onStorageChanged;
@@ -213,6 +219,7 @@
     if (changes[cfg.storageKeys.session]) {
       state.session = changes[cfg.storageKeys.session].newValue || null;
       state.webAddress = state.session?.webAddress || cfg.portal.webAddress;
+      state.origin = state.session?.origin || cfg.portal.origin;
       reload = true;
     }
     if (changes[cfg.storageKeys.settings]) {
@@ -226,9 +233,32 @@
     if (reload) load();
   }
 
+  /**
+   * Absolute links must point at the portal this overview is about. The overlay
+   * runs inside that portal, so it can just read its own origin; the standalone
+   * page uses the origin of the portal that last mirrored a session.
+   */
+  function portalOrigin() {
+    if (ui.variant === "panel") {
+      const origin = ui.doc?.defaultView?.location?.origin;
+      if (origin && origin !== "null") return origin;
+    }
+    return state.origin || cfg.portal.origin;
+  }
+
+  /**
+   * `config.luma.source` is the built-in portal's Luma calendar, so merging
+   * events on another space would show the wrong space's events.
+   */
+  function lumaAvailable() {
+    if (!cfg.luma?.source) return false;
+    if (!cfg.portal?.origin) return true;
+    return String(portalOrigin()).replace(/\/+$/, "") === cfg.portal.origin;
+  }
+
   /** The popup toggle; `config.luma.enabled` is only the default. */
   function isLumaEnabled(settings) {
-    if (!cfg.luma?.source) return false;
+    if (!lumaAvailable()) return false;
     const stored = settings && typeof settings.lumaEvents === "boolean"
       ? settings.lumaEvents
       : cfg.luma.enabled !== false;
@@ -460,10 +490,13 @@
     ui.refreshButton.textContent = state.loading ? "Refreshing…" : "Refresh";
 
     if (ui.lumaButton) {
+      ui.lumaButton.hidden = !lumaAvailable();
       ui.lumaButton.setAttribute("aria-pressed", String(state.lumaEnabled));
       ui.lumaButton.classList.toggle("is-active", state.lumaEnabled);
       ui.lumaButton.title = state.lumaEnabled ? "Hide Luma events" : "Show Luma events";
     }
+
+    if (ui.portalLink) ui.portalLink.href = `${portalOrigin()}/`;
 
     ui.summary.textContent = summaryText(session);
     renderNotice(session);
@@ -515,7 +548,7 @@
         message:
           "Open the portal once while signed in so the extension can use your session to load bookings.",
         linkLabel: "Open members portal ↗",
-        href: `${cfg.portal.origin}/`,
+        href: `${portalOrigin()}/`,
       });
       return;
     }
@@ -525,7 +558,7 @@
         title: "Your portal session expired",
         message: "Open the members portal, then refresh this page to load bookings again.",
         linkLabel: "Open members portal ↗",
-        href: `${cfg.portal.origin}/`,
+        href: `${portalOrigin()}/`,
         error: true,
       });
       return;
@@ -537,7 +570,7 @@
         title: expired ? "Your portal session expired" : "Couldn't load bookings",
         message: expired ? "Open the members portal, then refresh this page." : state.error.message,
         linkLabel: "Open members portal ↗",
-        href: `${cfg.portal.origin}/`,
+        href: `${portalOrigin()}/`,
         error: true,
       });
       return;
@@ -601,7 +634,7 @@
     const titles = el("div", "card-titles");
     const heading = el("h2");
     const titleLink = el("a", "card-title-link", "My bookings");
-    titleLink.href = `${cfg.portal.origin}/${state.webAddress}/user/activity/bookings`;
+    titleLink.href = `${portalOrigin()}/${state.webAddress}/user/activity/bookings`;
     titleLink.target = "_blank";
     titleLink.rel = "noopener";
     titleLink.title = "Open My bookings in the portal";
@@ -748,7 +781,7 @@
       id: booking.id,
       resource_id: booking.resourceId,
     });
-    return `${cfg.portal.origin}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
+    return `${portalOrigin()}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
   }
 
   function eventEntry(booking) {
@@ -865,7 +898,7 @@
   function eventHref(url) {
     if (!url) return "";
     if (/^https?:\/\//i.test(url)) return url;
-    return `${cfg.portal.origin}${url.startsWith("/") ? "" : "/"}${url}`;
+    return `${portalOrigin()}${url.startsWith("/") ? "" : "/"}${url}`;
   }
 
   function calendarHref(pin) {
@@ -876,7 +909,7 @@
       group: pin.group,
       resource: pin.id,
     });
-    return `${cfg.portal.origin}${path}`;
+    return `${portalOrigin()}${path}`;
   }
 
   function typeClass(type) {

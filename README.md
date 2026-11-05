@@ -1,7 +1,10 @@
 # Nexudus, you had one job
 
-A small Safari / Chrome extension that improves the MotionLab.Berlin members
-portal (<https://members.motionlab.berlin/motionlabberlin>). See
+A small Safari / Chrome extension that improves Nexudus members portals. It
+ships configured for the MotionLab.Berlin portal
+(<https://members.motionlab.berlin/motionlabberlin>) and runs on any other
+Nexudus space once you add that portal's address in the popup — see
+[Other Nexudus portals](#other-nexudus-portals). See
 [CHANGELOG.md](CHANGELOG.md) for the version history.
 
 It does six things:
@@ -92,6 +95,31 @@ In Xcode run the **Nexudus, you had one job (macOS)** scheme once. Then in Safar
 `members.motionlab.berlin`. The iOS project in the same Xcode project works the
 same way if you want it on a phone.
 
+## Other Nexudus portals
+
+The manifest ships a content script for `members.motionlab.berlin` only, because
+every Nexudus space lives on its own domain and a match pattern cannot guess
+them. To use the extension on another space:
+
+1. Open the toolbar popup and type the portal address (for example
+   `members.yourspace.com`) into **Members portal**.
+2. Press **Connect** and accept the browser's request for access to that site.
+3. Open the portal, sign in and reload the tab.
+
+The popup stores the origin in `onejob:portals` and registers the same content
+script for it through `chrome.scripting`, so nothing has to be rebuilt.
+**Remove** drops the registration and the permission again; the background
+worker re-checks both on every browser start.
+
+Two things stay tied to the built-in portal:
+
+- **Luma events.** `config.luma.source` is MotionLab.Berlin's Luma calendar, so
+  the *Luma events* toggle is disabled while another space is active. Point
+  `config.luma.source` at your own calendar and rebuild to change that.
+- `web_accessible_resources` matches `https://*/*`, because there is no runtime
+  equivalent of that list and `page.js` has to be loadable from every portal a
+  member connects. The popup's optional host permission is what gates access.
+
 ## Configuration
 
 Everything tunable lives in `src/lib/config.js`. The popup's toggles are stored
@@ -111,13 +139,13 @@ the *Block location prompt* and *Luma events* toggles.
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
 | `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
-| `portal.origin` / `content_scripts.matches` | Change both to use this on another Nexudus portal. |
+| `portal.origin` / `content_scripts.matches` | The built-in portal. Change both (and rebuild) to make another space the default; everyone else adds their own portal from the popup. |
 
 The menu is built from the portal's own navigation (which resource types it
 offers) plus `GET /api/public/resources/published/details` for the group and
 resource names. Pins are stored in `chrome.storage.local` under `onejob:pins`.
 The portal session used by the overview page is mirrored into `onejob:session`
-(`{ accessToken, webAddress, expiresAt, savedAt }`) whenever the portal loads
+(`{ accessToken, webAddress, origin, expiresAt, savedAt }`) whenever the portal loads
 with a live `AUTH_TOKEN` cookie.
 
 ## How it works
@@ -219,7 +247,7 @@ view picker keep working.
 ## Development
 
 ```bash
-npm test                       # node --test (URL logic, menu model, overview, Luma, manifest)
+npm test                       # node --test (URL logic, menu model, overview, Luma, manifest, popup)
 python3 scripts/make-icons.py  # regenerate icons
 npm run build                  # dist/chrome, zip, Safari Xcode project
 ```
@@ -235,6 +263,9 @@ open http://localhost:8765/tests/fixture.html
 
 ### Troubleshooting
 
+- **Nothing happens on another space** — that portal is not connected yet. Add
+  its address in the popup (see [Other Nexudus portals](#other-nexudus-portals));
+  the popup's status line shows which portal is active.
 - **Menu missing** — sign in to the portal first (the extension needs the
   session cookie to read group names), then reload. Check the popup's status
   line; *Refresh groups* forces a re-fetch.

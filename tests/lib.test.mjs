@@ -33,7 +33,7 @@ function loadLibs(href = PAGE) {
     location: new URL(href),
     sessionStorage: makeSessionStorage(),
   });
-  for (const file of ["lib/config.js", "lib/url.js", "lib/groups.js"]) {
+  for (const file of ["lib/config.js", "lib/url.js", "lib/groups.js", "lib/portal.js"]) {
     vm.runInContext(readFileSync(join(src, file), "utf8"), context, { filename: file });
   }
   return context;
@@ -223,4 +223,45 @@ test("apiBaseUrl targets the space's own Nexudus subdomain", () => {
   const { OneJobUrl } = loadLibs();
   assert.equal(OneJobUrl.apiBaseUrl("motionlabberlin"), "https://motionlabberlin.spaces.nexudus.com");
   assert.equal(OneJobUrl.apiBaseUrl(), "https://motionlabberlin.spaces.nexudus.com");
+});
+
+test("normalizeOrigin turns pasted portal addresses into origins", () => {
+  const { OneJobPortal } = loadLibs();
+  assert.equal(
+    OneJobPortal.normalizeOrigin("members.otherspace.com"),
+    "https://members.otherspace.com",
+  );
+  assert.equal(
+    OneJobPortal.normalizeOrigin(" https://Members.OtherSpace.com/otherspace/bookings/machines/list "),
+    "https://members.otherspace.com",
+  );
+  assert.equal(OneJobPortal.normalizeOrigin("http://members.otherspace.com"), "https://members.otherspace.com");
+  assert.equal(OneJobPortal.normalizeOrigin("https://members.otherspace.com:8443/x"), "https://members.otherspace.com:8443");
+  assert.equal(OneJobPortal.normalizeOrigin("localhost:3000"), "https://localhost:3000");
+});
+
+test("normalizeOrigin rejects anything that is not a web host", () => {
+  const { OneJobPortal } = loadLibs();
+  for (const input of ["", "   ", null, "members", "javascript:alert(1)", "file:///etc/passwd", "chrome-extension://abc/overview.html"]) {
+    assert.equal(OneJobPortal.normalizeOrigin(input), null, `expected null for ${input}`);
+  }
+});
+
+test("the built-in portal is recognised however it is written", () => {
+  const { OneJobPortal } = loadLibs();
+  assert.equal(OneJobPortal.isDefaultOrigin("members.motionlab.berlin"), true);
+  assert.equal(OneJobPortal.isDefaultOrigin("https://members.motionlab.berlin/motionlabberlin"), true);
+  assert.equal(OneJobPortal.isDefaultOrigin("members.otherspace.com"), false);
+  assert.equal(OneJobPortal.hostLabel("https://members.otherspace.com/x"), "members.otherspace.com");
+});
+
+test("script ids are stable per origin and safe for chrome.scripting", () => {
+  const { OneJobPortal } = loadLibs();
+  const a = OneJobPortal.scriptId("https://members.otherspace.com");
+  assert.equal(a, OneJobPortal.scriptId("https://members.otherspace.com"));
+  assert.notEqual(a, OneJobPortal.scriptId("https://members.anotherspace.com"));
+  assert.match(a, /^[a-z0-9-]+$/);
+  assert.deepEqual([...OneJobPortal.scriptFor("https://members.otherspace.com").matches], [
+    "https://members.otherspace.com/*",
+  ]);
 });

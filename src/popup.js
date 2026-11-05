@@ -1,8 +1,9 @@
-/* global chrome, OneJobConfig */
+/* global chrome, OneJobConfig, OneJobPortal */
 (() => {
   "use strict";
 
   const cfg = OneJobConfig;
+  const P = OneJobPortal;
   const DEFAULTS = {
     calendarDefault: true,
     navMenu: true,
@@ -18,6 +19,13 @@
   const status = document.getElementById("groups-status");
   const pinsStatus = document.getElementById("pins-status");
   const overviewLink = document.getElementById("overview-link");
+  const portalStatus = document.getElementById("portal-status");
+  const portalForm = document.getElementById("portal-form");
+  const portalInput = document.getElementById("portal-input");
+  const portalHint = document.getElementById("portal-hint");
+  const portalList = document.getElementById("portal-list");
+  const lumaHint = document.getElementById("luma-hint");
+  const lumaRow = document.getElementById("luma-row");
 
   init();
 
@@ -38,6 +46,8 @@
     geoToggle.addEventListener("change", () =>
       saveSettings({ geoBlockPrompt: geoToggle.checked }),
     );
+
+    portalForm.addEventListener("submit", connectPortal);
 
     overviewLink.addEventListener("click", (event) => {
       if (overviewLink.classList.contains("is-disabled")) {
@@ -68,6 +78,107 @@
 
     renderGroups(await get(cfg.storageKeys.groups));
     renderPins(await get(cfg.storageKeys.pins));
+    await renderPortals();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Portals
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Adds the portal the member pastes. The host permission has to be requested
+   * from the submit handler itself, before anything is awaited, or the browser
+   * no longer counts it as a user gesture.
+   */
+  async function connectPortal(event) {
+    event.preventDefault();
+
+    const origin = P.normalizeOrigin(portalInput.value);
+    if (!origin) {
+      setPortalHint("Enter a portal address like members.yourspace.com.", true);
+      return;
+    }
+    if (P.isDefaultOrigin(origin)) {
+      portalInput.value = "";
+      setPortalHint("That portal is built in — just open it and sign in.", false);
+      return;
+    }
+
+    const granted = await P.requestOriginAccess(origin);
+    if (!granted) {
+      setPortalHint("Access to that portal was not granted.", true);
+      return;
+    }
+
+    if (!(await P.registerPortalScripts(origin))) {
+      setPortalHint(
+        "This browser can’t add portals at runtime. Use a build with the origin in the manifest.",
+        true,
+      );
+      return;
+    }
+
+    const portals = await readPortals();
+    if (!portals.includes(origin)) await set(cfg.storageKeys.portals, [...portals, origin]);
+    portalInput.value = "";
+    setPortalHint("Added. Open the portal, sign in, then reload the tab.", false);
+    await renderPortals();
+  }
+
+  async function disconnectPortal(origin) {
+    await P.unregisterPortalScripts(origin);
+    await P.removeOriginAccess(origin);
+
+    const portals = (await readPortals()).filter((item) => item !== origin);
+    await set(cfg.storageKeys.portals, portals);
+    setPortalHint("Removed. Reload that portal tab to drop the extension.", false);
+    await renderPortals();
+  }
+
+  async function renderPortals() {
+    const session = await get(cfg.storageKeys.session);
+    const active = P.normalizeOrigin(session?.origin) || cfg.portal.origin;
+    portalStatus.textContent = P.hostLabel(active);
+
+    portalList.replaceChildren();
+    for (const origin of await readPortals()) {
+      if (P.isDefaultOrigin(origin)) continue;
+
+      const item = document.createElement("li");
+      item.className = "portal-item";
+
+      const host = document.createElement("span");
+      host.className = "portal-item-host";
+      host.textContent = P.hostLabel(origin);
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "portal-remove";
+      remove.textContent = "Remove";
+      remove.setAttribute("aria-label", `Remove ${P.hostLabel(origin)}`);
+      remove.addEventListener("click", () => disconnectPortal(origin));
+
+      item.append(host, remove);
+      portalList.appendChild(item);
+    }
+
+    // config.luma.source is the built-in portal's Luma calendar.
+    const lumaOn = P.isDefaultOrigin(active);
+    lumaToggle.disabled = !lumaOn;
+    lumaRow.classList.toggle("is-disabled", !lumaOn);
+    lumaHint.textContent = lumaOn
+      ? "Merge this space’s upcoming Luma events into the overview cards."
+      : "Only configured for the built-in portal.";
+  }
+
+  function setPortalHint(text, isError) {
+    portalHint.textContent = text;
+    portalHint.classList.toggle("is-error", Boolean(isError));
+  }
+
+  async function readPortals() {
+    const stored = await get(cfg.storageKeys.portals);
+    return Array.isArray(stored) ? stored.filter((origin) => typeof origin === "string") : [];
   }
 
   async function saveSettings(patch) {
