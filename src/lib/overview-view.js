@@ -116,7 +116,7 @@
 
     const header = el("header", "page-header");
     const heading = el("div", "page-heading");
-    if (ui.variant === "page") heading.appendChild(el("p", "eyebrow", "Nexudus, you had one job"));
+    if (ui.variant === "page") heading.appendChild(el("p", "eyebrow", "Members portal, you had one job"));
     heading.appendChild(el("h1", null, "Pinned resources"));
     ui.summary = el("p", "summary", "Loading…");
     heading.appendChild(ui.summary);

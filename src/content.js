@@ -1,5 +1,5 @@
 /**
- * Nexudus, you had one job content script (isolated world).
+ * Members portal, you had one job content script (isolated world).
  *
  * Responsibilities:
  *  1. Rewrite a bookings "list" URL to "calendar" before the SPA boots.

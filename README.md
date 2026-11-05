@@ -1,4 +1,4 @@
-# Nexudus, you had one job
+# Members portal, you had one job
 
 A small Safari / Chrome extension that improves Nexudus members portals. It
 ships configured for the MotionLab.Berlin portal
@@ -92,11 +92,11 @@ Safari needs a signed app wrapper; Apple's converter generates it:
 
 ```bash
 npm run build          # also runs safari-web-extension-converter (needs Xcode)
-open "dist/safari/Nexudus, you had one job/Nexudus, you had one job.xcodeproj"
+open "dist/safari/Members portal, you had one job/Members portal, you had one job.xcodeproj"
 ```
 
-In Xcode run the **Nexudus, you had one job (macOS)** scheme once. Then in Safari:
-*Settings → Extensions → Nexudus, you had one job* → enable it and allow it on
+In Xcode run the **Members portal, you had one job (macOS)** scheme once. Then in Safari:
+*Settings → Extensions → Members portal, you had one job* → enable it and allow it on
 `members.motionlab.berlin`. The iOS project in the same Xcode project works the
 same way if you want it on a phone.
 

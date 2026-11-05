@@ -9,6 +9,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed to **Members portal, you had one job** (from *Nexudus, you had one
+  job*), including the toolbar popup, the overview page and the Safari app name.
+  The store listing needs a name that does not contain a third-party trademark;
+  the extension still says which portals it works with in its description.
+
 ## [1.0.0] - 2026-11-05
 
 First release, published as **Nexudus, you had one job**.

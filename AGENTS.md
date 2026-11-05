@@ -1,4 +1,4 @@
-# Agent notes — Nexudus, you had one job extension
+# Agent notes — Members portal, you had one job extension
 
 Browser extension (MV3) for the MotionLab.Berlin Nexudus members portal. No
 build step for the extension itself: `src/` is the unpacked extension.

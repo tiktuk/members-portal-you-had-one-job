@@ -23,7 +23,7 @@ if xcrun --find safari-web-extension-converter >/dev/null 2>&1; then
   echo "Generating Safari project…"
   xcrun safari-web-extension-converter "$DIST/chrome" \
     --project-location "$DIST/safari" \
-    --app-name "Nexudus, you had one job" \
+    --app-name "Members portal, you had one job" \
     --bundle-identifier "ai.motionlab.nexudus-you-had-one-job" \
     --copy-resources \
     --no-open \

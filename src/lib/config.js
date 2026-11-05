@@ -1,5 +1,5 @@
 /**
- * Shared configuration for the Nexudus, you had one job extension.
+ * Shared configuration for the Members portal, you had one job extension.
  *
  * Loaded first in both worlds: the isolated content-script world and the page
  * world (see content.js / page.js). Everything here is plain data so it can be
