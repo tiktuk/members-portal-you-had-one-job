@@ -426,6 +426,7 @@ h1 {
 }
 
 .event-summary {
+  position: relative;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
@@ -438,9 +439,13 @@ h1 {
   display: none;
 }
 
+/* Pinned to the first line: as a flex item it wrapped onto a line of its own
+   when the title and badge filled the row, where it read as a stray dot. */
 .event-summary::after {
   content: "▸";
-  margin-left: 0.3rem;
+  position: absolute;
+  top: 0;
+  right: 0;
   color: var(--muted);
   font-size: 0.7rem;
 }

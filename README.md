@@ -69,6 +69,30 @@ Bookings ▾   Filters ▾   Store ▾   Memberships   Community
               └──────────────────────────────────────────────┘
 ```
 
+## Screenshots
+
+Shot on an invented space: the member, machine and booking names are made up.
+`tests/screenshots.html` renders the same pages with stubbed extension APIs, so
+the images can be regenerated without signing in.
+
+**The Filters menu** — every resource group, one click from the calendar:
+
+![The Filters menu in the portal navigation](docs/screenshots/filters-menu.png)
+
+**The pinned resources overview** — your own bookings, then one card per pinned
+resource:
+
+![The pinned resources overview](docs/screenshots/overview.png)
+
+**With Luma events merged in** — the space's public events carry an *Event*
+badge:
+
+![The pinned overview with Luma events](docs/screenshots/overview-events.png)
+
+**The toolbar popup** — connect a portal, then four toggles:
+
+<img src="docs/screenshots/popup.png" alt="The toolbar popup" width="320">
+
 ## Install
 
 ### Chrome / Edge / Brave

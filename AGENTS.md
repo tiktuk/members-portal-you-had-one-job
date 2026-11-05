@@ -68,7 +68,11 @@ directory argument as a module path instead of discovering tests in it.
 - `src/overview.css` — stylesheet for both variants (page and overlay).
 - `src/popup.*` — toolbar settings UI (portal connect/remove, four toggles,
   group cache status, link to the pinned overview).
-- `tests/` — `node --test` suites plus the browser fixture.
+- `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
+  (debugging the content script) and `screenshots.html` (the README and store
+  images, with invented members, machines and bookings). Both run from
+  `python3 -m http.server 8765`; the screenshots are 1280×800 and live in
+  `docs/screenshots/`.
 
 ## Other portals (runtime registration)
 

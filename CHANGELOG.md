@@ -9,6 +9,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Fixed
+
+- The expand chevron on workshop and Luma rows no longer wraps onto a line of
+  its own when the title and badge fill the row, where it read as a stray dot.
+
 ## [1.0.0] - 2026-11-05
 
 First release, published as **Members portal, you had one job**.

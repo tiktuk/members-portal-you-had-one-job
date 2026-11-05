@@ -1,0 +1,373 @@
+<!doctype html>
+<!--
+  Screenshot harness for the README and the Chrome Web Store listing.
+
+  It mirrors the portal's navigation and the booking calendar with invented
+  content (no real space, member or machine names), stubs the extension APIs and
+  the Nexudus endpoints, and hides everything that is only useful while
+  debugging, so a screenshot shows the extension and nothing else.
+
+  Run:  python3 -m http.server 8765   (from the project root)
+  Open: http://localhost:8765/tests/screenshots.html
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Members portal, you had one job — screenshot harness</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="/src/portal.css" />
+    <style>
+      body { background: #f6f7f9; }
+
+      .demo-navbar { background: #fff; border-bottom: 1px solid #e5e7eb; }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: 190px repeat(7, 1fr);
+        gap: 1px;
+        background: #e9ecef;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 12px;
+      }
+      .demo-cell { background: #fff; min-height: 46px; padding: 6px 8px; }
+      .demo-head { background: #f8f9fa; font-weight: 600; color: #495057; }
+      .demo-resource { background: #fbfcfd; font-weight: 500; color: #343a40; }
+      .demo-slot {
+        display: block;
+        height: 9px;
+        margin: 4px 0;
+        border-radius: 4px;
+        background: #cfe2ff;
+      }
+      .demo-slot.alt { background: #d3f0e3; width: 70%; }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-xl demo-navbar">
+      <div class="container-fluid">
+        <a class="me-auto navbar-brand" href="/">Makerspace Berlin</a>
+        <div class="navbar-collapse collapse show">
+          <ul class="navbar-nav navbar-nav-scroll me-auto mx-auto">
+            <li class="nav-item dropdown">
+              <button class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Bookings
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/makerspace/bookings/labs/list">Labs</a></li>
+                <li><a class="dropdown-item" href="/makerspace/bookings/machines/list">Machines</a></li>
+                <li><a class="dropdown-item" href="/makerspace/bookings/meeting-rooms/list">Meeting rooms</a></li>
+              </ul>
+            </li>
+            <li class="nav-item dropdown">
+              <button class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                Store
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/makerspace/store/all">All products</a></li>
+              </ul>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/makerspace/signup">Memberships</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/makerspace/community/board">Community</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      <div class="d-flex align-items-baseline gap-3 mb-3">
+        <h1 class="h4 mb-0">Machines</h1>
+        <div class="dropdown">
+          <button
+            class="btn btn-link text-body p-0 dropdown-toggle"
+            id="resourceViewDropdown"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            View
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="resourceViewDropdown">
+            <li><a class="dropdown-item" href="/makerspace/bookings/machines/list">List</a></li>
+            <li><a class="dropdown-item" href="/makerspace/bookings/machines/calendar">Calendar</a></li>
+          </ul>
+        </div>
+        <div class="text-muted small">Monday 3 – Sunday 9 November</div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="demo-cell demo-head">Resource</div>
+        <div class="demo-cell demo-head">Mon 3</div>
+        <div class="demo-cell demo-head">Tue 4</div>
+        <div class="demo-cell demo-head">Wed 5</div>
+        <div class="demo-cell demo-head">Thu 6</div>
+        <div class="demo-cell demo-head">Fri 7</div>
+        <div class="demo-cell demo-head">Sat 8</div>
+        <div class="demo-cell demo-head">Sun 9</div>
+
+        <div class="demo-cell demo-resource">3D Printer A</div>
+        <div class="demo-cell"><span class="demo-slot"></span><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+
+        <div class="demo-cell demo-resource">3D Printer B</div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+
+        <div class="demo-cell demo-resource">Large CNC</div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+
+        <div class="demo-cell demo-resource">CNC Router 1325</div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+
+        <div class="demo-cell demo-resource">Laser Cutter 60W</div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"></div>
+
+        <div class="demo-cell demo-resource">Table Saw</div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"><span class="demo-slot alt"></span></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+        <div class="demo-cell"></div>
+      </div>
+    </main>
+
+    <script>
+      // Pretend we are on the real portal route (a list URL, so the extension's
+      // rewrite to the calendar view is exercised).
+      history.replaceState(
+        {},
+        "",
+        "/makerspace/bookings/machines/list?start=2026-11-03T00%3A00%3A00.000%2B01%3A00&end=2026-11-10T00%3A00%3A00.000%2B01%3A00",
+      );
+
+      // A session cookie so the resources fetch is attempted.
+      document.cookie =
+        "AUTH_TOKEN=" +
+        encodeURIComponent(JSON.stringify({ access_token: "fixture-token", expires_at: Date.now() + 3600000 })) +
+        "; path=/";
+
+      window.__fixturePayload = {
+        Resources: [
+          { Id: 1415309474, Name: "3D Printer A", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+          { Id: 1415309571, Name: "3D Printer B", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+          { Id: 1415309496, Name: "Large CNC", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+          { Id: 1415309596, Name: "CNC Router 1325", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
+          { Id: 1415309492, Name: "Laser Cutter 60W", SystemResourceType: 10, GroupName: "Machines: Laser Cutting" },
+          { Id: 1415309499, Name: "Band Saw", SystemResourceType: 10, GroupName: "Machines: Metalworking" },
+          { Id: 1415309593, Name: "Sewing Machine", SystemResourceType: 10, GroupName: "Machines: Textile Designing" },
+          { Id: 1415309601, Name: "UV Printer", SystemResourceType: 10, GroupName: "Machines: UV printing" },
+          { Id: 1415309491, Name: "Table Saw", SystemResourceType: 10, GroupName: "Machines: Woodworking" },
+          { Id: 1415309502, Name: "Outdoor Lab", SystemResourceType: 5, GroupName: "Labs: Outdoor Lab" },
+          { Id: 1415309591, Name: "Electronics Lab", SystemResourceType: 5, GroupName: "Labs: Electronics Lab" },
+          { Id: 1415299774, Name: "Meeting Room A", SystemResourceType: 1, GroupName: "Meeting Rooms" },
+        ],
+      };
+
+      const settings = { calendarDefault: true, navMenu: true, lumaEvents: false, geoBlockPrompt: true };
+      const store = {
+        "onejob:settings": settings,
+        "onejob:pins": [
+          { id: 1415309496, name: "Large CNC", group: "Machines: CNC Machining", type: "machines" },
+          { id: 1415309591, name: "Electronics Lab", group: "Labs: Electronics Lab", type: "labs" },
+          { id: 1415299774, name: "Meeting Room A", group: "Meeting Rooms", type: "meeting-rooms" },
+        ],
+        // Lets the pinned overview overlay load without the real portal.
+        "onejob:session": {
+          accessToken: "fixture-token",
+          webAddress: "makerspace",
+          origin: "https://members.example.com",
+          expiresAt: Date.now() + 3600000,
+          savedAt: Date.now(),
+        },
+      };
+      const listeners = [];
+      window.__fixtureStore = store;
+      window.chrome = {
+        runtime: {
+          id: "fixture",
+          getURL: (path) => `/src/${path}`,
+          // The real extension proxies Luma through background.js (CORS).
+          sendMessage: (message, callback) => {
+            if (message?.type === "onejob:luma-events") {
+              callback({ ok: true, entries: window.__fixtureLumaEvents });
+              return;
+            }
+            if (message?.type === "onejob:luma-description") {
+              callback({
+                ok: true,
+                description:
+                  "Coffee, pastries and open networking before the day starts. Everyone welcome.",
+              });
+              return;
+            }
+            callback({ ok: false, error: "Unknown fixture message." });
+          },
+        },
+        storage: {
+          local: {
+            get: (keys, callback) => {
+              const result = {};
+              for (const key of keys) result[key] = store[key];
+              callback(result);
+            },
+            set: (values, callback) => {
+              const changes = {};
+              for (const [key, value] of Object.entries(values)) {
+                changes[key] = { oldValue: store[key], newValue: value };
+                store[key] = value;
+              }
+              for (const listener of listeners) listener(changes, "local");
+              if (callback) callback();
+            },
+          },
+          onChanged: {
+            addListener: (listener) => listeners.push(listener),
+            removeListener: (listener) => {
+              const index = listeners.indexOf(listener);
+              if (index >= 0) listeners.splice(index, 1);
+            },
+          },
+        },
+      };
+
+      // Sample payloads for the pinned overview, relative to today.
+      const at = (days, hour) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        date.setHours(hour, 0, 0, 0);
+        return date;
+      };
+      const iso = (days, hour) => at(days, hour).toISOString();
+      const naive = (days, hour) => {
+        const date = at(days, hour);
+        const pad = (value) => String(value).padStart(2, "0");
+        return (
+          `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+          `T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
+        );
+      };
+
+      window.__fixtureBookings = [
+        { id: 9001, resourceId: 1415309496, start: iso(1, 8), end: iso(1, 10), coworkerFullName: "Alex M." },
+        { id: 9002, resourceId: 1415309496, start: iso(1, 9), end: iso(1, 11), coworkerFullName: "Sam R.", tentative: true },
+        { id: 9003, resourceId: 1415309496, start: iso(3, 13), end: iso(3, 16), coworkerFullName: "Jo K." },
+        { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerFullName: "Jo K." },
+        { id: 9005, resourceId: 1415309591, start: iso(4, 9), end: iso(4, 12), coworkerFullName: "Alex M." },
+        { id: 9006, resourceId: 1415299774, start: iso(2, 10), end: iso(2, 11), coworkerFullName: "Sam R." },
+        { id: 9007, resourceId: 1415309492, start: iso(1, 16), end: iso(1, 19), coworkerFullName: "Alex M." },
+        { id: 9008, resourceId: 1415309492, start: iso(4, 11), end: iso(4, 13), coworkerFullName: "Jo K." },
+        { id: 9009, resourceId: 1415299774, start: iso(5, 9), end: iso(5, 10), coworkerFullName: "Alex M." },
+        { id: 9011, resourceId: 1415309496, start: iso(2, 7), end: iso(2, 9), coworkerFullName: "Jo K." },
+        { id: 9012, resourceId: 1415309496, start: iso(4, 12), end: iso(4, 14), coworkerFullName: "Sam R." },
+        { id: 9013, resourceId: 1415309496, start: iso(5, 8), end: iso(5, 11), coworkerFullName: "Alex M." },
+        { id: 9014, resourceId: 1415299774, start: iso(1, 14), end: iso(1, 15), coworkerFullName: "Jo K." },
+        { id: 9015, resourceId: 1415299774, start: iso(4, 11), end: iso(4, 12), coworkerFullName: "Sam R." },
+        { id: 9010, resourceId: 1415309591, start: iso(6, 15), end: iso(6, 17), coworkerFullName: "Sam R." },
+      ];
+      window.__fixtureEvents = [
+        {
+          id: 9101,
+          resourceId: 1415309591,
+          start: iso(1, 13),
+          end: iso(1, 15),
+          title: "Soldering Basics",
+          shortDescription: "Intro workshop for the electronics lab.",
+          url: "/makerspace/events/soldering-basics",
+        },
+      ];
+      window.__fixtureLumaEvents = [
+        {
+          api_id: "evt-fixture",
+          event: {
+            api_id: "evt-fixture",
+            name: "Open Breakfast",
+            start_at: iso(2, 9),
+            end_at: iso(2, 10),
+            url: "fixture-breakfast",
+          },
+        },
+      ];
+      window.__fixtureMyBookings = {
+        Records: [
+          {
+            Id: 9001,
+            ResourceId: 1415309496,
+            ResourceName: "Large CNC",
+            FromTime: naive(1, 8),
+            ToTime: naive(1, 10),
+          },
+          {
+            Id: 9003,
+            ResourceId: 1415309496,
+            ResourceName: "Large CNC",
+            FromTime: naive(3, 13),
+            ToTime: naive(3, 16),
+          },
+        ],
+        HasNextPage: false,
+      };
+
+      const json = (payload) => ({ ok: true, status: 200, json: async () => payload });
+      const realFetch = window.fetch.bind(window);
+      window.fetch = async (url, init) => {
+        const target = String(url);
+        // Extension resources (overview.css) are served by the dev server.
+        if (target.includes("/src/")) {
+          return realFetch(`${target}${target.includes("?") ? "&" : "?"}t=${Date.now()}`, init);
+        }
+        if (target.includes("fullCalendarBookings")) return json(window.__fixtureBookings);
+        if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
+        if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
+        return json(window.__fixturePayload);
+      };
+    </script>
+    <script src="/src/lib/config.js"></script>
+    <script>
+      // The overlay only offers Luma events on the built-in portal, and the
+      // built-in portal is an https origin. Stand in for it here.
+      OneJobConfig.portal.origin = location.origin;
+    </script>
+    <script src="/src/lib/url.js"></script>
+    <script src="/src/lib/groups.js"></script>
+    <script src="/src/lib/overview.js"></script>
+    <script src="/src/lib/overview-view.js"></script>
+    <script src="/src/content.js"></script>
+  </body>
+</html>
