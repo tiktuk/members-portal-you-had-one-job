@@ -18,7 +18,7 @@ test("every element the popup script looks up exists in the markup", () => {
   for (const id of wanted) assert.ok(ids.has(id), `popup.html has no #${id}`);
 });
 
-test("the popup can register other portals", () => {
-  assert.match(html, /id="portal-form"/);
-  assert.match(html, /<script src="lib\/portal\.js"><\/script>\s*<script src="popup\.js"><\/script>/);
+test("the popup is only the toggles and the pin list", () => {
+  assert.doesNotMatch(html, /portal-form|portal-input/);
+  assert.match(html, /<script src="lib\/config\.js"><\/script>\s*<script src="popup\.js"><\/script>/);
 });

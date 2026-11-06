@@ -1,10 +1,9 @@
 # Members portal, you had one job
 
-A small Safari / Chrome extension that improves Nexudus members portals. It
-ships configured for the MotionLab.Berlin portal
-(<https://members.motionlab.berlin/motionlabberlin>) and runs on any other
-Nexudus space once you add that portal's address in the popup — see
-[Other Nexudus portals](#other-nexudus-portals). See
+A small Safari / Chrome extension that improves the MotionLab.Berlin Nexudus
+members portal (<https://members.motionlab.berlin/motionlabberlin>). Every
+Nexudus space lives on its own domain, so the build is tied to one portal; see
+[Using it on another space](#using-it-on-another-space) to retarget it. See
 [CHANGELOG.md](CHANGELOG.md) for the version history.
 
 It does six things:
@@ -89,7 +88,7 @@ badge:
 
 ![The pinned overview with Luma events](docs/screenshots/overview-events.png)
 
-**The toolbar popup** — connect a portal, then four toggles:
+**The toolbar popup** — four toggles, the pin count and the overview link:
 
 <img src="docs/screenshots/popup.png" alt="The toolbar popup" width="320">
 
@@ -124,30 +123,31 @@ In Xcode run the **Members portal, you had one job (macOS)** scheme once. Then i
 `members.motionlab.berlin`. The iOS project in the same Xcode project works the
 same way if you want it on a phone.
 
-## Other Nexudus portals
+## Using it on another space
 
-The manifest ships a content script for `members.motionlab.berlin` only, because
-every Nexudus space lives on its own domain and a match pattern cannot guess
-them. To use the extension on another space:
+Every Nexudus space lives on its own domain, so the manifest can only name one:
+`members.motionlab.berlin` in `content_scripts.matches`, and
+`https://motionlabberlin.spaces.nexudus.com/*` in `host_permissions` for the
+space's API. The Web Store build stops there, because the permissions that a
+"connect any portal" button needs — `scripting`, an optional `https://*/*` host
+permission and a wildcard `https://*.spaces.nexudus.com/*` — are what the store
+flags as overly broad and reviews slowly.
 
-1. Open the toolbar popup and type the portal address (for example
-   `members.yourspace.com`) into **Members portal**.
-2. Press **Connect** and accept the browser's request for access to that site.
-3. Open the portal, sign in and reload the tab.
+Another space forks this repository and changes four things, then builds its own
+package:
 
-The popup stores the origin in `onejob:portals` and registers the same content
-script for it through `chrome.scripting`, so nothing has to be rebuilt.
-**Remove** drops the registration and the permission again; the background
-worker re-checks both on every browser start.
+| Where | What |
+|-------|------|
+| `src/lib/config.js` | `portal.origin` and `portal.webAddress` |
+| `src/manifest.json` | `content_scripts[0].matches` and the `host_permissions` entry for the API |
+| `src/lib/config.js` | `luma.source`, if the space has a public Luma calendar, and `geo`/`nav` defaults if it wants them |
+| `src/manifest.json` | `web_accessible_resources[0].matches`, to the same portal origin |
 
-Two things stay tied to the built-in portal:
+`npm test` checks that the two manifest values and the config agree, so a
+half-finished retarget fails before the build does.
 
-- **Luma events.** `config.luma.source` is MotionLab.Berlin's Luma calendar, so
-  the *Luma events* toggle is disabled while another space is active. Point
-  `config.luma.source` at your own calendar and rebuild to change that.
-- `web_accessible_resources` matches `https://*/*`, because there is no runtime
-  equivalent of that list and `page.js` has to be loadable from every portal a
-  member connects. The popup's optional host permission is what gates access.
+The earlier implementation that let the popup add portals at runtime is kept on
+the [`runtime-portals`](../../tree/runtime-portals) branch.
 
 ## Configuration
 
@@ -168,7 +168,7 @@ the *Block location prompt* and *Luma events* toggles.
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
 | `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
-| `portal.origin` / `content_scripts.matches` | The built-in portal. Change both (and rebuild) to make another space the default; everyone else adds their own portal from the popup. |
+| `portal.origin` / `content_scripts.matches` | The built-in portal. Change both, plus `portal.webAddress` and the manifest's `host_permissions` entry, to retarget the build (see [Using it on another space](#using-it-on-another-space)). |
 
 The menu is built from the portal's own navigation (which resource types it
 offers) plus `GET /api/public/resources/published/details` for the group and
@@ -292,12 +292,12 @@ open http://localhost:8765/tests/fixture.html
 
 ### Troubleshooting
 
-- **Nothing happens on another space** — that portal is not connected yet. Add
-  its address in the popup (see [Other Nexudus portals](#other-nexudus-portals));
-  the popup's status line shows which portal is active.
+- **Nothing happens on another space** — the build is tied to one portal (see
+  [Using it on another space](#using-it-on-another-space)). The content script
+  only runs on the origin in `content_scripts.matches`.
 - **Menu missing** — sign in to the portal first (the extension needs the
-  session cookie to read group names), then reload. Check the popup's status
-  line; *Refresh groups* forces a re-fetch.
+  session cookie to read group names), then reload. The popup's group line shows
+  what is cached; *Refresh groups* forces a re-fetch.
 - **Still on the list view** — the extension remembers an explicit *List* choice
   for the tab; pick *Calendar* in the portal's *View* dropdown to reset it.
 - **Only one resource is shown** — a pinned resource is active. Use *Show all

@@ -78,9 +78,6 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/lib/luma.js` — Luma public API helpers (source parsing, list/event URLs,
   ProseMirror description flattening); loaded by the background worker and the
   tests, never by the page.
-- `src/lib/portal.js` — which portal origins the extension runs on: origin
-  normalization, the runtime `chrome.scripting` registration and the host
-  permission helpers; loaded by the popup, the background worker and the tests.
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
   `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
@@ -96,44 +93,37 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/overview.html` / `overview.js` — standalone pinned resources page; the
   body is empty and `overview.js` mounts the shared view into it.
 - `src/overview.css` — stylesheet for both variants (page and overlay).
-- `src/popup.*` — toolbar settings UI (portal connect/remove, four toggles,
-  group cache status, link to the pinned overview).
+- `src/popup.*` — toolbar settings UI (four toggles, group cache status, link to
+  the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
   images, with invented members, machines and bookings). Both run from
   `python3 -m http.server 8765`; the screenshots are 1280×800 and live in
   `docs/screenshots/`.
 
-## Other portals (runtime registration)
+## One portal per build
 
-- Nexudus gives every space its own domain, so the manifest can only ship one
-  origin: `config.portal.origin` in `content_scripts.matches`. Any other space is
-  added from the popup, which requests the optional host permission
-  (`https://*/*`), then calls `chrome.scripting.registerContentScripts` with the
-  same file list as the manifest entry. `tests/manifest.test.mjs` asserts that
-  `lib/portal.js::CONTENT_SCRIPT_FILES` and `scriptFor()` stay identical to the
-  manifest's `content_scripts[0]`; update both together.
-- `chrome.permissions.request` only counts inside a user gesture, so
-  `connectPortal` must call it before its first `await` — moving the
-  `normalizeOrigin` call or adding an `await` above it breaks the prompt.
-- `registerPortalScripts` unregisters the id first (`scriptId(origin)` is a djb2
-  hash, so it is stable across reloads) because re-registering an existing id
-  throws.
-- The built-in origin is skipped everywhere: the static content script already
-  covers it and a dynamic registration would inject twice.
-- `web_accessible_resources.matches` is `https://*/*` — there is no runtime
-  equivalent, and `page.js` has to be loadable from every connected portal. The
-  optional host permission, not the WAR list, is what gates access.
+- Nexudus gives every space its own domain, so the manifest can only name one:
+  `config.portal.origin` in `content_scripts.matches`, and
+  `https://<config.portal.webAddress>.spaces.nexudus.com/*` in `host_permissions`
+  for that space's API. `tests/manifest.test.mjs` asserts both, so a retarget
+  that misses one fails the tests.
+- There is deliberately no runtime portal switching. Doing it needed `scripting`,
+  an optional `https://*/*` host permission and a wildcard
+  `https://*.spaces.nexudus.com/*`; the Web Store flags exactly that as overly
+  broad, and a niche extension asking for every site is a review liability. The
+  implementation is preserved on the `runtime-portals` branch — if a second space
+  wants the same build, fork that branch rather than re-deriving it.
+- `web_accessible_resources.matches` is the same portal origin: `page.js` and
+  `overview.html` only have to be loadable from the portal they run in.
 - The mirrored session carries `origin` (`onejob:session`), and
   `overview-view.js::portalOrigin()` uses it for every absolute link. The
   in-portal overlay reads its own `location.origin` instead, which is always the
   portal it is mounted in.
 - Luma is gated to `config.portal.origin`: `config.luma.source` is one space's
-  calendar, so `lumaAvailable()` hides the overview's *Events* pill and disables
-  the popup toggle on other portals. `.button[hidden]` in `overview.css` exists
-  because `.button`'s `display: inline-flex` outranks the UA `[hidden]` rule.
-- Safari's converter may not implement `permissions.request`; everything
-  feature-detects and the popup then says the origin has to be in the manifest.
+  calendar, so `lumaAvailable()` hides the overview's *Events* pill on any other
+  origin. `.button[hidden]` in `overview.css` exists because `.button`'s
+  `display: inline-flex` outranks the UA `[hidden]` rule.
 
 ## Portal facts this relies on
 

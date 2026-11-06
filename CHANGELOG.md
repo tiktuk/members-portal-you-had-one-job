@@ -9,6 +9,20 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-06
+
+### Removed
+
+- Support for adding other Nexudus portals from the popup. It needed the
+  `scripting` permission, the optional `https://*/*` host permission and a
+  wildcard `https://*.spaces.nexudus.com/*`, which is what the Web Store flags
+  as overly broad and what slows a review down. The extension now asks for
+  `storage` alone and for two hosts: the MotionLab.Berlin portal's API and
+  Luma's public event API. The implementation is kept on the `runtime-portals`
+  branch; another space forks it and changes `config.portal.origin`,
+  `config.portal.webAddress`, the manifest's `content_scripts.matches` and its
+  `host_permissions` entry.
+
 ## [1.0.1] - 2026-11-06
 
 First release published to the Chrome Web Store.

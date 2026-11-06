@@ -2,15 +2,14 @@
   "manifest_version": 3,
   "name": "Members portal, you had one job",
   "short_name": "One job",
-  "version": "1.0.1",
-  "description": "Adds resource filters and pinned single-resource calendars to Nexudus members portals, so booking a machine takes one click.",
+  "version": "1.0.2",
+  "description": "Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin portal, so booking a machine takes one click.",
   "minimum_chrome_version": "111",
-  "permissions": ["storage", "scripting"],
+  "permissions": ["storage"],
   "host_permissions": [
-    "https://*.spaces.nexudus.com/*",
+    "https://motionlabberlin.spaces.nexudus.com/*",
     "https://api.luma.com/*"
   ],
-  "optional_host_permissions": ["https://*/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -48,7 +47,7 @@
   "web_accessible_resources": [
     {
       "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css"],
-      "matches": ["https://*/*"]
+      "matches": ["https://members.motionlab.berlin/*"]
     }
   ]
 }

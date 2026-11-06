@@ -16,8 +16,8 @@ already signed in with, and keeps your settings on your device.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned, the four toggles in
-  the toolbar popup, and the portal addresses you connected.
+- **Your pins and settings.** Which resources you pinned and the four toggles in
+  the toolbar popup.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Filters menu, and booking records to
   fill the overview cards. Booking records include the name of the member who
@@ -31,8 +31,8 @@ already signed in with, and keeps your settings on your device.
 
 - It does not read your location. It suppresses the portal's own location
   prompt, which you can turn back on in the popup.
-- It does not read your browsing history, and it does not run on sites other
-  than the members portals you connected.
+- It does not read your browsing history, and it runs on no site other than the
+  MotionLab.Berlin members portal and that space's own booking API.
 - It does not use cookies, analytics, telemetry, advertising or tracking of any
   kind.
 - It does not create an account, and it does not send anything to the
@@ -42,7 +42,7 @@ already signed in with, and keeps your settings on your device.
 
 Everything stays on your device, in the extension's own local storage:
 
-- Pins, settings and the list of connected portals.
+- Pins and settings.
 - A cached copy of the resource groups, so the Filters menu opens instantly.
 - The portal session, so the overview page works without reopening the portal.
 
@@ -74,8 +74,6 @@ anyone else.
 
 - Unpin a resource from the menu or from its card in the overview.
 - Turn any of the four features off in the toolbar popup.
-- Remove a connected portal in the popup, which also gives back the site access
-  you granted for it.
 - Uninstall the extension to delete everything it stored.
 
 ## Changes to this policy
