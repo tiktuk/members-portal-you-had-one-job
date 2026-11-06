@@ -2,3 +2,5 @@ dist/
 node_modules/
 .DS_Store
 .playwright-mcp/
+# Reviewer test credentials for a store submission; the repo is public.
+CHROMEWEBSTORE.local.md

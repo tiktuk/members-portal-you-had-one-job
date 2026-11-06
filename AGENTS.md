@@ -33,6 +33,36 @@ directory argument as a module path instead of discovering tests in it.
   matching changelog section as the body. That zip is the *load unpacked*
   channel; the Web Store (public or unlisted) stays the only auto-updating one
   for Windows and macOS.
+- Upload the release asset to the Web Store, not a local `dist/*.zip` (that is
+  gitignored and rebuilt on every `npm run build`). The dashboard has no
+  version control of its own: a submission must be a version above the
+  published one, so the tag has to exist before the upload.
+
+## Chrome Web Store
+
+`CHROMEWEBSTORE.md` is the source of truth for the store presence: listing copy,
+single purpose, screenshots, per-permission justifications, the data use
+disclosure, the reviewer notes and the version history. Update it in the same
+commit as any change it describes:
+
+- manifest `name` / `description` → the listing copy (description ≤ 132 chars,
+  and it must match the store short description);
+- `permissions`, `host_permissions` or `optional_host_permissions` → the
+  justification table, one specific reason per entry;
+- data handling (new storage key, new endpoint, new stored field) → the privacy
+  table *and* `docs/privacy.md`, which is the page the policy URL points at;
+- new version → a row in the version history.
+
+`docs/privacy.md` is published by GitHub Pages from `docs/`; the URL in
+`CHROMEWEBSTORE.md` must load before a submission, since a 404 there is an
+automatic rejection. The extension itself stays out of the zip — `scripts/build.sh`
+copies `src/` only, so store docs and screenshots never ship.
+
+`CHROMEWEBSTORE.md` is committed (it is the record of what was submitted and
+why), but the repo is public: never write the reviewer test account's password
+into it or into any other tracked file. Credentials are typed into the
+dashboard's notes field and, if they need to live on disk, into
+`CHROMEWEBSTORE.local.md`, which is gitignored.
 
 ## Layout
 

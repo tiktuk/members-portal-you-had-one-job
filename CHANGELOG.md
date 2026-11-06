@@ -9,6 +9,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-06
+
+First release published to the Chrome Web Store.
+
 ### Fixed
 
 - The expand chevron on workshop and Luma rows no longer wraps onto a line of

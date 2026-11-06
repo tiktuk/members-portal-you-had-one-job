@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Members portal, you had one job",
   "short_name": "One job",
-  "version": "1.0.0",
-  "description": "Adds resource filters and pinnable single-resource calendars to Nexudus members portals, and opens bookings in the calendar view by default.",
+  "version": "1.0.1",
+  "description": "Adds resource filters and pinned single-resource calendars to Nexudus members portals, so booking a machine takes one click.",
   "minimum_chrome_version": "111",
   "permissions": ["storage", "scripting"],
   "host_permissions": [
