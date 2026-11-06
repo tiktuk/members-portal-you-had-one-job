@@ -169,9 +169,9 @@ calendar.
 https://tiktuk.github.io/members-portal-you-had-one-job/privacy.html
 ```
 
-<!-- Source: docs/privacy.md. GitHub Pages is not enabled yet — Settings → Pages
-     → Deploy from a branch → main / docs. Verify the URL loads before submitting;
-     a 404 is an automatic rejection. -->
+<!-- Source: docs/privacy.md. Served by GitHub Pages from main /docs; verified
+     live on 2026-11-06. The page is Jekyll-rendered, so the URL ends in
+     .html even though the source is .md. -->
 
 ## Distribution
 
@@ -295,9 +295,12 @@ each Nexudus space lives on its own domain, so the manifest cannot list them.
       screenshots, README, CHANGELOG or this file (24 files, ~55 KB)
 - [x] No remote code, no `eval`, no obfuscation; every file is in the package
 - [x] Every permission and host permission justified above
-- [ ] Privacy policy published and the URL loads
+- [x] Privacy policy published and the URL loads
 - [ ] Reviewer test account appended to the dashboard's notes field (never
       written in this file — the repo is public)
 - [ ] Screenshots 1–3 uploaded in the order listed
 - [ ] Data use disclosure in the dashboard matches the table above
 - [ ] ZIP uploaded from the `v1.0.1` GitHub release (not a local `dist/` build)
+
+<!-- Release asset: https://github.com/tiktuk/members-portal-you-had-one-job/releases/download/v1.0.1/members-portal-you-had-one-job.zip
+     sha256 f947526764a4350cc6b8507700fdf25c874dc9d3f82faa5d50f5ef6ca802e0fa (55,530 bytes) -->
