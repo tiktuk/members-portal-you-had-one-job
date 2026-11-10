@@ -19,8 +19,6 @@
   const MENU_ID = "onejob-menu";
   const DOCK_ID = "onejob-dock-button";
   const SHEET_ID = "onejob-sheet";
-  const PINNED_BANNER_ID = "onejob-pinned-banner";
-  const PINNED_BANNER_WRAP_ID = "onejob-pinned-banner-wrap";
   const PINS_BAR_ID = "onejob-pins-bar";
   const PINS_BAR_WRAP_ID = "onejob-pins-bar-wrap";
   const DEFAULT_SETTINGS = {
@@ -171,7 +169,6 @@
   }
 
   function ensureNav() {
-    ensurePinnedBanner();
     ensurePinsBar();
 
     if (state.settings.navMenu === false || !cfg.nav.enabled) {
@@ -725,11 +722,13 @@
   /**
    * The pins strip: one chip per pinned resource, at the top of the page below
    * the portal's navigation. It is always there, so a pinned resource is one
-   * click away without opening the menu.
+   * click away without opening the menu. When a pin is the only resource on
+   * screen, the strip also carries the way back to its group's calendar.
    */
   function ensurePinsBar() {
     const pins = state.pins.filter((pin) => pin && pin.id);
-    if (!pins.length) {
+    const pinnedId = currentPinnedId();
+    if (!pins.length && !pinnedId) {
       document.getElementById(PINS_BAR_WRAP_ID)?.remove();
       return;
     }
@@ -750,13 +749,8 @@
       bar.setAttribute("aria-label", "Pinned resources");
       wrap.appendChild(bar);
     }
-    // Match the width of the portal's content container, and stay above the
-    // single-resource banner whichever of the two was injected first.
-    if (!main.contains(wrap)) {
-      const banner = document.getElementById(PINNED_BANNER_WRAP_ID);
-      if (banner?.parentElement === main) main.insertBefore(wrap, banner);
-      else main.prepend(wrap);
-    }
+    // Match the width of the portal's content container.
+    if (!main.contains(wrap)) main.prepend(wrap);
 
     const key = pinsBarKey(pins);
     if (bar.dataset.key === key) return;
@@ -822,7 +816,29 @@
 
       nodes.push(chip);
     }
+
+    if (pinnedId) nodes.push(showAllLink());
     return nodes;
+  }
+
+  /**
+   * The way out of the single-resource view, at the end of the strip.
+   */
+  function showAllLink() {
+    const info = U.parseBookingPath(location.pathname);
+    const session = readPinnedSession();
+    const resource = session?.id ? findResource(session.id) : null;
+    const type = info?.type || session?.type || resource?.type || "all";
+    const group = pinnedGroup(session);
+
+    const link = document.createElement("a");
+    link.className = "onejob-pins-show-all";
+    link.href = showAllHref();
+    link.textContent = group
+      ? `Show all ${G.displayGroupName(group, cfg.nav.stripGroupPrefix)}`
+      : `Show all ${G.typeLabel(type).toLowerCase()}`;
+    link.addEventListener("click", () => clearPinnedResource());
+    return link;
   }
 
   function resourcesForGroup(slug, groupName) {
@@ -929,7 +945,7 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Pinned resource (per-tab marker + banner)
+   * Pinned resource (per-tab marker + the strip's Show all link)
    * ------------------------------------------------------------------ */
 
   function readPinnedSession() {
@@ -990,70 +1006,6 @@
     const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
     const { start, end } = U.currentRange(location.search);
     return U.bookingHref({ webAddress, type, view, group: pinnedGroup(pin), start, end });
-  }
-
-  function ensurePinnedBanner() {
-    const existing = document.getElementById(PINNED_BANNER_ID);
-    const info = U.parseBookingPath(location.pathname);
-    const pinnedId = currentPinnedId();
-    if (!info || !pinnedId) {
-      document.getElementById(PINNED_BANNER_WRAP_ID)?.remove();
-      existing?.remove();
-      return;
-    }
-
-    const main = document.querySelector("main");
-    if (!main) return;
-
-    let banner = existing;
-    let wrap = document.getElementById(PINNED_BANNER_WRAP_ID);
-    if (!banner) {
-      banner = document.createElement("div");
-      banner.id = PINNED_BANNER_ID;
-      banner.className = "onejob-pinned-banner";
-      banner.innerHTML =
-        '<span class="onejob-pinned-badge">Pinned</span>' +
-        '<span class="onejob-pinned-text">Showing only <strong class="onejob-pinned-name"></strong></span>' +
-        '<a class="onejob-pinned-show-all" href="#"></a>';
-      if (!wrap) {
-        wrap = document.createElement("div");
-        wrap.id = PINNED_BANNER_WRAP_ID;
-        wrap.className = "container";
-      }
-      wrap.appendChild(banner);
-    } else if (!wrap) {
-      // Upgrading from a banner that was prepended straight to <main>.
-      wrap = document.createElement("div");
-      wrap.id = PINNED_BANNER_WRAP_ID;
-      wrap.className = "container";
-      banner.parentElement?.insertBefore(wrap, banner);
-      wrap.appendChild(banner);
-    }
-    // Match the width of the portal's calendar container, and sit below the
-    // pins strip whichever of the two was injected first.
-    if (wrap && !main.contains(wrap)) {
-      const bar = document.getElementById(PINS_BAR_WRAP_ID);
-      if (bar?.parentElement === main) bar.after(wrap);
-      else main.prepend(wrap);
-    }
-
-    const session = readPinnedSession();
-    const resource = findResource(pinnedId);
-    const name = session?.name || resource?.name || `Resource ${pinnedId}`;
-    const type = info.type || session?.type || resource?.type || "all";
-    const group = pinnedGroup(session);
-    const href = showAllHref();
-    const label = group
-      ? `Show all ${G.displayGroupName(group, cfg.nav.stripGroupPrefix)}`
-      : `Show all ${G.typeLabel(type).toLowerCase()}`;
-
-    const nameElement = banner.querySelector(".onejob-pinned-name");
-    if (nameElement.textContent !== name) nameElement.textContent = name;
-
-    const link = banner.querySelector(".onejob-pinned-show-all");
-    if (link.getAttribute("href") !== href) link.href = href;
-    if (link.textContent !== label) link.textContent = label;
-    link.onclick = () => clearPinnedResource();
   }
 
   /* ------------------------------------------------------------------ *

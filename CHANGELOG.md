@@ -22,6 +22,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   empty state now read it from there too instead of repeating it in prose.
 - The Resources menu no longer repeats the pinned resources; the strip above it
   is the only place they appear.
+- The *Pinned — Showing only …* banner is gone. Its *Show all* link now sits at
+  the end of the strip while a single resource is shown, so the pin state is one
+  row instead of two.
 
 ## [1.0.2] - 2026-11-06
 

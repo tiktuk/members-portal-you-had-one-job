@@ -33,7 +33,7 @@ FEATURES
 
 • Resources menu — a "Resources" item next to Bookings lists every bookable resource type and its groups, so you jump straight to "Machines › CNC Machining" instead of Bookings → Machines → Filters → Group → Close. On narrow windows, where the portal replaces its top navigation with a bottom bar, the same list opens as a sheet.
 
-• Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type. A banner above the calendar links back to that resource's group.
+• Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from the "Overview" button at the top of the Resources menu, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
@@ -251,7 +251,7 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
 2. Press the pin icon next to any resource. It appears in the strip at the top
    of the page, below the navigation.
 3. Click the pinned resource in that strip: the calendar shows only that
-   resource, with a "Pinned" banner above it.
+   resource, and the strip ends with "Show all" for its group.
 4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.

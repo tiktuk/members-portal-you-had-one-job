@@ -21,9 +21,9 @@ It does six things:
    visible without opening the menu; the menu itself no longer repeats them.
    Clicking a chip opens the calendar with **only that resource**, so there is no
    horizontal scrolling through every machine of the type, and the pin icon on
-   the chip unpins it. A *Pinned* banner above the calendar links back to that
-   resource's group, so *Show all CNC Machining* keeps the category in view
-   instead of jumping to the first resource of the whole type.
+   the chip unpins it. While one resource is shown alone, the strip ends with
+   *Show all CNC Machining*, which keeps the category in view instead of jumping
+   to the first resource of the whole type.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -305,7 +305,8 @@ open http://localhost:8765/tests/fixture.html
 - **Still on the list view** — the extension remembers an explicit *List* choice
   for the tab; pick *Calendar* in the portal's *View* dropdown to reset it.
 - **Only one resource is shown** — a pinned resource is active. Use *Show all
-  …* in the banner above the calendar, or unpin it in the **Resources** menu.
+  …* in the pinned strip at the top of the page, or unpin it in the **Resources**
+  menu.
 - **Overview says “Connect to the members portal”** — the extension has no
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session

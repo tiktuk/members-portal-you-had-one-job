@@ -83,7 +83,7 @@ dashboard's notes field and, if they need to live on disk, into
   standalone page and the in-portal overlay.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins (the strip and the menu's pin
-  buttons), pinned banner, settings, and the overview overlay.
+  buttons), the pins strip, settings, and the overview overlay.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
@@ -208,21 +208,19 @@ dashboard's notes field and, if they need to live on disk, into
   (`performance.getEntriesByType("navigation")`); a fresh navigation to a plain
   calendar URL clears it. SPA date changes keep it. The Previous/Next handler
   re-adds `onejob-resource` to its `pushState` URL for the same reason.
-- The pinned banner's *Show all* link and the unpin navigation keep the
-  resource's group (`pinnedGroup()` in `content.js`), so the calendar returns to
-  the same category instead of the first resource of the whole type. The group
-  comes from the session pin, then the cached resource list, then the URL.
-- The banner is wrapped in a `.container` div (`onejob-pinned-banner-wrap`) so
-  it lines up with the portal's calendar container instead of spanning the full
-  `<main>`. `ensurePinnedBanner` wraps a banner left over from an older version.
+- The strip's *Show all* link and the unpin navigation keep the resource's group
+  (`pinnedGroup()` in `content.js`), so the calendar returns to the same category
+  instead of the first resource of the whole type. The group comes from the
+  session pin, then the cached resource list, then the URL.
 - Pins are shown in a strip at the top of `<main>`, not in the menu:
   `ensurePinsBar()` builds `onejob-pins-bar` inside a `.container` wrapper
-  (`onejob-pins-bar-wrap`) on every portal page, above the single-resource
-  banner — each of the two inserts itself relative to the other so their order
-  does not depend on which was injected first. Each chip links to the
-  single-resource calendar and carries its own unpin button. The strip is
-  rebuilt only when `pinsBarKey()` changes: the `MutationObserver` schedules an
-  ensure pass for every DOM mutation, so rebuilding unconditionally would loop.
+  (`onejob-pins-bar-wrap`) on every portal page. Each chip links to the
+  single-resource calendar and carries its own unpin button. While a pin is the
+  only resource on screen the strip also ends with the *Show all …* link, which
+  replaced the separate banner that used to sit above the calendar — one row of
+  pin state instead of two saying the same thing. The strip is rebuilt only when
+  `pinsBarKey()` changes: the `MutationObserver` schedules an ensure pass for
+  every DOM mutation, so rebuilding unconditionally would loop.
 - The menu exposes individual resources through the group chevron; the pin
   button is hover/focus-visible on desktop and always visible on touch.
 - The calendar's Previous/Next buttons are horizontal scrollers for
