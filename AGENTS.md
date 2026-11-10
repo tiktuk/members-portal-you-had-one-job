@@ -140,6 +140,17 @@ dashboard's notes field and, if they need to live on disk, into
   dark mode) before looking.
 - Routes: `/<webAddress>/bookings/<type>/<view>`, views
   `list|calendar|floorplan|map`, type slugs like `machines`, `labs`.
+- The bookings calendar is FullCalendar, and the portal fixes the view durations
+  in `BookingCalendar-*.js`: `day: resourceTimeGrid/1`, `week:
+  resourceTimeGrid/7`, `month: dayGridMonth`, `list: listDay/1`, with
+  `dayMinWidth: 150` for the week. The URL's `start`/`end` only decide which
+  bookings are fetched, so **the number of day columns cannot be changed from
+  the URL** — widening the range gives one week of columns and no second week.
+  Two weeks would need the live instance (reachable from the `.fc` element's
+  React fiber), a mutation of the cached view spec's `duration` plus a
+  `changeView` round-trip — verified working on 6.1.15, but unsupported, and the
+  header is printed from `start + 6 days`, so it would still name one week. Not
+  done: the week stays 7 days and the ◀ ▶ buttons jump a week instead.
 - Filters are query params: `group=<exact GroupName>`, `type=<id>`,
   `Allocation`, `customFields`. Both the list and the calendar filter by them.
   There is no per-resource query param; the extension adds
