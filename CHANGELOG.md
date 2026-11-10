@@ -9,6 +9,12 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Changed
+
+- The injected menu is called **Resources** instead of **Filters**. The label
+  still comes from `config.nav.label`, and the popup rows and the overview's
+  empty state now read it from there too instead of repeating it in prose.
+
 ## [1.0.2] - 2026-11-06
 
 ### Removed

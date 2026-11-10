@@ -12,6 +12,8 @@
 
   const calendarToggle = document.getElementById("calendar-default");
   const navToggle = document.getElementById("nav-menu");
+  const navRowTitle = document.getElementById("nav-row-title");
+  const navRowHint = document.getElementById("nav-row-hint");
   const lumaToggle = document.getElementById("luma-events");
   const geoToggle = document.getElementById("geo-block");
   const refreshButton = document.getElementById("refresh");
@@ -23,6 +25,8 @@
 
   async function init() {
     const settings = { ...DEFAULTS, ...((await get(cfg.storageKeys.settings)) || {}) };
+    navRowTitle.textContent = `${cfg.nav.label} in the main menu`;
+    navRowHint.textContent = `Adds a “${cfg.nav.label}” menu with every resource group. Pin resources to keep them at the top.`;
     calendarToggle.checked = settings.calendarDefault !== false;
     navToggle.checked = settings.navMenu !== false;
     lumaToggle.checked = settings.lumaEvents !== false;
@@ -89,7 +93,7 @@
   function renderPins(pins) {
     const count = Array.isArray(pins) ? pins.filter((pin) => pin && pin.id).length : 0;
     if (!count) {
-      pinsStatus.textContent = "No pinned resources yet — pin one in the portal’s Filters menu.";
+      pinsStatus.textContent = `No pinned resources yet — pin one in the portal’s ${cfg.nav.label} menu.`;
       overviewLink.classList.add("is-disabled");
       overviewLink.setAttribute("aria-disabled", "true");
       overviewLink.removeAttribute("href");

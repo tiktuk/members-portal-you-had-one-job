@@ -81,7 +81,7 @@
     nav: {
       enabled: true,
       /** Label of the injected top-level menu item. */
-      label: "Filters",
+      label: "Resources",
       /** Turn "Machines: 3D printing" into "3D printing" in the menu. */
       stripGroupPrefix: true,
       /** Hide types that have no resource groups. */

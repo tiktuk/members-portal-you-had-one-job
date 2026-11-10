@@ -2,7 +2,7 @@
 
 /**
  * The pinned resources overview, shared by the standalone page (overview.html)
- * and the in-portal overlay opened from the Filters menu. Both mount the same
+ * and the in-portal overlay opened from the Resources menu. Both mount the same
  * markup and stylesheet; only the surrounding shell differs.
  */
 (() => {
@@ -169,7 +169,7 @@
       const footer = el("footer", "footer");
       footer.append(
         "Pins are managed from the ",
-        el("strong", null, "Filters"),
+        el("strong", null, cfg.nav.label),
         " menu in the members portal.",
       );
       fragment.appendChild(footer);
@@ -682,7 +682,7 @@
         el(
           "p",
           null,
-          "Open the members portal, expand a group in the Filters menu and press the pin icon next to a resource.",
+          `Open the members portal, expand a group in the ${cfg.nav.label} menu and press the pin icon next to a resource.`,
         ),
       );
       ui.cards.appendChild(empty);

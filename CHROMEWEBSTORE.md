@@ -31,11 +31,11 @@ Adds resource filters and pinned single-resource calendars to the MotionLab.Berl
 
 FEATURES
 
-• Filters menu — a "Filters" item next to Bookings lists every bookable resource type and its groups, so you jump straight to "Machines › CNC Machining" instead of Bookings → Machines → Filters → Group → Close. On narrow windows, where the portal replaces its top navigation with a bottom bar, the same list opens as a sheet.
+• Resources menu — a "Resources" item next to Bookings lists every bookable resource type and its groups, so you jump straight to "Machines › CNC Machining" instead of Bookings → Machines → Filters → Group → Close. On narrow windows, where the portal replaces its top navigation with a bottom bar, the same list opens as a sheet.
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to the top of the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type. A banner above the calendar links back to that resource's group.
 
-• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from the "Overview" button at the top of the Filters menu, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
+• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from the "Overview" button at the top of the Resources menu, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
@@ -48,9 +48,9 @@ FEATURES
 HOW TO USE
 
 1. Install the extension and open your members portal, signed in as usual.
-2. Click "Filters" in the portal navigation. Every resource type and group is listed there.
+2. Click "Resources" in the portal navigation. Every resource type and group is listed there.
 3. Press the pin icon next to a resource you book often.
-4. Press Alt+O, or the "Overview" button at the top of the Filters menu, to see all pinned resources and your own bookings.
+4. Press Alt+O, or the "Overview" button at the top of the Resources menu, to see all pinned resources and your own bookings.
 5. The toolbar icon opens the same overview as a full page, lists your pins, and holds the four toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
@@ -61,7 +61,7 @@ Nothing is sent to us. The extension has no servers, no analytics and no account
 
 PERMISSIONS
 
-• Read and change your data on the MotionLab.Berlin members portal and its booking API — needed to add the Filters menu, open the calendar view by default, and show bookings in the overview. The extension runs on no other site.
+• Read and change your data on the MotionLab.Berlin members portal and its booking API — needed to add the Resources menu, open the calendar view by default, and show bookings in the overview. The extension runs on no other site.
 • Read your data on api.luma.com — needed to show the space's upcoming public events. Only public event data is read.
 
 SUPPORT
@@ -104,7 +104,7 @@ English
 
 <!-- Status options: ⬜ Not created | 🟡 Needs update | ✅ Ready -->
 
-`docs/screenshots/popup.png` is 640×1360 and is README-only — the store rejects it.
+`docs/screenshots/popup.png` is 640×1181 and is README-only — the store rejects it.
 
 ### Screenshot Notes
 
@@ -112,7 +112,7 @@ All three are 1280×800 captures of `tests/screenshots.html`, which mirrors the
 portal with an invented space, invented members and invented bookings, so no
 member data appears in a public listing. Order them:
 
-1. `filters-menu.png` — the Filters menu open over the portal, showing types,
+1. `filters-menu.png` — the Resources menu open over the portal, showing types,
    groups and the Overview pill. This is the feature that sells the extension.
 2. `overview.png` — the pinned overview with My bookings and resource cards.
 3. `overview-events.png` — the same view with the space's events merged in.
@@ -127,11 +127,11 @@ rejection reason.
      and it renders plain text: a markdown table pastes as pipes, a fenced block
      as backticks. Paste the block below verbatim. -->
 
-**Permissions justification** — 672 of 1,000 characters
+**Permissions justification** — 674 of 1,000 characters
 
 ```
 storage: keeps pins, the four popup toggles, a cached resource list and the portal session on their device. Local only; nothing synced or sent.
-https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Filters menu and the overview cards. JSON only, no HTML.
+https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu and the overview cards. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
 web_accessible_resources https://members.motionlab.berlin/*: the page script and overview page must load into that portal page.
@@ -159,7 +159,7 @@ calendar.
 | Location | No | No | The extension never reads the location. It suppresses the portal's own location prompt; the toggle in the popup restores it. | No |
 | Web history | No | No | No history API is used. The extension runs on one portal and reads nothing else. | No |
 | User activity | Yes | To the member's own portal only | The member's own bookings are read to fill the My bookings card. Not stored, not transmitted anywhere else. | No |
-| Website content | Yes | No | The portal's own navigation labels and URL are read to build the Filters menu and keep the calendar view. Stays on the device. | No |
+| Website content | Yes | No | The portal's own navigation labels and URL are read to build the Resources menu and keep the calendar view. Stays on the device. | No |
 
 ### Data Use Certification
 
@@ -246,7 +246,7 @@ credentials are at the end of this field.
 
 After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings/machines/calendar
 
-1. Click "Filters" in the top navigation (or the Filters button in the bottom
+1. Click "Resources" in the top navigation (or the Resources button in the bottom
    bar on a narrow window). The menu lists every resource type and group.
 2. Press the pin icon next to any resource. It moves to the top of the menu.
 3. Click the pinned resource: the calendar shows only that resource, with a
@@ -254,7 +254,7 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
 4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
-5. The toolbar popup has four toggles: calendar as default view, the Filters
+5. The toolbar popup has four toggles: calendar as default view, the Resources
    menu, Luma events and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in

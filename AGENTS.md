@@ -217,7 +217,7 @@ dashboard's notes field and, if they need to live on disk, into
 ## Pinned resources overview
 
 - `overview.html` is a standalone extension page (opened from the popup's
-  **Overview →** link). The **Overview →** pill at the top of the Filters menu
+  **Overview →** link). The **Overview →** pill at the top of the Resources menu
   opens the same view as an overlay inside the portal instead; the pill is
   rendered even with no pins because the overview still lists the member's own
   bookings. Both render one card per pin, mirroring the Django web app's

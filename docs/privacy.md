@@ -19,12 +19,12 @@ already signed in with, and keeps your settings on your device.
 - **Your pins and settings.** Which resources you pinned and the four toggles in
   the toolbar popup.
 - **Resource groups and bookings.** The extension reads the portal's resource
-  list (type, group and name) to build the Filters menu, and booking records to
+  list (type, group and name) to build the Resources menu, and booking records to
   fill the overview cards. Booking records include the name of the member who
   booked a shared resource, which the portal already shows you on its own
   calendar.
 - **Your portal page.** The extension reads the portal's own navigation labels
-  and address to build the Filters menu and to keep the calendar view when you
+  and address to build the Resources menu and to keep the calendar view when you
   navigate.
 
 ## What the extension does not do
@@ -43,7 +43,7 @@ already signed in with, and keeps your settings on your device.
 Everything stays on your device, in the extension's own local storage:
 
 - Pins and settings.
-- A cached copy of the resource groups, so the Filters menu opens instantly.
+- A cached copy of the resource groups, so the Resources menu opens instantly.
 - The portal session, so the overview page works without reopening the portal.
 
 None of it is synced to your browser account or to any server. Removing the

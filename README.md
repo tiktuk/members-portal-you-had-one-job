@@ -8,14 +8,14 @@ Nexudus space lives on its own domain, so the build is tied to one portal; see
 
 It does six things:
 
-1. **Resource filters in the main menu.** A new **Filters** item next to
+1. **Resource filters in the main menu.** A new **Resources** item next to
    *Bookings* lists every bookable resource type and its resource groups
    (Machines › CNC Machining, Labs › Outdoor Lab, …). One click jumps straight
    to that group instead of *Bookings → Machines → Filters → Group → Close*.
    Below 1200 px the portal swaps the top navigation for its bottom dock, so the
-   extension adds a **Filters** button there that opens the same list as a
+   extension adds a **Resources** button there that opens the same list as a
    bottom sheet.
-2. **Pinnable resources.** Expand a group in the **Filters** menu and press the
+2. **Pinnable resources.** Expand a group in the **Resources** menu and press the
    pin icon next to a resource (for example *OLSK Large CNC*). Pinned resources
    appear at the top of the menu; clicking one opens the calendar with **only
    that resource**, so there is no horizontal scrolling through every machine of
@@ -29,7 +29,7 @@ It does six things:
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
    appear with a *Reserved* badge and can be expanded for details. Open it from
-   the **Overview →** button at the top of the Filters menu, which shows it in
+   the **Overview →** button at the top of the Resources menu, which shows it in
    an overlay inside the portal (Esc, the × button or a click on the backdrop
    closes it), with **Alt+O** anywhere on the portal page; the toolbar popup
    opens the same overview as a standalone page in a new tab. Each card's title
@@ -54,7 +54,7 @@ itself. The overview page uses the portal session the content script mirrors
 into extension storage, so open the portal once while signed in.
 
 ```
-Bookings ▾   Filters ▾   Store ▾   Memberships   Community
+Bookings ▾   Resources ▾   Store ▾   Memberships   Community
               ┌──────────────────────────────────────────────┐
               │ [ Overview → ]                               │
               │ PINNED                                       │
@@ -74,9 +74,9 @@ Shot on an invented space: the member, machine and booking names are made up.
 `tests/screenshots.html` renders the same pages with stubbed extension APIs, so
 the images can be regenerated without signing in.
 
-**The Filters menu** — every resource group, one click from the calendar:
+**The Resources menu** — every resource group, one click from the calendar:
 
-![The Filters menu in the portal navigation](docs/screenshots/filters-menu.png)
+![The Resources menu in the portal navigation](docs/screenshots/filters-menu.png)
 
 **The pinned resources overview** — your own bookings, then one card per pinned
 resource:
@@ -157,7 +157,7 @@ the *Block location prompt* and *Luma events* toggles.
 
 | Key | Meaning |
 | --- | --- |
-| `nav.label` | Text of the injected menu item (default `Filters`). |
+| `nav.label` | Text of the injected menu item (default `Resources`). |
 | `nav.stripGroupPrefix` | Show `3D printing` instead of `Machines: 3D printing`. |
 | `nav.hideEmptyTypes` | Hide resource types that have no groups. |
 | `defaultView` | View used by the injected links (`calendar`). |
@@ -301,7 +301,7 @@ open http://localhost:8765/tests/fixture.html
 - **Still on the list view** — the extension remembers an explicit *List* choice
   for the tab; pick *Calendar* in the portal's *View* dropdown to reset it.
 - **Only one resource is shown** — a pinned resource is active. Use *Show all
-  …* in the banner above the calendar, or unpin it in the **Filters** menu.
+  …* in the banner above the calendar, or unpin it in the **Resources** menu.
 - **Overview says “Connect to the members portal”** — the extension has no
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session

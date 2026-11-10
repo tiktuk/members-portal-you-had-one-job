@@ -4,7 +4,7 @@
  * Responsibilities:
  *  1. Rewrite a bookings "list" URL to "calendar" before the SPA boots.
  *  2. Inject page.js into the page world to cover client-side navigation.
- *  3. Add a "Filters" menu to the portal's main navigation that links straight
+ *  3. Add a "Resources" menu to the portal's main navigation that links straight
  *     to each resource type / resource group in the calendar view.
  */
 (() => {
