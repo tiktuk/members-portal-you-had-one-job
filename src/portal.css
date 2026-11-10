@@ -69,15 +69,15 @@
   gap: 0.15rem;
   max-width: 100%;
   padding: 0 0.3rem 0 0.65rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--bs-border-color, #dee2e6);
   border-radius: 999px;
-  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.1));
+  background: var(--bs-body-bg, #fff);
 }
 
 .onejob-pin-chip-link {
   min-width: 0;
   padding: 0.2rem 0;
-  color: var(--bs-primary, #0d6efd);
+  color: var(--bs-body-color, #212529);
   font-size: 0.85rem;
   font-weight: 600;
   line-height: 1.2;
@@ -93,20 +93,24 @@
   text-decoration: underline;
 }
 
+/* The active chip keeps the portal's own accent: a tint, not a solid fill. */
 .onejob-pin-chip.is-active {
-  border-color: var(--bs-primary, #0d6efd);
-  background: var(--bs-primary, #0d6efd);
+  border-color: var(--bs-primary-border-subtle, rgba(13, 110, 253, 0.35));
+  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
 }
 
-.onejob-pin-chip.is-active .onejob-pin-chip-link,
-.onejob-pin-chip.is-active .onejob-pin-button {
-  color: #fff;
+.onejob-pin-chip.is-active .onejob-pin-chip-link {
+  color: var(--bs-primary, #0d6efd);
+}
+
+.onejob-pin-chip .onejob-pin-button.is-pinned {
+  color: var(--bs-secondary-color, #6c757d);
 }
 
 .onejob-pin-chip .onejob-pin-button:hover,
 .onejob-pin-chip .onejob-pin-button:focus-visible {
-  background: rgba(0, 0, 0, 0.12);
-  color: inherit;
+  background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
+  color: var(--bs-body-color, #212529);
 }
 
 .onejob-overview-row {

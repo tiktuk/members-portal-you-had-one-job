@@ -127,6 +127,17 @@ dashboard's notes field and, if they need to live on disk, into
 
 ## Portal facts this relies on
 
+- The portal is Bootstrap 5.3 with `data-bs-theme` switching (dark `--bs-body-bg`
+  is `#212529`) and overrides the palette to the brand orange: `--bs-primary`
+  is `#ff5b13` in both themes, with matching `--bs-primary-bg-subtle`
+  (`#ffdecf` light, `#331207` dark) and `--bs-primary-border-subtle`
+  (`#ffbd9f` / `#993608`). Injected CSS therefore takes every colour from
+  `--bs-*` (with a fallback) and never hardcodes `#0d6efd`: Bootstrap's stock
+  blue is not in the portal's palette, and a solid fill with white text is the
+  one treatment nothing else on the page uses. `tests/screenshots.html` loads
+  the stock Bootstrap theme, so it shows blue — to judge colours against the
+  real portal, set those variables on `<html>` (and `data-bs-theme="dark"` for
+  dark mode) before looking.
 - Routes: `/<webAddress>/bookings/<type>/<view>`, views
   `list|calendar|floorplan|map`, type slugs like `machines`, `labs`.
 - Filters are query params: `group=<exact GroupName>`, `type=<id>`,
