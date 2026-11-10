@@ -35,7 +35,7 @@ FEATURES
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
-• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from the "Overview" button at the top of the Resources menu, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
+• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
@@ -50,7 +50,7 @@ HOW TO USE
 1. Install the extension and open your members portal, signed in as usual.
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
-4. Press Alt+O, or the "Overview" button at the top of the Resources menu, to see all pinned resources and your own bookings.
+4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
 5. The toolbar icon opens the same overview as a full page, lists your pins, and holds the four toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
@@ -112,8 +112,8 @@ All three are 1280×800 captures of `tests/screenshots.html`, which mirrors the
 portal with an invented space, invented members and invented bookings, so no
 member data appears in a public listing. Order them:
 
-1. `filters-menu.png` — the Resources menu open over the portal, showing types,
-   groups and the Overview pill. This is the feature that sells the extension.
+1. `filters-menu.png` — the Resources menu open over the portal, showing types
+   and groups. This is the feature that sells the extension.
 2. `overview.png` — the pinned overview with My bookings and resource cards.
 3. `overview-events.png` — the same view with the space's events merged in.
 

@@ -28,6 +28,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The overview's *Events* pill is now a *Show events* checkbox. A pill that only
   changed colour gave no hint that it was a toggle; the tick says so, and the
   label reads as the state it switches.
+- The overview moved out of the Resources menu into its own **Booking Overview**
+  item in the portal navigation, right after Resources — with an *Overview*
+  button in the bottom dock on narrow windows. It is a separate entry point, so
+  it stays when the Resources menu is switched off.
 
 ## [1.0.2] - 2026-11-06
 

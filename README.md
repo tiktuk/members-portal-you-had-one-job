@@ -31,11 +31,12 @@ It does six things:
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
    appear with a *Reserved* badge and can be expanded for details. Open it from
-   the **Overview →** button at the top of the Resources menu, which shows it in
-   an overlay inside the portal (Esc, the × button or a click on the backdrop
-   closes it), with **Alt+O** anywhere on the portal page; the toolbar popup
-   opens the same overview as a standalone page in a new tab. Each card's title
-   links to the single-resource calendar, and its × button unpins the resource.
+   **Booking Overview** in the portal's main navigation (or the **Overview**
+   button in the bottom bar on a narrow window), which shows it in an overlay
+   inside the portal (Esc, the × button or a click on the backdrop closes it),
+   with **Alt+O** anywhere on the portal page; the toolbar popup opens the same
+   overview as a standalone page in a new tab. Each card's title links to the
+   single-resource calendar, and its × button unpins the resource.
 4. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -57,12 +58,11 @@ the portal session the content script mirrors into extension storage, so open th
 portal once while signed in.
 
 ```
-Bookings ▾   Resources ▾   Store ▾   Memberships   Community
+Bookings ▾   Resources ▾   Booking Overview   Store ▾   Memberships   Community
 ┌──────────────────────────────────────────────────────────────┐
 │ PINNED  [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]             │
 └──────────────────────────────────────────────────────────────┘
               ┌──────────────────────────────────────────────┐
-              │ [ Overview → ]                               │
               │ MACHINES        LABS           MEETING ROOMS │
               │ All machines    All labs       All meeting…  │
               │ 3D printing  ›  E-Lab        › Meeting Rooms │
@@ -162,6 +162,8 @@ the *Block location prompt* and *Luma events* toggles.
 | Key | Meaning |
 | --- | --- |
 | `nav.label` | Text of the injected menu item (default `Resources`). |
+| `nav.overviewLabel` | Text of the booking-overview item next to it (default `Booking Overview`). |
+| `nav.overviewShortLabel` | Label of the same item in the bottom dock on narrow windows (default `Overview`). |
 | `nav.stripGroupPrefix` | Show `3D printing` instead of `Machines: 3D printing`. |
 | `nav.hideEmptyTypes` | Hide resource types that have no groups. |
 | `defaultView` | View used by the injected links (`calendar`). |

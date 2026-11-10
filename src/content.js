@@ -19,6 +19,8 @@
   const MENU_ID = "onejob-menu";
   const DOCK_ID = "onejob-dock-button";
   const SHEET_ID = "onejob-sheet";
+  const OVERVIEW_NAV_ID = "onejob-overview-nav-item";
+  const OVERVIEW_DOCK_ID = "onejob-overview-dock-button";
   const PINS_BAR_ID = "onejob-pins-bar";
   const PINS_BAR_WRAP_ID = "onejob-pins-bar-wrap";
   const DEFAULT_SETTINGS = {
@@ -32,6 +34,8 @@
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" aria-hidden="true"><path d="M3 5h18l-7.5 8.6V20L10.5 18v-4.4L3 5z"></path></svg>';
   const CHEVRON_ICON =
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>';
+  const OVERVIEW_ICON =
+    '<svg viewBox="0 0 24 24" height="1em" width="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>';
   const PIN_ICON =
     '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>';
   const PIN_FILLED_ICON =
@@ -171,26 +175,31 @@
   function ensureNav() {
     ensurePinsBar();
 
-    if (state.settings.navMenu === false || !cfg.nav.enabled) {
+    const menuEnabled = state.settings.navMenu !== false && cfg.nav.enabled;
+    if (menuEnabled) {
+      // Desktop: a dropdown in the main navigation bar.
+      const list = findNavList();
+      if (list) {
+        const item = document.getElementById(NAV_ID);
+        if (!item || !list.contains(item)) {
+          insertNavItem(list, buildNavItem());
+          state.signature = "";
+        }
+      }
+
+      // Mobile/narrow: a button in the bottom dock that opens a sheet.
+      const dock = findDock();
+      if (dock) ensureDockButton(dock);
+    } else {
       document.getElementById(NAV_ID)?.remove();
       document.getElementById(DOCK_ID)?.remove();
       document.getElementById(SHEET_ID)?.remove();
-      return;
     }
 
-    // Desktop: a dropdown in the main navigation bar.
-    const list = findNavList();
-    if (list) {
-      const item = document.getElementById(NAV_ID);
-      if (!item || !list.contains(item)) {
-        insertNavItem(list, buildNavItem());
-        state.signature = "";
-      }
-    }
+    // The overview is its own entry point, so it stays when the menu is off.
+    ensureOverviewEntry();
 
-    // Mobile/narrow: a button in the bottom dock that opens a sheet.
-    const dock = findDock();
-    if (dock) ensureDockButton(dock);
+    if (!menuEnabled) return;
 
     const signature = currentSignature();
     if (signature !== state.signature) {
@@ -432,14 +441,6 @@
     const content = document.createElement("div");
     content.className = "onejob-menu-content";
 
-    const overview = renderOverviewLink();
-    if (overview) {
-      const row = document.createElement("div");
-      row.className = "onejob-overview-row";
-      row.appendChild(overview);
-      content.appendChild(row);
-    }
-
     const columns = document.createElement("div");
     columns.className = "onejob-columns";
     if (explicitColumns) {
@@ -547,27 +548,102 @@
     return content;
   }
 
-  /**
-   * The pinned resources overview also opens from the popup as a standalone
-   * page, so the link is always shown — the overview lists personal bookings
-   * even without pins.
-   */
-  function renderOverviewLink() {
-    if (!hasExtensionApis) return null;
+  /* ------------------------------------------------------------------ *
+   * Booking overview entry (its own item, not a row inside the menu)
+   * ------------------------------------------------------------------ */
 
-    const overview = document.createElement("a");
-    overview.className = "onejob-overview-link";
-    overview.href = "#";
-    overview.textContent = "Overview →";
-    overview.title = `Open the pinned resources overview (${shortcutLabel()})`;
-    overview.addEventListener("click", (event) => {
+  function ensureOverviewEntry() {
+    if (!hasExtensionApis || !cfg.nav.enabled) {
+      document.getElementById(OVERVIEW_NAV_ID)?.remove();
+      document.getElementById(OVERVIEW_DOCK_ID)?.remove();
+      return;
+    }
+
+    // Desktop: a plain nav item right after Resources.
+    const list = findNavList();
+    if (list) {
+      let item = document.getElementById(OVERVIEW_NAV_ID);
+      if (!item || !list.contains(item)) item = buildOverviewNavItem();
+      const resources = document.getElementById(NAV_ID);
+      if (resources && list.contains(resources)) {
+        // after() is a no-op when the item already follows Resources.
+        if (resources.nextElementSibling !== item) resources.after(item);
+      } else if (!list.contains(item)) {
+        insertNavItem(list, item);
+      }
+    }
+
+    // Narrow: the portal swaps the navbar for a dock, so it gets a button too.
+    const dock = findDock();
+    if (dock) ensureOverviewDockButton(dock);
+  }
+
+  function buildOverviewNavItem() {
+    const item = document.createElement("li");
+    item.className = "nav-item onejob-nav-item";
+    item.id = OVERVIEW_NAV_ID;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "cursor-pointer nav-link onejob-overview-nav";
+    button.textContent = cfg.nav.overviewLabel;
+    button.title = `Open the booking overview (${shortcutLabel()})`;
+    button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
       closeMenu();
       closeSheet();
       openOverviewOverlay();
     });
-    return overview;
+
+    item.appendChild(button);
+    return item;
+  }
+
+  function ensureOverviewDockButton(dock) {
+    const existing = document.getElementById(OVERVIEW_DOCK_ID);
+    if (existing && dock.contains(existing)) {
+      const resources = document.getElementById(DOCK_ID);
+      if (!resources?.parentElement || resources.nextElementSibling === existing) return;
+      resources.after(existing);
+      return;
+    }
+
+    const buttons = [...dock.querySelectorAll("button")].filter((button) => !button.id.startsWith("onejob"));
+    const reference = buttons[0];
+    if (!reference) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = OVERVIEW_DOCK_ID;
+    // Reuse the portal's own dock classes so the button looks native.
+    button.className = `${reference.className} onejob-dock-button`;
+    button.setAttribute("aria-label", cfg.nav.overviewLabel);
+
+    const icon = document.createElement("span");
+    if (reference.firstElementChild?.className) icon.className = reference.firstElementChild.className;
+    icon.innerHTML = OVERVIEW_ICON;
+    const label = document.createElement("span");
+    if (reference.lastElementChild?.className) label.className = reference.lastElementChild.className;
+    label.textContent = cfg.nav.overviewShortLabel;
+    button.append(icon, label);
+
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeSheet();
+      openOverviewOverlay();
+    });
+
+    const resources = document.getElementById(DOCK_ID);
+    if (resources?.parentElement) {
+      // after() is a no-op when the button already follows Resources.
+      if (resources.nextElementSibling !== button) resources.after(button);
+    } else {
+      const more = buttons.find((candidate) => /more|mehr|más|plus/i.test(candidate.getAttribute("aria-label") || ""));
+      if (more) more.parentElement.insertBefore(button, more);
+      else reference.parentElement.appendChild(button);
+    }
   }
 
   /* ------------------------------------------------------------------ *

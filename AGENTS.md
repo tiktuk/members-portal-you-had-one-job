@@ -234,9 +234,12 @@ dashboard's notes field and, if they need to live on disk, into
 ## Pinned resources overview
 
 - `overview.html` is a standalone extension page (opened from the popup's
-  **Overview →** link). The **Overview →** pill at the top of the Resources menu
-  opens the same view as an overlay inside the portal instead; the pill is
-  rendered even with no pins because the overview still lists the member's own
+  **Overview →** link). In the portal, **Booking Overview** is its own nav item
+  (`ensureOverviewEntry()` / `overviewLabel` in `config.nav`) right after
+  Resources, and a second dock button (`overviewShortLabel`) on narrow windows;
+  both open the same view as an overlay. It is not a row inside the Resources
+  menu any more, and it is shown even when that menu is switched off — it has no
+  pins requirement either, since the overview still lists the member's own
   bookings. Both render one card per pin, mirroring the Django web app's
   dashboard widgets: icon, name, group, day-grouped bookings and resource
   events. The card title links to the single-resource calendar; the × button

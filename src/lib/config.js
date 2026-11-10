@@ -82,6 +82,10 @@
       enabled: true,
       /** Label of the injected top-level menu item. */
       label: "Resources",
+      /** Label of the injected booking-overview item next to it. */
+      overviewLabel: "Booking Overview",
+      /** Shorter label for the bottom-dock button on narrow windows. */
+      overviewShortLabel: "Overview",
       /** Turn "Machines: 3D printing" into "3D printing" in the menu. */
       stripGroupPrefix: true,
       /** Hide types that have no resource groups. */
