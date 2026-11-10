@@ -16,12 +16,14 @@ It does six things:
    extension adds a **Resources** button there that opens the same list as a
    bottom sheet.
 2. **Pinnable resources.** Expand a group in the **Resources** menu and press the
-   pin icon next to a resource (for example *OLSK Large CNC*). Pinned resources
-   appear at the top of the menu; clicking one opens the calendar with **only
-   that resource**, so there is no horizontal scrolling through every machine of
-   the type. A *Pinned* banner above the calendar links back to that resource's
-   group, so *Show all CNC Machining* keeps the category in view instead of
-   jumping to the first resource of the whole type.
+   pin icon next to a resource (for example *OLSK Large CNC*). Pins sit in a
+   strip at the top of every portal page, just below the navigation, so they are
+   visible without opening the menu; the menu itself no longer repeats them.
+   Clicking a chip opens the calendar with **only that resource**, so there is no
+   horizontal scrolling through every machine of the type, and the pin icon on
+   the chip unpins it. A *Pinned* banner above the calendar links back to that
+   resource's group, so *Show all CNC Machining* keeps the category in view
+   instead of jumping to the first resource of the whole type.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -49,16 +51,18 @@ It does six things:
    **Events** button in the overview header toggles the same setting as the
    popup.
 
-The four toggles live in the toolbar popup; pins are managed from the menu
-itself. The overview page uses the portal session the content script mirrors
-into extension storage, so open the portal once while signed in.
+The four toggles live in the toolbar popup; pins are managed from the strip at
+the top of the page and from the menu's group chevrons. The overview page uses
+the portal session the content script mirrors into extension storage, so open the
+portal once while signed in.
 
 ```
 Bookings ▾   Resources ▾   Store ▾   Memberships   Community
+┌──────────────────────────────────────────────────────────────┐
+│ PINNED  [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]             │
+└──────────────────────────────────────────────────────────────┘
               ┌──────────────────────────────────────────────┐
               │ [ Overview → ]                               │
-              │ PINNED                                       │
-              │ [ OLSK Large CNC (pin) ] [ E-Lab (pin) ]      │
               │ MACHINES        LABS           MEETING ROOMS │
               │ All machines    All labs       All meeting…  │
               │ 3D printing  ›  E-Lab        › Meeting Rooms │

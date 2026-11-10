@@ -82,8 +82,8 @@ dashboard's notes field and, if they need to live on disk, into
   `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
-  group/resource fetching and caching, pins, pinned banner, settings, and the
-  overview overlay.
+  group/resource fetching and caching, pins (the strip and the menu's pin
+  buttons), pinned banner, settings, and the overview overlay.
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
@@ -204,13 +204,21 @@ dashboard's notes field and, if they need to live on disk, into
 - The banner is wrapped in a `.container` div (`onejob-pinned-banner-wrap`) so
   it lines up with the portal's calendar container instead of spanning the full
   `<main>`. `ensurePinnedBanner` wraps a banner left over from an older version.
+- Pins are shown in a strip at the top of `<main>`, not in the menu:
+  `ensurePinsBar()` builds `onejob-pins-bar` inside a `.container` wrapper
+  (`onejob-pins-bar-wrap`) on every portal page, above the single-resource
+  banner — each of the two inserts itself relative to the other so their order
+  does not depend on which was injected first. Each chip links to the
+  single-resource calendar and carries its own unpin button. The strip is
+  rebuilt only when `pinsBarKey()` changes: the `MutationObserver` schedules an
+  ensure pass for every DOM mutation, so rebuilding unconditionally would loop.
+- The menu exposes individual resources through the group chevron; the pin
+  button is hover/focus-visible on desktop and always visible on touch.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts
   the URL's `start`/`end` by the visible day count (7 for week, 1 for day),
   then dispatches `popstate` because React Router ignores raw `pushState`.
-- The menu exposes individual resources through the group chevron; the pin
-  button is hover/focus-visible on desktop and always visible on touch.
 - `cache.groupsVersion` is 3 (v2 caches are still used as a fallback while the
   resource list is fetched).
 

@@ -38,30 +38,75 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Pinned resources
+ * Pinned resources — the strip at the top of the page, below the
+ * portal's navigation, so the pins are visible without opening the menu.
  * ------------------------------------------------------------------ */
 
-.onejob-pinned {
+.onejob-pins-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  margin: 0.75rem 0 0;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.75rem;
+  background: var(--bs-body-bg, #fff);
 }
 
-.onejob-pinned-head {
-  display: flex;
+.onejob-pins-bar-label {
+  margin: 0 0.15rem 0 0.1rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.onejob-pin-chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  margin: 0 0 0.15rem;
+  gap: 0.15rem;
+  max-width: 100%;
+  padding: 0 0.3rem 0 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.1));
 }
 
-.onejob-pinned-head .onejob-pinned-title {
-  width: auto;
-  margin: 0;
+.onejob-pin-chip-link {
+  min-width: 0;
+  padding: 0.2rem 0;
+  color: var(--bs-primary, #0d6efd);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.onejob-pin-chip-link:hover,
+.onejob-pin-chip-link:focus-visible {
+  color: var(--bs-primary, #0d6efd);
+  text-decoration: underline;
+}
+
+.onejob-pin-chip.is-active {
+  border-color: var(--bs-primary, #0d6efd);
+  background: var(--bs-primary, #0d6efd);
+}
+
+.onejob-pin-chip.is-active .onejob-pin-chip-link,
+.onejob-pin-chip.is-active .onejob-pin-button {
+  color: #fff;
+}
+
+.onejob-pin-chip .onejob-pin-button:hover,
+.onejob-pin-chip .onejob-pin-button:focus-visible {
+  background: rgba(0, 0, 0, 0.12);
+  color: inherit;
 }
 
 .onejob-overview-row {
@@ -144,30 +189,6 @@
     height: 94dvh;
     max-height: 94dvh;
   }
-}
-
-.onejob-pinned-title {
-  width: 100%;
-  margin: 0 0 0.15rem;
-}
-
-.onejob-pinned-item {
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-  min-width: 0;
-  max-width: 100%;
-  padding: 0 0.15rem;
-  border-radius: 0.5rem;
-  background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
-}
-
-.onejob-pinned-item .onejob-link {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  max-width: 240px;
-  font-weight: 600;
 }
 
 .onejob-group-row {
@@ -254,10 +275,6 @@
 
 .onejob-pin-button.is-pinned {
   color: var(--bs-primary, #0d6efd);
-}
-
-.onejob-pinned-item .onejob-pin-button {
-  opacity: 1;
 }
 
 @media (hover: none) {

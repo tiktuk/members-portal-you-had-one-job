@@ -26,7 +26,7 @@
   async function init() {
     const settings = { ...DEFAULTS, ...((await get(cfg.storageKeys.settings)) || {}) };
     navRowTitle.textContent = `${cfg.nav.label} in the main menu`;
-    navRowHint.textContent = `Adds a “${cfg.nav.label}” menu with every resource group. Pin resources to keep them at the top.`;
+    navRowHint.textContent = `Adds a “${cfg.nav.label}” menu with every resource group. Pin resources to keep them at the top of the page.`;
     calendarToggle.checked = settings.calendarDefault !== false;
     navToggle.checked = settings.navMenu !== false;
     lumaToggle.checked = settings.lumaEvents !== false;

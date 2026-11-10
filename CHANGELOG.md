@@ -9,11 +9,19 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Added
+
+- Pins sit in a strip at the top of every portal page, below the navigation, so
+  a pinned resource is one click away without opening the menu. Each chip links
+  to that resource's calendar and carries its own unpin button.
+
 ### Changed
 
 - The injected menu is called **Resources** instead of **Filters**. The label
   still comes from `config.nav.label`, and the popup rows and the overview's
   empty state now read it from there too instead of repeating it in prose.
+- The Resources menu no longer repeats the pinned resources; the strip above it
+  is the only place they appear.
 
 ## [1.0.2] - 2026-11-06
 

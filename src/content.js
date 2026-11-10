@@ -21,6 +21,8 @@
   const SHEET_ID = "onejob-sheet";
   const PINNED_BANNER_ID = "onejob-pinned-banner";
   const PINNED_BANNER_WRAP_ID = "onejob-pinned-banner-wrap";
+  const PINS_BAR_ID = "onejob-pins-bar";
+  const PINS_BAR_WRAP_ID = "onejob-pins-bar-wrap";
   const DEFAULT_SETTINGS = {
     calendarDefault: true,
     navMenu: true,
@@ -170,6 +172,7 @@
 
   function ensureNav() {
     ensurePinnedBanner();
+    ensurePinsBar();
 
     if (state.settings.navMenu === false || !cfg.nav.enabled) {
       document.getElementById(NAV_ID)?.remove();
@@ -408,9 +411,9 @@
   }
 
   /**
-   * Builds the pinned resources plus the type/group columns used by both the
-   * desktop dropdown and the mobile sheet. `explicitColumns` is only needed for
-   * the dropdown, whose width is derived from the content.
+   * Builds the type/group columns used by both the desktop dropdown and the
+   * mobile sheet. `explicitColumns` is only needed for the dropdown, whose
+   * width is derived from the content.
    */
   function renderMenuContent({ explicitColumns }) {
     const list = findNavList();
@@ -439,9 +442,6 @@
       row.appendChild(overview);
       content.appendChild(row);
     }
-
-    const pinned = renderPinnedSection({ webAddress, view, start, end, current, pinnedId });
-    if (pinned) content.appendChild(pinned);
 
     const columns = document.createElement("div");
     columns.className = "onejob-columns";
@@ -722,22 +722,72 @@
     closeOverviewOverlay();
   }
 
-  function renderPinnedSection({ webAddress, view, start, end, current, pinnedId }) {
+  /**
+   * The pins strip: one chip per pinned resource, at the top of the page below
+   * the portal's navigation. It is always there, so a pinned resource is one
+   * click away without opening the menu.
+   */
+  function ensurePinsBar() {
     const pins = state.pins.filter((pin) => pin && pin.id);
-    if (!pins.length) return null;
+    if (!pins.length) {
+      document.getElementById(PINS_BAR_WRAP_ID)?.remove();
+      return;
+    }
 
-    const section = document.createElement("div");
-    section.className = "onejob-pinned";
+    const main = document.querySelector("main");
+    if (!main) return;
 
-    const head = document.createElement("div");
-    head.className = "onejob-pinned-head";
+    let wrap = document.getElementById(PINS_BAR_WRAP_ID);
+    let bar = document.getElementById(PINS_BAR_ID);
+    if (!wrap || !bar) {
+      wrap?.remove();
+      wrap = document.createElement("div");
+      wrap.id = PINS_BAR_WRAP_ID;
+      wrap.className = "container";
+      bar = document.createElement("nav");
+      bar.id = PINS_BAR_ID;
+      bar.className = "onejob-pins-bar";
+      bar.setAttribute("aria-label", "Pinned resources");
+      wrap.appendChild(bar);
+    }
+    // Match the width of the portal's content container, and stay above the
+    // single-resource banner whichever of the two was injected first.
+    if (!main.contains(wrap)) {
+      const banner = document.getElementById(PINNED_BANNER_WRAP_ID);
+      if (banner?.parentElement === main) main.insertBefore(wrap, banner);
+      else main.prepend(wrap);
+    }
 
-    const title = document.createElement("div");
-    title.className = "onejob-section-title onejob-pinned-title";
-    title.textContent = "Pinned";
-    head.appendChild(title);
+    const key = pinsBarKey(pins);
+    if (bar.dataset.key === key) return;
+    bar.dataset.key = key;
+    bar.replaceChildren(...renderPinsBar(pins));
+  }
 
-    section.appendChild(head);
+  /**
+   * Everything the strip's links depend on. Rebuilding it on every ensure pass
+   * would fight the MutationObserver that schedules those passes.
+   */
+  function pinsBarKey(pins) {
+    return [
+      pins.map((pin) => `${pin.id}:${pin.name}`).join(","),
+      state.groupsVersion,
+      currentPinnedId(),
+      location.search,
+    ].join("|");
+  }
+
+  function renderPinsBar(pins) {
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const view = cfg.defaultView;
+    const { start, end } = U.currentRange(location.search);
+    const current = U.parseBookingPath(location.pathname);
+    const pinnedId = currentPinnedId();
+
+    const label = document.createElement("span");
+    label.className = "onejob-pins-bar-label";
+    label.textContent = "Pinned";
+    const nodes = [label];
 
     for (const pin of pins) {
       const resource = findResource(pin.id);
@@ -745,17 +795,16 @@
       const group = pin.group || resource?.group || "";
       const name = pin.name || resource?.name || `Resource ${pin.id}`;
 
-      const item = document.createElement("div");
-      item.className = "onejob-pinned-item";
-      item.appendChild(
-        menuLink({
-          label: name,
-          title: name,
-          href: U.bookingHref({ webAddress, type, view, group, resource: pin.id, start, end }),
-          active: pinnedId === pin.id,
-          onActivate: () => rememberPinnedResource({ id: pin.id, name, group, type }),
-        }),
-      );
+      const chip = document.createElement("div");
+      chip.className = `onejob-pin-chip${pinnedId === pin.id ? " is-active" : ""}`;
+
+      const link = document.createElement("a");
+      link.className = "onejob-pin-chip-link";
+      link.href = U.bookingHref({ webAddress, type, view, group, resource: pin.id, start, end });
+      link.textContent = name;
+      link.title = name;
+      link.addEventListener("click", () => rememberPinnedResource({ id: pin.id, name, group, type }));
+      chip.appendChild(link);
 
       const unpin = document.createElement("button");
       unpin.type = "button";
@@ -769,11 +818,11 @@
         event.stopPropagation();
         togglePin({ id: pin.id, name, group, type });
       });
-      item.appendChild(unpin);
+      chip.appendChild(unpin);
 
-      section.appendChild(item);
+      nodes.push(chip);
     }
-    return section;
+    return nodes;
   }
 
   function resourcesForGroup(slug, groupName) {
@@ -980,8 +1029,13 @@
       banner.parentElement?.insertBefore(wrap, banner);
       wrap.appendChild(banner);
     }
-    // Match the width of the portal's calendar container.
-    if (wrap && !main.contains(wrap)) main.prepend(wrap);
+    // Match the width of the portal's calendar container, and sit below the
+    // pins strip whichever of the two was injected first.
+    if (wrap && !main.contains(wrap)) {
+      const bar = document.getElementById(PINS_BAR_WRAP_ID);
+      if (bar?.parentElement === main) bar.after(wrap);
+      else main.prepend(wrap);
+    }
 
     const session = readPinnedSession();
     const resource = findResource(pinnedId);
