@@ -15,6 +15,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.
 
+### Fixed
+
+- The pins strip no longer breaks the personal pages. Their `<main>` is a flex
+  row (a 200px activity menu next to the content), so the strip became a column
+  of its own; it now sits just above `<main>` wherever that is a flex or grid
+  container.
+
 ### Changed
 
 - The injected menu is called **Resources** instead of **Filters**. The label

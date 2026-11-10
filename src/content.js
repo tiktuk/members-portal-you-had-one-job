@@ -146,6 +146,9 @@
       }
     });
     window.addEventListener("popstate", scheduleEnsure);
+    // The pins strip moves between <main> and its parent when the portal's
+    // responsive layout switches (personal pages are a flex row from 992px).
+    window.addEventListener("resize", scheduleEnsure);
 
     // Safety net for SPA route changes that do not mutate the navigation DOM.
     setInterval(() => {
@@ -826,12 +829,30 @@
       wrap.appendChild(bar);
     }
     // Match the width of the portal's content container.
-    if (!main.contains(wrap)) main.prepend(wrap);
+    mountPinsBar(wrap, main);
 
     const key = pinsBarKey(pins);
     if (bar.dataset.key === key) return;
     bar.dataset.key = key;
     bar.replaceChildren(...renderPinsBar(pins));
+  }
+
+  /**
+   * Personal pages (`/user/dashboard/*`) lay `<main>` out as a flex row — a
+   * 200px left menu next to the content — so a child of it becomes a column of
+   * its own and the page reflows around the strip. Where `<main>` is a flex or
+   * grid container, the strip goes just above it instead.
+   */
+  function mountPinsBar(wrap, main) {
+    const display = getComputedStyle(main).display;
+    const rowLayout = display.includes("flex") || display.includes("grid");
+    if (!rowLayout || !main.parentElement) {
+      if (wrap.parentElement !== main || main.firstElementChild !== wrap) main.prepend(wrap);
+      return;
+    }
+    const host = main.parentElement;
+    if (wrap.parentElement === host && wrap.nextElementSibling === main) return;
+    host.insertBefore(wrap, main);
   }
 
   /**

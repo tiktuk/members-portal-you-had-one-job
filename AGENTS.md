@@ -221,6 +221,14 @@ dashboard's notes field and, if they need to live on disk, into
   pin state instead of two saying the same thing. The strip is rebuilt only when
   `pinsBarKey()` changes: the `MutationObserver` schedules an ensure pass for
   every DOM mutation, so rebuilding unconditionally would loop.
+- Where the strip is mounted depends on `<main>`'s own display
+  (`mountPinsBar()`): booking pages have a plain block `<main>` and the strip is
+  its first child, but the personal pages (`/user/dashboard/*`) render
+  `<main class="d-lg-flex gap-4 mobile-padding">` — a 200px left menu next to the
+  content — so a child of it becomes a column of its own and reflows the page.
+  For a flex/grid `<main>` the strip is inserted immediately before `<main>`
+  instead. The check runs on every ensure pass, and `resize` schedules one,
+  because the portal only adds `d-lg-flex` from 992px up.
 - The menu exposes individual resources through the group chevron; the pin
   button is hover/focus-visible on desktop and always visible on touch.
 - The calendar's Previous/Next buttons are horizontal scrollers for
