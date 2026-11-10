@@ -275,8 +275,8 @@ space's own booking API subdomain.
   design; the listing says so. The feature is preserved on the `runtime-portals`
   branch.
 - **Luma events are tied to one calendar.** `config.luma.source` is
-  MotionLab.Berlin's public Luma calendar, so the overview hides its *Events*
-  pill on any other origin.
+  MotionLab.Berlin's public Luma calendar, so the overview hides its *Show
+  events* checkbox on any other origin.
 - **"Nexudus" in the description.** The name avoids the trademark, and the
   description uses the platform name only to say what the extension works with.
   Do not put it in the extension name.

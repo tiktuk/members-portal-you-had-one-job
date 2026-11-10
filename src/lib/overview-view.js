@@ -49,7 +49,8 @@
     cards: null,
     myBookings: null,
     refreshButton: null,
-    lumaButton: null,
+    lumaToggle: null,
+    lumaInput: null,
     portalLink: null,
     timer: null,
     onStorageChanged: null,
@@ -92,7 +93,8 @@
     ui.cards = null;
     ui.myBookings = null;
     ui.refreshButton = null;
-    ui.lumaButton = null;
+    ui.lumaToggle = null;
+    ui.lumaInput = null;
     ui.portalLink = null;
     ui.timer = null;
     ui.onStorageChanged = null;
@@ -124,12 +126,18 @@
     const actions = el("div", "actions");
 
     if (cfg.luma?.source) {
-      ui.lumaButton = el("button", "button button-toggle", "Events");
-      ui.lumaButton.type = "button";
-      ui.lumaButton.setAttribute("aria-pressed", "false");
-      ui.lumaButton.hidden = !lumaAvailable();
-      ui.lumaButton.addEventListener("click", toggleLumaEvents);
-      actions.appendChild(ui.lumaButton);
+      // A checkbox rather than a pressed button: the pill alone gave no hint
+      // that it toggles anything, and the tick is the signal people look for.
+      const toggle = el("label", "button button-toggle");
+      ui.lumaInput = ui.doc.createElement("input");
+      ui.lumaInput.type = "checkbox";
+      ui.lumaInput.className = "button-toggle-input";
+      toggle.append(ui.lumaInput, ui.doc.createTextNode("Show events"));
+      toggle.hidden = !lumaAvailable();
+      toggle.title = "Show the space's upcoming Luma events";
+      ui.lumaInput.addEventListener("change", () => toggleLumaEvents(ui.lumaInput.checked));
+      ui.lumaToggle = toggle;
+      actions.appendChild(toggle);
     }
 
     ui.refreshButton = el("button", "button", "Refresh");
@@ -266,11 +274,10 @@
   }
 
   /**
-   * The header's *Events* button and the popup switch write the same setting,
-   * so every open overview and the popup stay in sync.
+   * The header's *Show events* checkbox and the popup switch write the same
+   * setting, so every open overview and the popup stay in sync.
    */
-  async function toggleLumaEvents() {
-    const enabled = !state.lumaEnabled;
+  async function toggleLumaEvents(enabled) {
     state.lumaEnabled = enabled;
     state.settings = { ...(state.settings || {}), lumaEvents: enabled };
     render();
@@ -489,11 +496,10 @@
     ui.refreshButton.disabled = state.loading;
     ui.refreshButton.textContent = state.loading ? "Refreshing…" : "Refresh";
 
-    if (ui.lumaButton) {
-      ui.lumaButton.hidden = !lumaAvailable();
-      ui.lumaButton.setAttribute("aria-pressed", String(state.lumaEnabled));
-      ui.lumaButton.classList.toggle("is-active", state.lumaEnabled);
-      ui.lumaButton.title = state.lumaEnabled ? "Hide Luma events" : "Show Luma events";
+    if (ui.lumaToggle) {
+      ui.lumaToggle.hidden = !lumaAvailable();
+      ui.lumaInput.checked = state.lumaEnabled;
+      ui.lumaToggle.classList.toggle("is-active", state.lumaEnabled);
     }
 
     if (ui.portalLink) ui.portalLink.href = `${portalOrigin()}/`;

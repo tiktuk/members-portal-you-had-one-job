@@ -25,6 +25,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The *Pinned — Showing only …* banner is gone. Its *Show all* link now sits at
   the end of the strip while a single resource is shown, so the pin state is one
   row instead of two.
+- The overview's *Events* pill is now a *Show events* checkbox. A pill that only
+  changed colour gave no hint that it was a toggle; the tick says so, and the
+  label reads as the state it switches.
 
 ## [1.0.2] - 2026-11-06
 

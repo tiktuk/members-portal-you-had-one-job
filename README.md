@@ -48,8 +48,8 @@ It does six things:
    merges MotionLab.Berlin's upcoming Luma events into every card and the
    **My bookings** card, with a purple *Event* badge. Expanding a row loads its
    description and links to the event on Luma, like the Django dashboard. The
-   **Events** button in the overview header toggles the same setting as the
-   popup.
+   **Show events** checkbox in the overview header toggles the same setting as
+   the popup.
 
 The four toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page and from the menu's group chevrons. The overview page uses

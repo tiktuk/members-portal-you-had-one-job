@@ -121,9 +121,9 @@ dashboard's notes field and, if they need to live on disk, into
   in-portal overlay reads its own `location.origin` instead, which is always the
   portal it is mounted in.
 - Luma is gated to `config.portal.origin`: `config.luma.source` is one space's
-  calendar, so `lumaAvailable()` hides the overview's *Events* pill on any other
-  origin. `.button[hidden]` in `overview.css` exists because `.button`'s
-  `display: inline-flex` outranks the UA `[hidden]` rule.
+  calendar, so `lumaAvailable()` hides the overview's *Show events* checkbox on
+  any other origin. `.button[hidden]` in `overview.css` exists because
+  `.button`'s `display: inline-flex` outranks the UA `[hidden]` rule.
 
 ## Portal facts this relies on
 
@@ -328,10 +328,13 @@ dashboard's notes field and, if they need to live on disk, into
   `config.luma.source` is a public Luma user (`usr-…`) or calendar (`cal-…`)
   API ID, or any luma.com URL containing one; `config.luma.enabled` only seeds
   the popup toggle (`settings.lumaEvents` in `onejob:settings`).
-- The overview header also has an *Events* pill (`ui.lumaButton`, only when
-  `config.luma.source` is set) that writes the same `settings.lumaEvents`.
-  `render()` keeps its `aria-pressed`/`is-active` state in sync, so changing the
-  popup updates an open overview through `onStorageChanged`.
+- The overview header also has a *Show events* checkbox (`ui.lumaToggle` +
+  `ui.lumaInput`, only when `config.luma.source` is set) that writes the same
+  `settings.lumaEvents`. It is a real `<input type="checkbox">` inside the
+  button pill, not a pressed button: the pill alone gave no hint that it toggles
+  anything, and the tick is the affordance people look for. `render()` keeps its
+  `checked`/`is-active` state in sync, so changing the popup updates an open
+  overview through `onStorageChanged`.
 - `lib/luma.js::parseSource` extracts the ID. The list endpoints are
   `/user/profile/events-hosting?user_api_id=…&period=future` and
   `/calendar/get-items?calendar_api_id=…&period=future`, with
