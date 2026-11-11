@@ -37,7 +37,9 @@
         "lib/url.js",
         "lib/groups.js",
         "lib/overview.js",
+        "lib/stats.js",
         "lib/overview-view.js",
+        "lib/stats-view.js",
         "lib/tour.js",
         "content.js"
       ],
@@ -47,7 +49,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css"],
+      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css", "stats.css"],
       "matches": ["https://members.motionlab.berlin/*"]
     }
   ]

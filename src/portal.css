@@ -138,8 +138,8 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Pinned overview overlay (the page itself is rendered in a shadow root
- * from lib/overview-view.js + overview.css)
+ * Shared overlay shell (pinned overview and resource statistics; the
+ * contents are rendered in a shadow root from lib/*-view.js + *.css)
  * ------------------------------------------------------------------ */
 
 .onejob-overview-overlay {
@@ -169,12 +169,14 @@
   height: 100%;
   max-height: 100%;
   min-height: 0;
+  min-width: 0;
 }
 
 .onejob-overview-host {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
@@ -360,17 +362,49 @@
   color: var(--bs-secondary-color, #6c757d);
 }
 
-/* "Show me how pinning works" — the tour's way back in, at the foot of the
-   menu. Muted so it does not compete with the resource links. */
+/* "Resource statistics" and "Show me how pinning works" — two full-width
+   actions, so they stack instead of competing for one row. */
 .onejob-menu-footer {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
   margin-top: 0.15rem;
   padding-top: 0.35rem;
   border-top: 1px solid var(--bs-border-color, #dee2e6);
 }
 
+.onejob-menu-stats-button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--bs-body-color, #212529);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.onejob-menu-stats-button svg {
+  flex: 0 0 auto;
+  color: var(--bs-primary, #ff5b13);
+}
+
+.onejob-menu-stats-button:hover,
+.onejob-menu-stats-button:focus-visible {
+  background: var(--bs-primary-bg-subtle, #ffdecf);
+  color: var(--bs-primary, #ff5b13);
+}
+
 .onejob-menu-tour {
+  align-self: flex-end;
   padding: 0.25rem 0.4rem;
   border: 0;
   border-radius: 0.35rem;

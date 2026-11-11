@@ -1,0 +1,599 @@
+/* Resource statistics. Loaded after overview.css: the root also carries
+   .overview, so the palette, header, buttons, notices and footer come from
+   there. Everything below is scoped to .stats. */
+
+.stats {
+  --stats-band-0: var(--line);
+  --stats-band-1: rgba(13, 110, 253, 0.08);
+  --stats-band-2: rgba(13, 110, 253, 0.18);
+  --stats-band-3: rgba(13, 110, 253, 0.32);
+  --stats-band-4: rgba(13, 110, 253, 0.5);
+  --stats-track: rgba(13, 110, 253, 0.12);
+
+  max-width: 1500px;
+  /* The heatmap scrolls inside its own box; without this the grid's
+     min-content width would widen the whole overlay on narrow windows. */
+  min-width: 0;
+}
+
+.stats.is-panel {
+  max-width: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stats {
+    --stats-band-0: #2b2f36;
+    --stats-band-1: rgba(110, 168, 254, 0.12);
+    --stats-band-2: rgba(110, 168, 254, 0.24);
+    --stats-band-3: rgba(110, 168, 254, 0.38);
+    --stats-band-4: rgba(110, 168, 254, 0.55);
+    --stats-track: rgba(110, 168, 254, 0.16);
+  }
+}
+
+.stats .actions {
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Period switcher
+ * ------------------------------------------------------------------ */
+
+.stats-periods {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.stats-period {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  background: none;
+  font-size: 0.78rem;
+}
+
+.stats-period:hover {
+  border-color: transparent;
+  background: var(--accent-soft);
+}
+
+.stats-period[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------------------ *
+ * Summary tiles
+ * ------------------------------------------------------------------ */
+
+.stats-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.stats-loading {
+  margin: 0;
+  padding: 2rem 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.stats-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.stats-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.stats-tile-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stats-tile-value {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-tile-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Sections
+ * ------------------------------------------------------------------ */
+
+.stats-section {
+  min-width: 0;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.stats-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.stats-section h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.stats-section h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+}
+
+.stats-section-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.stats-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Activity heatmap
+ * ------------------------------------------------------------------ */
+
+.stats-heatmap {
+  display: flex;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scrollbar-width: thin;
+}
+
+.stats-heat-weekdays {
+  display: grid;
+  grid-template-rows: 14px repeat(7, 12px);
+  gap: 3px;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 12px;
+}
+
+.stats-heat-weekdays span {
+  display: block;
+}
+
+.stats-heat-spacer {
+  height: 14px;
+}
+
+.stats-heat-weeks {
+  display: flex;
+  gap: 3px;
+}
+
+.stats-heat-week {
+  display: grid;
+  grid-template-rows: 14px repeat(7, 12px);
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.stats-heat-month {
+  font-size: 0.62rem;
+  line-height: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.stats-heat-day {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--stats-band-0);
+}
+
+.stats-heat-day.is-outside {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  opacity: 0.35;
+}
+
+.stats-band-0,
+.stats-level-0 {
+  background: var(--stats-band-0);
+}
+
+.stats-band-1,
+.stats-level-1 {
+  background: var(--stats-band-1);
+}
+
+.stats-band-2,
+.stats-level-2 {
+  background: var(--stats-band-2);
+}
+
+.stats-band-3,
+.stats-level-3 {
+  background: var(--stats-band-3);
+}
+
+.stats-band-4,
+.stats-level-4 {
+  background: var(--stats-band-4);
+}
+
+.stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.stats-legend-label {
+  font-weight: 600;
+}
+
+.stats-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.stats-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stats-legend-text {
+  font-size: 0.7rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Weekday / hour charts
+ * ------------------------------------------------------------------ */
+
+.stats-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.stats-chart {
+  min-width: 0;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--bg);
+}
+
+.stats-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  height: 150px;
+}
+
+.stats-bars-24 {
+  gap: 0.15rem;
+}
+
+.stats-bar {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.stats-bar-value {
+  flex: 0 0 auto;
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stats-bar-track {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  min-height: 0;
+  border-radius: 4px;
+  background: var(--stats-track);
+}
+
+.stats-bar-fill {
+  display: block;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+.stats-bar-label {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stats-bars-24 .stats-bar-label {
+  font-size: 0.55rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Booking length
+ * ------------------------------------------------------------------ */
+
+.stats-lengths {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stats-length {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.stats-length-label {
+  flex: 0 0 4.5rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.stats-length-track {
+  flex: 1 1 auto;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--stats-track);
+  overflow: hidden;
+}
+
+.stats-length-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+.stats-length-value {
+  flex: 0 0 2.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ------------------------------------------------------------------ *
+ * Resource grid
+ * ------------------------------------------------------------------ */
+
+.stats-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.stats-filters,
+.stats-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.stats-filter {
+  padding: 0.28rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.stats-filter[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.stats-resource-legend {
+  margin-top: 0;
+  margin-bottom: 0.9rem;
+}
+
+.stats-type + .stats-type {
+  margin-top: 1.1rem;
+}
+
+.stats-type-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.stats-type-head h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.stats-type-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.6rem;
+}
+
+.stats-resource {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) - 4px);
+  color: var(--fg);
+  text-decoration: none;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.stats-resource:hover,
+.stats-resource:focus-visible {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.stats-resource:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stats-resource:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.stats-resource .resource-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.stats-resource-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.stats-resource-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.stats-resource-group {
+  color: var(--muted);
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.stats-resource-rate {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-resource-meta {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.stats-resource-bar {
+  display: block;
+  height: 0.3rem;
+  margin-top: 0.25rem;
+  border-radius: 999px;
+  background: var(--stats-track);
+  overflow: hidden;
+}
+
+.stats-resource-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.stats-footer {
+  margin-top: 0.25rem;
+  text-align: left;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow windows
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+  .stats-periods {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .stats-period {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .stats-section {
+    padding: 0.85rem 0.8rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bars {
+    height: 120px;
+  }
+}

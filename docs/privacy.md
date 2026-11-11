@@ -1,10 +1,11 @@
 # Privacy Policy — Members portal, you had one job
 
-Last updated: 6 November 2026
+Last updated: 11 November 2026
 
 **Members portal, you had one job** is a browser extension that adds resource
-filters, pinned single-resource calendars and a pinned-resources overview to
-Nexudus members portals. This policy describes exactly what it handles.
+filters, pinned single-resource calendars, a pinned-resources overview and a
+resource statistics screen to Nexudus members portals. This policy describes
+exactly what it handles.
 
 The short version: the extension has no servers, no analytics and no accounts.
 It reads your bookings from your own members portal, using the session you are
@@ -23,6 +24,10 @@ already signed in with, and keeps your settings on your device.
   fill the overview cards. Booking records include the name of the member who
   booked a shared resource, which the portal already shows you on its own
   calendar.
+- **Resource statistics.** Booking times for the resources published in the
+  portal are aggregated on your device to show the statistics screen. The
+  cached records contain only the booking id, the resource id and the booking's
+  start and end; member names, email addresses and notes are discarded.
 - **Your portal page.** The extension reads the portal's own navigation labels
   and address to build the Resources menu and to keep the calendar view when you
   navigate.
@@ -45,6 +50,9 @@ Everything stays on your device, in the extension's own local storage:
 - Pins and settings.
 - A cached copy of the resource groups, so the Resources menu opens instantly.
 - The portal session, so the overview page works without reopening the portal.
+- A cached copy of the booking times used by the statistics screen (resource id,
+  start and end; no member names), so it opens instantly. The current month is
+  refreshed every 15 minutes and past months once a day.
 
 None of it is synced to your browser account or to any server. Removing the
 extension deletes it.

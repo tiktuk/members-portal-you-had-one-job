@@ -11,6 +11,15 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- A **Resource statistics** screen at the bottom of the Resources menu (and
+  **Alt+S**): a 12-month daily heatmap, every published resource colour-coded
+  by booked hours per day, weekday and time-of-day charts, a booking-length
+  distribution and summary tiles. Periods switch between 4 weeks, 3 months and
+  12 months; resource tiles link to the single-resource calendar.
+- The statistics screen caches compact booking times per month in
+  `chrome.storage.local` (`onejob:stats-cache`; the current month for 15
+  minutes, past months for 24 hours, no member names), so reopening it does not
+  refetch the year.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.

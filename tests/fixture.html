@@ -242,6 +242,9 @@
       window.__fixtureBookings = [
         { id: 9001, resourceId: 1415309496, start: iso(1, 8), end: iso(1, 10), coworkerFullName: "Alex Kim" },
         { id: 9002, resourceId: 1415309496, start: iso(1, 9), end: iso(1, 11), coworkerFullName: "Sam Ortiz", tentative: true },
+        // In the past, so the statistics screen has something to show while
+        // the overview (which only looks forward) ignores it.
+        { id: 9003, resourceId: 1415309496, start: iso(-5, 8), end: iso(-5, 10), coworkerFullName: "Alex Kim" },
         { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerFullName: "Jo Weber" },
       ];
       window.__fixtureEvents = [
@@ -290,7 +293,16 @@
         if (target.includes("/src/")) {
           return realFetch(`${target}${target.includes("?") ? "&" : "?"}t=${Date.now()}`, init);
         }
-        if (target.includes("fullCalendarBookings")) return json(window.__fixtureBookings);
+        if (target.includes("fullCalendarBookings")) {
+          const url = new URL(target);
+          const start = new Date(url.searchParams.get("start") || 0);
+          const end = new Date(url.searchParams.get("end") || Date.now());
+          return json(
+            (window.__fixtureBookings || []).filter(
+              (booking) => new Date(booking.start) < end && new Date(booking.end) > start,
+            ),
+          );
+        }
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
         return json(window.__fixturePayload);
@@ -308,7 +320,9 @@
     <script src="/src/lib/url.js"></script>
     <script src="/src/lib/groups.js"></script>
     <script src="/src/lib/overview.js"></script>
+    <script src="/src/lib/stats.js"></script>
     <script src="/src/lib/overview-view.js"></script>
+    <script src="/src/lib/stats-view.js"></script>
     <script src="/src/lib/tour.js"></script>
     <script src="/src/content.js"></script>
   </body>

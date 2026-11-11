@@ -39,6 +39,8 @@
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>';
   const OVERVIEW_ICON =
     '<svg viewBox="0 0 24 24" height="1em" width="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>';
+  const STATS_ICON =
+    '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M2 20h20"></path></svg>';
   const PIN_ICON =
     '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>';
   const PIN_FILLED_ICON =
@@ -59,7 +61,7 @@
     tourTimer: 0,
   };
 
-  let overviewOverlay = null;
+  let activeOverlay = null;
 
   // 1. Must happen synchronously, before the app's own scripts read the URL.
   if (state.settings.calendarDefault !== false && !U.isListAllowed()) {
@@ -148,11 +150,20 @@
         closeSheet();
         return;
       }
-      if (!isEditableTarget(event.target) && matchesShortcut(event)) {
-        event.preventDefault();
-        closeMenu();
-        closeSheet();
-        openOverviewOverlay();
+      if (!isEditableTarget(event.target)) {
+        if (matchesShortcut(event, SHORTCUTS.overview)) {
+          event.preventDefault();
+          closeMenu();
+          closeSheet();
+          openOverviewOverlay();
+          return;
+        }
+        if (matchesShortcut(event, SHORTCUTS.stats)) {
+          event.preventDefault();
+          closeMenu();
+          closeSheet();
+          openStatsOverlay();
+        }
       }
     });
     window.addEventListener("popstate", scheduleEnsure);
@@ -575,10 +586,26 @@
 
     content.appendChild(columns);
 
-    // The tour's way back in, where the pin buttons are: the popup link alone
-    // was too easy to miss, and this is the menu the tour walks through.
+    // The footer holds the statistics screen and the tour's way back in. Both
+    // are full-width actions, so they stack instead of competing for the row.
     const footer = document.createElement("div");
     footer.className = "onejob-menu-footer";
+
+    const stats = document.createElement("button");
+    stats.type = "button";
+    stats.className = "onejob-menu-stats-button";
+    stats.innerHTML = STATS_ICON;
+    stats.append(document.createTextNode(cfg.stats?.label || "Resource statistics"));
+    stats.title = `Open ${cfg.stats?.label || "resource statistics"} (${shortcutLabel(SHORTCUTS.stats)})`;
+    stats.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      closeSheet();
+      openStatsOverlay();
+    });
+    footer.appendChild(stats);
+
     const replay = document.createElement("button");
     replay.type = "button";
     replay.className = "onejob-menu-tour";
@@ -633,7 +660,7 @@
     button.type = "button";
     button.className = "cursor-pointer nav-link onejob-overview-nav";
     button.textContent = cfg.nav.overviewLabel;
-    button.title = `Open the booking overview (${shortcutLabel()})`;
+    button.title = `Open the booking overview (${shortcutLabel(SHORTCUTS.overview)})`;
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -696,7 +723,10 @@
    * Keyboard shortcut
    * ------------------------------------------------------------------ */
 
-  const OVERVIEW_SHORTCUT = parseShortcut(cfg.overview?.shortcut || "alt+o");
+  const SHORTCUTS = {
+    overview: parseShortcut(cfg.overview?.shortcut || "alt+o"),
+    stats: parseShortcut(cfg.stats?.shortcut || "alt+s"),
+  };
 
   function parseShortcut(value) {
     const parts = String(value)
@@ -721,16 +751,14 @@
   }
 
   /** Physical key match: Option+O types "ø" on macOS, but the code stays KeyO. */
-  function matchesShortcut(event) {
-    const combo = OVERVIEW_SHORTCUT;
+  function matchesShortcut(event, combo) {
     if (!combo.key || event.repeat) return false;
     if (event.altKey !== combo.alt || event.ctrlKey !== combo.ctrl) return false;
     if (event.metaKey !== combo.meta || event.shiftKey !== combo.shift) return false;
     return combo.code ? event.code === combo.code : event.key.toLowerCase() === combo.key;
   }
 
-  function shortcutLabel() {
-    const combo = OVERVIEW_SHORTCUT;
+  function shortcutLabel(combo) {
     const parts = [];
     if (combo.ctrl) parts.push("Ctrl");
     if (combo.meta) parts.push("Cmd");
@@ -751,49 +779,57 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Pinned overview overlay
+   * Overlays (pinned overview and resource statistics)
+   *
+   * Both mount a shared view into a shadow root and use the same shell, so
+   * their generic class names cannot collide with the portal's Bootstrap
+   * styles. The shell is fixed and full-height; the view scrolls inside it.
    * ------------------------------------------------------------------ */
 
-  let overviewStyles = null;
-  let overviewOpening = false;
+  const overlayStyles = new Map();
+  let overlayOpening = false;
 
-  /** Cached once per page: injected as <style> so the panel never flashes. */
-  function loadOverviewStyles() {
-    if (!overviewStyles) {
-      overviewStyles = fetch(chrome.runtime.getURL("overview.css"))
-        .then((response) => (response.ok ? response.text() : ""))
-        .catch(() => "");
-    }
-    return overviewStyles;
+  /** Cached per file: injected as <style> so the panel never flashes. */
+  function loadOverlayStyles(files) {
+    return Promise.all(
+      files.map((file) => {
+        if (!overlayStyles.has(file)) {
+          overlayStyles.set(
+            file,
+            fetch(chrome.runtime.getURL(file))
+              .then((response) => (response.ok ? response.text() : ""))
+              .catch(() => ""),
+          );
+        }
+        return overlayStyles.get(file);
+      }),
+    ).then((parts) => parts.join("\n"));
   }
 
-  async function openOverviewOverlay() {
-    if (overviewOverlay || overviewOpening || !hasExtensionApis) return;
-    // The overlay covers the page the tour is pointing at.
-    state.tour?.end("overview");
-    overviewOpening = true;
+  async function openOverlay({ kind, label, stylesheets, mount }) {
+    if (!hasExtensionApis || overlayOpening) return;
+    if (activeOverlay) closeOverlay();
+    overlayOpening = true;
 
     try {
-      const css = await loadOverviewStyles();
+      const css = await loadOverlayStyles(stylesheets);
 
       const overlay = document.createElement("div");
       overlay.className = "onejob-overview-overlay";
 
       const backdrop = document.createElement("div");
       backdrop.className = "onejob-overview-backdrop";
-      backdrop.addEventListener("click", closeOverviewOverlay);
+      backdrop.addEventListener("click", closeOverlay);
 
       const panel = document.createElement("div");
       panel.className = "onejob-overview-panel";
       panel.setAttribute("role", "dialog");
       panel.setAttribute("aria-modal", "true");
-      panel.setAttribute("aria-label", "Pinned resources overview");
+      panel.setAttribute("aria-label", label);
 
       const host = document.createElement("div");
       host.className = "onejob-overview-host";
 
-      // The overview markup and stylesheet are shared with overview.html; the
-      // shadow root keeps its generic class names out of the portal.
       const shadow = host.attachShadow({ mode: "open" });
       const styles = document.createElement("style");
       styles.textContent = css;
@@ -807,29 +843,57 @@
       const previousOverflow = document.documentElement.style.overflow;
 
       document.documentElement.style.overflow = "hidden";
-      document.addEventListener("keydown", onOverviewKeydown, true);
+      document.addEventListener("keydown", onOverlayKeydown, true);
       document.body.appendChild(overlay);
 
-      overviewOverlay = {
-        overlay,
-        previousFocus,
-        previousOverflow,
-        view: OneJobOverviewView.mount(root, {
-          variant: "panel",
-          onClose: closeOverviewOverlay,
-        }),
-      };
+      try {
+        activeOverlay = {
+          kind,
+          overlay,
+          previousFocus,
+          previousOverflow,
+          view: mount(root, { variant: "panel", onClose: closeOverlay }),
+        };
+      } catch (error) {
+        document.removeEventListener("keydown", onOverlayKeydown, true);
+        document.documentElement.style.overflow = previousOverflow;
+        overlay.remove();
+        throw error;
+      }
     } finally {
-      overviewOpening = false;
+      overlayOpening = false;
     }
   }
 
-  function closeOverviewOverlay() {
-    if (!overviewOverlay) return;
-    const { overlay, previousFocus, previousOverflow, view } = overviewOverlay;
-    overviewOverlay = null;
+  function openOverviewOverlay() {
+    if (activeOverlay?.kind === "overview" || overlayOpening) return;
+    // The overlay covers the page the tour is pointing at.
+    state.tour?.end("overview");
+    openOverlay({
+      kind: "overview",
+      label: "Pinned resources overview",
+      stylesheets: ["overview.css"],
+      mount: (root, options) => OneJobOverviewView.mount(root, options),
+    });
+  }
 
-    document.removeEventListener("keydown", onOverviewKeydown, true);
+  function openStatsOverlay() {
+    if (activeOverlay?.kind === "stats" || overlayOpening || !globalThis.OneJobStatsView) return;
+    state.tour?.end("statistics");
+    openOverlay({
+      kind: "stats",
+      label: cfg.stats?.label || "Resource statistics",
+      stylesheets: ["overview.css", "stats.css"],
+      mount: (root, options) => globalThis.OneJobStatsView.mount(root, options),
+    });
+  }
+
+  function closeOverlay() {
+    if (!activeOverlay) return;
+    const { overlay, previousFocus, previousOverflow, view } = activeOverlay;
+    activeOverlay = null;
+
+    document.removeEventListener("keydown", onOverlayKeydown, true);
     document.documentElement.style.overflow = previousOverflow;
     view.destroy();
     overlay.remove();
@@ -837,10 +901,10 @@
     if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
   }
 
-  function onOverviewKeydown(event) {
+  function onOverlayKeydown(event) {
     if (event.key !== "Escape") return;
     event.stopPropagation();
-    closeOverviewOverlay();
+    closeOverlay();
   }
 
   /* ------------------------------------------------------------------ *

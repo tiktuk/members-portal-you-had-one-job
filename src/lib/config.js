@@ -57,6 +57,27 @@
     overview: { shortcut: "alt+o" },
 
     /**
+     * The resource statistics screen, opened from the Resources menu (and the
+     * `shortcut`). Periods end today; bookings are fetched whole-month at a
+     * time and the compact times are cached in `onejob:stats-cache`. `bands`
+     * are booked hours per day, matching the colour scale on the resource
+     * tiles.
+     */
+    stats: {
+      label: "Resource statistics",
+      shortcut: "alt+s",
+      defaultPeriod: "12m",
+      bands: [0.5, 1.5, 3],
+      /** The current month changes; past months change rarely. */
+      cacheTtlMs: 15 * 60 * 1000,
+      pastCacheTtlMs: 24 * 60 * 60 * 1000,
+      /** Parallel month requests; the portal handles a handful at a time. */
+      concurrency: 3,
+      /** Drop the oldest cached months above this many characters of JSON. */
+      maxCacheBytes: 2000000,
+    },
+
+    /**
      * The one-time pinning tour on the first portal visit. `version` is the
      * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
      * again after rewriting it. The tour opens the Resources menu itself, so it
@@ -110,6 +131,8 @@
       groupsTtlMs: 6 * 60 * 60 * 1000,
       /** Bump to invalidate cached payloads after changing their shape. */
       groupsVersion: 3,
+      /** Shape of the statistics cache; bump when its records change. */
+      statsVersion: 1,
     },
 
     /**
@@ -173,6 +196,12 @@
        * { accessToken, webAddress, origin, expiresAt, savedAt }.
        */
       session: "onejob:session",
+      /**
+       * Cached statistics: { version, webAddress, months: { "YYYY-MM":
+       * { fetchedAt, records: [[id, resourceId, start, end], ...] } } }.
+       * Booking times only; no member names.
+       */
+      statsCache: "onejob:stats-cache",
       refreshRequest: "onejob:refresh-request",
       /** Timestamp written by the popup's "Replay the pinning tour" button. */
       tourRequest: "onejob:tour-request",

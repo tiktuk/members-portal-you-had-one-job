@@ -6,7 +6,7 @@ Nexudus space lives on its own domain, so the build is tied to one portal; see
 [Using it on another space](#using-it-on-another-space) to retarget it. See
 [CHANGELOG.md](CHANGELOG.md) for the version history.
 
-It does six things:
+It does seven things:
 
 1. **Resource filters in the main menu.** A new **Resources** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -41,15 +41,21 @@ It does six things:
    with **Alt+O** anywhere on the portal page; the toolbar popup opens the same
    overview as a standalone page in a new tab. Each card's title links to the
    single-resource calendar, and its × button unpins the resource.
-4. **Calendar by default.** Bookings links open the calendar view instead of the
+4. **Resource statistics.** The bottom of the **Resources** menu has a
+   **Resource statistics** row (or press **Alt+S**). It opens a screen with a
+   daily heatmap for the last 12 months, every published resource colour-coded
+   by booked hours per day, weekday and time-of-day charts, a booking-length
+   distribution and summary tiles. Switch the period between 4 weeks, 3 months
+   and 12 months; click a resource tile to open its single-resource calendar.
+5. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
-5. **No location prompt.** The portal asks for the browser location on every
+6. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
    makes the portal skip the request instead of prompting. The popup's *Block
    location prompt* toggle turns this off.
-6. **Luma events.** With the *Luma events* toggle on, the pinned overview also
+7. **Luma events.** With the *Luma events* toggle on, the pinned overview also
    merges MotionLab.Berlin's upcoming Luma events into every card and the
    **My bookings** card, with a purple *Event* badge. Expanding a row loads its
    description and links to the event on Luma, like the Django dashboard. The
@@ -73,6 +79,8 @@ Bookings ▾   Resources ▾   Booking Overview   Store ▾   Memberships   Comm
               │ CNC Machining › Metal Lab    ›               │
               │ Laser Cutting › Outdoor Lab  ›               │
               │ …               …                            │
+              │ ──────────────────────────────────────────── │
+              │ Resource statistics                          │
               └──────────────────────────────────────────────┘
 ```
 
@@ -95,6 +103,15 @@ resource:
 badge:
 
 ![The pinned overview with Luma events](docs/screenshots/overview-events.png)
+
+**Resource statistics** — a 12-month heatmap, weekday and time-of-day charts,
+and every resource colour-coded by booked hours per day:
+
+![Resource statistics](docs/screenshots/statistics.png)
+
+**Every resource at once** — busier resources are darker, quiet ones stay grey:
+
+![Resource tiles colour-coded by booked hours](docs/screenshots/statistics-resources.png)
 
 **The toolbar popup** — four toggles, the pin count and the overview link:
 
@@ -175,6 +192,11 @@ the *Block location prompt* and *Luma events* toggles.
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`onejob-resource`). |
 | `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
+| `stats.label` | Text of the statistics row at the bottom of the Resources menu (default `Resource statistics`). |
+| `stats.shortcut` | Key combo that opens the statistics screen from the portal (`alt+s`). |
+| `stats.defaultPeriod` | Period the screen opens with (`12m`); the buttons offer `4w`, `3m` and `12m`. |
+| `stats.bands` | Booked-hours-per-day thresholds for the resource colour scale (`[0.5, 1.5, 3]`). |
+| `stats.cacheTtlMs` / `stats.pastCacheTtlMs` | How long cached statistics stay fresh: 15 minutes for the current month, 24 hours for past months. |
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
 | `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
@@ -251,6 +273,20 @@ overlay. The overlay mounts the same module into a shadow root, so its generic
 class names (`.card`, `.notice`, `.button`) cannot collide with the portal's
 Bootstrap styles in either direction.
 
+The **Resource statistics** screen uses the same booking feed, one request per
+whole calendar month for the selected period (4 weeks, 3 months or 12 months,
+ending today). It keeps only `id`, `resourceId`, `start` and `end` from each
+record and caches those per month in `onejob:stats-cache` (the current month for
+15 minutes, past months for 24 hours, no member names), so reopening is
+instant. The model clips bookings to the period, splits them across local days
+and hours, and attributes them only to the published resources from
+`/api/public/resources/published/details`. The colour scale is booked hours per
+day (`0`, `≤0.5`, `≤1.5`, `≤3`, `>3`), and the heatmap's intensity uses the
+95th percentile of daily hours so one outlier does not wash out the rest.
+Workshop reservations and Luma events are not included. The model lives in
+`src/lib/stats.js`; the screen in `src/lib/stats-view.js` and `src/stats.css`;
+the overlay shell is shared with the pinned overview.
+
 Three scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
@@ -286,14 +322,15 @@ view picker keep working.
 ## Development
 
 ```bash
-npm test                       # node --test (URL logic, menu model, overview, Luma, manifest, popup)
+npm test                       # node --test (URL logic, menu model, overview, statistics, Luma, manifest, popup)
 python3 scripts/make-icons.py  # regenerate icons
 npm run build                  # dist/chrome, zip, Safari Xcode project
 ```
 
 `tests/fixture.html` is a harness that mirrors the portal navigation and stubs
-the extension APIs, the resources endpoint and the overview endpoints, so the
-menu and the overview overlay can be inspected without signing in:
+the extension APIs, the resources endpoint and the overview/statistics
+endpoints, so the menu, the overview overlay and the statistics screen can be
+inspected without signing in:
 
 ```bash
 python3 -m http.server 8765    # from this folder
@@ -320,6 +357,13 @@ tour as already seen.
   pinning works* at the bottom of the **Resources** menu, or *Replay* in the
   popup. It also waits for the Resources menu, so it cannot run while that toggle
   is off or before the resource groups have loaded.
+- **Statistics is missing from the menu** — it is the **Resource statistics** row
+  at the bottom of the **Resources** menu. If that menu is switched off, press
+  **Alt+S** or turn the menu back on in the popup.
+- **Statistics shows no bookings** — the portal's booking feed only returns the
+  months it has data for, and the screen counts bookings on published resources
+  only. Try the 3-month period; if the screen says the session expired, open the
+  portal once and press *Refresh*.
 - **Overview says “Connect to the members portal”** — the extension has no
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session

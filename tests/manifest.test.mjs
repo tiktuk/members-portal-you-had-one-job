@@ -91,16 +91,19 @@ test("content script loads shared libraries before itself", () => {
     "lib/url.js",
     "lib/groups.js",
     "lib/overview.js",
+    "lib/stats.js",
     "lib/overview-view.js",
+    "lib/stats-view.js",
     "lib/tour.js",
     "content.js",
   ]);
   assert.equal(entry.run_at, "document_start");
 });
 
-test("the overview stylesheet is web accessible to the shadow root", () => {
+test("the overlay stylesheets are web accessible to the shadow roots", () => {
   const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
   assert.ok(resources.includes("overview.css"));
+  assert.ok(resources.includes("stats.css"));
 });
 
 test("popup loads the shared config", () => {

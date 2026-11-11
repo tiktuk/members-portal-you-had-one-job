@@ -67,27 +67,34 @@ dashboard's notes field and, if they need to live on disk, into
 ## Layout
 
 - `src/manifest.json` — MV3 manifest; content scripts load `lib/config.js`,
-  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/overview-view.js`,
-  `lib/tour.js` **before** `content.js` (classic scripts, shared via
-  `globalThis`).
+  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/stats.js`,
+  `lib/overview-view.js`, `lib/stats-view.js`, `lib/tour.js` **before**
+  `content.js` (classic scripts, shared via `globalThis`).
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
 - `src/lib/overview.js` — bookings/events/Luma payloads → pinned-overview model
   and personal-bookings model (day sections, timestamp parsing, icons); loaded
   by the page and the tests.
+- `src/lib/stats.js` — bookings → resource-statistics model (periods, month
+  keys, day/hour buckets, colour bands, heatmap weeks); pure, loaded by the
+  content script and the tests.
 - `src/lib/luma.js` — Luma public API helpers (source parsing, list/event URLs,
   ProseMirror description flattening); loaded by the background worker and the
   tests, never by the page.
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
   `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
+- `src/lib/stats-view.js` — the resource-statistics UI (periods, month fetching,
+  cache, heatmap, charts, resource grid) as `OneJobStatsView.mount(root)`; only
+  mounted in the in-portal overlay.
 - `src/lib/tour.js` — the first-run pinning tour's card, steps and geometry
   (`OneJobTour.start` / `OneJobTour.place`); loaded by the content script and the
   tests, never by the page.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins (the strip and the menu's pin
-  buttons), the pins strip, settings, and the overview overlay.
+  buttons), the pins strip, settings, the shared overlay shell and both
+  overlays (pinned overview and resource statistics).
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
@@ -96,7 +103,10 @@ dashboard's notes field and, if they need to live on disk, into
   portal registrations with their host permissions on install/startup.
 - `src/overview.html` / `overview.js` — standalone pinned resources page; the
   body is empty and `overview.js` mounts the shared view into it.
-- `src/overview.css` — stylesheet for both variants (page and overlay).
+- `src/overview.css` — stylesheet for both overview variants (page and overlay).
+- `src/stats.css` — the statistics screen's own styles, loaded after
+  `overview.css` in the same shadow root so it can reuse the palette, header,
+  buttons, notices and footer.
 - `src/popup.*` — toolbar settings UI (four toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
@@ -351,6 +361,62 @@ dashboard's notes field and, if they need to live on disk, into
   Its scripts do not need to be listed (they load from the extension origin).
 - Unpinning from the page writes the same `onejob:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.
+
+## Resource statistics
+
+- **Entry point:** the bottom of the Resources menu (`renderMenuContent`), so it
+  is mirrored in the mobile sheet. `openStatsOverlay()` in `content.js` closes
+  the menu and mounts `OneJobStatsView` into the shared overlay shell. **Alt+S**
+  (`config.stats.shortcut`) opens it even when the Resources menu is switched
+  off. There is deliberately no separate nav item or popup link.
+- **Data:** bookings from
+  `GET /en/bookings/fullCalendarBookings?showAll=&start=…&end=…`, one request per
+  **whole calendar month** (the current month ends at `now`). Resources come
+  from `/api/public/resources/published/details` (fetched by the view itself,
+  because `onejob:groups` is only written while the Resources menu is enabled);
+  `onejob:groups.resources` is the fallback when that fetch fails. Only bookings
+  whose `resourceId` is in the published list are counted; workshop
+  reservations (`fullCalendarEvents`) and Luma events are not.
+- **Periods:** 4 weeks, 3 months and 12 months, ending today. `lib/stats.js`
+  returns the month keys, and `stats-view.js` fetches the missing/stale months
+  with `config.stats.concurrency` workers. Records are deduped by `id` because
+  the feed returns bookings that overlap the range, so a booking can appear in
+  two month chunks.
+- **Model:** `lib/stats.js::aggregate` clips each booking to the period, splits
+  its hours across local days and hours, and returns totals, day buckets,
+  weekday/hour buckets, booking-length buckets, per-resource bookings/hours/
+  `rate`/`share`/`activeDays`/`band`, and the busiest day/weekday/hour. A
+  booking that spans midnight counts on each day it touches, so the heatmap's
+  daily counts can sum to more than the period total. The resource `rate` is
+  booked hours per calendar day of the period; the colour bands are `0`,
+  `≤0.5`, `≤1.5`, `≤3`, `>3 h/day` (`config.stats.bands`). `heatmap()` aligns
+  weeks to Monday and uses the 95th percentile of daily hours as its intensity
+  scale.
+- **Cache:** `onejob:stats-cache` is
+  `{ version, webAddress, months: { "YYYY-MM": { fetchedAt, records: [[id, resourceId, start, end], …] } } }`.
+  `config.cache.statsVersion` invalidates the shape; the current month is fresh
+  for `config.stats.cacheTtlMs` (15 min), past months for
+  `config.stats.pastCacheTtlMs` (24 h). Refresh forces the selected period. The
+  cache is pruned to the newest 13 months and capped at
+  `config.stats.maxCacheBytes` (~2 MB); it stores no member names.
+- **Overlay shell:** `openOverlay()` in `content.js` builds the same
+  `.onejob-overview-overlay` shell for both screens, loads the stylesheet text
+  once per file (`overview.css`, plus `stats.css` for statistics) and mounts the
+  view with `onClose`. `activeOverlay.kind` stops the same screen from opening
+  twice; opening the other closes the first. `stats.css` must stay in
+  `web_accessible_resources` so the content script can fetch it.
+- **Layout:** the stats root also carries `.overview` (palette, header, buttons,
+  notices, footer) and `.is-panel`. `stats.css` adds the period pills, summary
+  tiles, heatmap, charts, length bars, resource tiles and band colours. The
+  heatmap scrolls inside `.stats-heatmap`; `min-width: 0` on `.stats`, the
+  overlay panel and the host stops the year grid from widening the whole
+  overlay on narrow windows.
+- **Tests:** `tests/stats.test.mjs` covers periods (including month-end), month
+  keys, normalisation/dedupe, clipping, midnight/day/hour splits, length
+  buckets, bands, zero-booking resources, heatmap alignment/levels and empty
+  data. `tests/fixture.html` filters the fixture bookings by the requested
+  range; `tests/screenshots.html` generates a deterministic year of invented
+  bookings when `window.__statsMode` is set by clicking the stats menu row.
 
 ## First-run onboarding
 

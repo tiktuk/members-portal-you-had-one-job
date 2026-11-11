@@ -41,6 +41,8 @@ FEATURES
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
+• Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar.
+
 • Calendar by default — booking links open the calendar view instead of the list. Picking "List" in the portal's own View dropdown still works and is remembered for the tab.
 
 • No location prompt — the portal asks for your browser location on every page load. The extension stops that prompt. It never reads or stores your location, and the toolbar popup has a toggle to bring the prompt back.
@@ -53,7 +55,8 @@ HOW TO USE
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
-5. The toolbar icon opens the same overview as a full page, lists your pins, and holds the four toggles.
+5. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
+6. The toolbar icon opens the overview as a full page, lists your pins, and holds the four toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
 
@@ -73,6 +76,10 @@ Found a bug or have a suggestion? Open an issue at https://github.com/tiktuk/mem
 Version 1.0.2 — first release in the Chrome Web Store. Asks only for the one portal and the space's public events calendar.
 ```
 
+<!-- Unreleased: resource statistics (the next submission). Bump package.json
+     and src/manifest.json to 1.1.0, add a version-history row and update the
+     version line above when this is submitted. -->
+
 **Category** [REQUIRED]
 
 ```
@@ -82,7 +89,7 @@ Productivity
 **Single Purpose** [REQUIRED]
 
 ```
-Makes booking a shared resource on a Nexudus members portal faster by adding resource filters, a pin list and single-resource calendars.
+Makes booking a shared resource on a Nexudus members portal faster by adding resource filters, a pin list, single-resource calendars and resource usage statistics.
 ```
 
 **Primary Language** [REQUIRED]
@@ -99,8 +106,8 @@ English
 | Screenshot 1 [REQUIRED] | 1280×800 | ✅ Ready | `docs/screenshots/filters-menu.png` |
 | Screenshot 2 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview.png` |
 | Screenshot 3 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview-events.png` |
-| Screenshot 4 | 1280×800 or 640×400 | ⬜ Not created | |
-| Screenshot 5 | 1280×800 or 640×400 | ⬜ Not created | |
+| Screenshot 4 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics.png` |
+| Screenshot 5 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics-resources.png` |
 | Small Promo Tile [RECOMMENDED] | 440×280 | ⬜ Not created | |
 | Marquee Promo Tile | 1400×560 | ⬜ Not created | |
 
@@ -110,7 +117,7 @@ English
 
 ### Screenshot Notes
 
-All three are 1280×800 captures of `tests/screenshots.html`, which mirrors the
+All five are 1280×800 captures of `tests/screenshots.html`, which mirrors the
 portal with an invented space, invented members and invented bookings, so no
 member data appears in a public listing. Order them:
 
@@ -118,6 +125,10 @@ member data appears in a public listing. Order them:
    and groups. This is the feature that sells the extension.
 2. `overview.png` — the pinned overview with My bookings and resource cards.
 3. `overview-events.png` — the same view with the space's events merged in.
+4. `statistics.png` — the statistics header, summary tiles, year heatmap and
+   weekday/time-of-day charts.
+5. `statistics-resources.png` — every resource colour-coded by booked hours per
+   day, from grey (unbooked) to the busiest.
 
 Regenerate with `python3 -m http.server 8765` and the capture steps in
 `tests/screenshots.html` if the UI changes; outdated screenshots are a
@@ -129,14 +140,14 @@ rejection reason.
      and it renders plain text: a markdown table pastes as pipes, a fenced block
      as backticks. Paste the block below verbatim. -->
 
-**Permissions justification** — 674 of 1,000 characters
+**Permissions justification** — 770 of 1,000 characters
 
 ```
-storage: keeps pins, the four popup toggles, a cached resource list and the portal session on their device. Local only; nothing synced or sent.
-https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu and the overview cards. JSON only, no HTML.
+storage: keeps pins, the four popup toggles, a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
+https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
-web_accessible_resources https://members.motionlab.berlin/*: the page script and overview page must load into that portal page.
+web_accessible_resources https://members.motionlab.berlin/*: the page script, overview page and statistics stylesheet must load into that portal page.
 ```
 
 <!-- Keep every permission to its own sentence when editing — the reviewer
@@ -147,20 +158,20 @@ web_accessible_resources https://members.motionlab.berlin/*: the page script and
 ### Data Collection
 
 **Does the extension collect user data?** Yes — it handles the member's portal
-session and the booking records shown in the overview. Nothing leaves the
-device except requests to the member's own portal and the space's public event
-calendar.
+session, the booking records shown in the overview and the booking times
+aggregated for the statistics screen. Nothing leaves the device except requests
+to the member's own portal and the space's public event calendar.
 
 | Data Type | Collected? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
 |-----------|-----------|------------------------|---------|---------------------------|
-| Personally identifiable info | Yes | No | Names of coworkers already visible on the portal's own calendar are shown on bookings in the overview. Fetched from the member's portal, displayed, not stored. | No |
+| Personally identifiable info | Yes | No | Names of coworkers already visible on the portal's own calendar are shown on bookings in the overview. Fetched from the member's portal, displayed, not stored; the statistics cache stores no names. | No |
 | Health info | No | No | — | No |
 | Financial info | No | No | — | No |
 | Authentication info | Yes | To the member's own portal only | The portal session token is kept on the device so the overview page can read the member's bookings without reopening the portal. It is sent only in requests to the member's own Nexudus space, and never to the developer or any other party. | No |
 | Personal communications | No | No | — | No |
 | Location | No | No | The extension never reads the location. It suppresses the portal's own location prompt; the toggle in the popup restores it. | No |
 | Web history | No | No | No history API is used. The extension runs on one portal and reads nothing else. | No |
-| User activity | Yes | To the member's own portal only | The member's own bookings are read to fill the My bookings card. Not stored, not transmitted anywhere else. | No |
+| User activity | Yes | To the member's own portal only | The member's own bookings are read to fill the My bookings card, and booking times for published resources are read to build the statistics screen. Those times are cached locally (resource id, start and end; no member names). Not transmitted anywhere else. | No |
 | Website content | Yes | No | The portal's own navigation labels and URL are read to build the Resources menu and keep the calendar view. Stays on the device. | No |
 
 ### Data Use Certification
@@ -257,7 +268,12 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
 4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
-5. The toolbar popup has four toggles: calendar as default view, the Resources
+5. Open the bottom of the Resources menu and choose "Resource statistics" (or
+   press Alt+S). It loads the last 12 months from the portal's booking feed and
+   shows the heatmap, the charts and every published resource colour-coded by
+   booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
+   period; a resource tile opens that resource's calendar.
+6. The toolbar popup has four toggles: calendar as default view, the Resources
    menu, Luma events and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
@@ -279,6 +295,11 @@ space's own booking API subdomain.
 - **Luma events are tied to one calendar.** `config.luma.source` is
   MotionLab.Berlin's public Luma calendar, so the overview hides its *Show
   events* checkbox on any other origin.
+- **Statistics covers published resources only.** The portal's booking feed also
+  returns bookings for resources that are not in the published resource list
+  (for example internal or retired resources); the statistics screen ignores
+  those, because it only shows resources a member can book. Workshop
+  reservations and Luma events are not included either.
 - **"Nexudus" in the description.** The name avoids the trademark, and the
   description uses the platform name only to say what the extension works with.
   Do not put it in the extension name.

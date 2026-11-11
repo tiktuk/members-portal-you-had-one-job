@@ -347,17 +347,83 @@
 
       const json = (payload) => ({ ok: true, status: 200, json: async () => payload });
       const realFetch = window.fetch.bind(window);
+
+      // A year of invented bookings for the statistics screenshot. Deterministic
+      // so a regenerated image looks the same.
+      window.__statsMode = false;
+      const statsBookings = (target) => {
+        const url = new URL(target);
+        const start = new Date(url.searchParams.get("start"));
+        const end = new Date(url.searchParams.get("end"));
+        const resources = window.__fixturePayload.Resources.map((resource) => resource.Id);
+        // Weight the pool so the screenshot shows the whole colour scale: a
+        // few very busy resources, a tail of quiet ones and two with no
+        // bookings at all.
+        const weights = [15, 10, 7, 5, 4, 3, 2, 1, 1, 1, 0, 0];
+        const pool = [];
+        resources.forEach((id, position) => {
+          const weight = weights[position % weights.length];
+          for (let copy = 0; copy < weight; copy += 1) pool.push(id);
+        });
+        const records = [];
+        let index = 0;
+        const day = new Date(start);
+        day.setHours(0, 0, 0, 0);
+
+        while (day < end) {
+          const weekend = day.getDay() === 0 || day.getDay() === 6;
+          const count = Math.max(0, (weekend ? 2 : 6) + ((index * 7) % 5) - 2);
+          for (let slot = 0; slot < count; slot += 1) {
+            const resourceId = pool[(index * 3 + slot * 7) % pool.length];
+            const hour = 8 + ((index + slot * 5) % 12);
+            const length = [0.5, 1, 2, 3, 4, 8][(index + slot) % 6];
+            const from = new Date(day);
+            from.setHours(hour, 0, 0, 0);
+            const to = new Date(from.getTime() + length * 3600000);
+            if (to > end) continue;
+            records.push({
+              // Unique across months: the statistics model de-duplicates by id.
+              id: `${from.getTime()}-${resourceId}-${slot}`,
+              resourceId,
+              start: from.toISOString(),
+              end: to.toISOString(),
+              coworkerFullName: "Fixture member",
+            });
+          }
+          day.setDate(day.getDate() + 1);
+          index += 1;
+        }
+        return records;
+      };
+
       window.fetch = async (url, init) => {
         const target = String(url);
         // Extension resources (overview.css) are served by the dev server.
         if (target.includes("/src/")) {
           return realFetch(`${target}${target.includes("?") ? "&" : "?"}t=${Date.now()}`, init);
         }
-        if (target.includes("fullCalendarBookings")) return json(window.__fixtureBookings);
+        if (target.includes("fullCalendarBookings")) {
+          return json(window.__statsMode ? statsBookings(target) : window.__fixtureBookings);
+        }
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
         return json(window.__fixturePayload);
       };
+
+      // The statistics screen needs a full year of invented bookings; the
+      // overview screenshots keep the small fixture list. Both are in the same
+      // endpoint, so the mode follows the entry point that was clicked.
+      document.addEventListener(
+        "click",
+        (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (target?.closest(".onejob-menu-stats-button")) window.__statsMode = true;
+          if (target?.closest("#onejob-overview-nav-item, #onejob-overview-dock-button")) {
+            window.__statsMode = false;
+          }
+        },
+        true,
+      );
     </script>
     <script src="/src/lib/config.js"></script>
     <script>
@@ -368,7 +434,9 @@
     <script src="/src/lib/url.js"></script>
     <script src="/src/lib/groups.js"></script>
     <script src="/src/lib/overview.js"></script>
+    <script src="/src/lib/stats.js"></script>
     <script src="/src/lib/overview-view.js"></script>
+    <script src="/src/lib/stats-view.js"></script>
     <script src="/src/lib/tour.js"></script>
     <script src="/src/content.js"></script>
   </body>
