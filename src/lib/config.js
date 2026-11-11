@@ -57,6 +57,14 @@
     overview: { shortcut: "alt+o" },
 
     /**
+     * The one-time pinning tour on the first portal visit. `version` is the
+     * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
+     * again after rewriting it. The tour opens the Resources menu itself, so it
+     * cannot run while that menu is switched off.
+     */
+    onboarding: { enabled: true, version: 1, delayMs: 900 },
+
+    /**
      * Upcoming Luma events merged into the overview cards, mirroring the
      * Django app's `Space.luma_source`. A public Luma user (`usr-…`) or
      * calendar (`cal-…`) API ID, or any luma.com URL containing one.
@@ -166,6 +174,8 @@
        */
       session: "onejob:session",
       refreshRequest: "onejob:refresh-request",
+      /** Timestamp written by the popup's "Replay the pinning tour" button. */
+      tourRequest: "onejob:tour-request",
       /** Mirror of `settings` in the page's localStorage (read synchronously). */
       settingsCache: "onejob:settings-cache",
       /** sessionStorage marker for the pinned resource of the current tab. */

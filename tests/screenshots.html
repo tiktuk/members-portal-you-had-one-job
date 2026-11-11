@@ -200,7 +200,8 @@
         ],
       };
 
-      const settings = { calendarDefault: true, navMenu: true, lumaEvents: false, geoBlockPrompt: true };
+      // The pinning tour must never appear in a README or store capture.
+      const settings = { calendarDefault: true, navMenu: true, lumaEvents: false, geoBlockPrompt: true, onboardingVersion: 1 };
       const store = {
         "onejob:settings": settings,
         "onejob:pins": [
@@ -368,6 +369,7 @@
     <script src="/src/lib/groups.js"></script>
     <script src="/src/lib/overview.js"></script>
     <script src="/src/lib/overview-view.js"></script>
+    <script src="/src/lib/tour.js"></script>
     <script src="/src/content.js"></script>
   </body>
 </html>

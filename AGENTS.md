@@ -67,8 +67,9 @@ dashboard's notes field and, if they need to live on disk, into
 ## Layout
 
 - `src/manifest.json` — MV3 manifest; content scripts load `lib/config.js`,
-  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/overview-view.js`
-  **before** `content.js` (classic scripts, shared via `globalThis`).
+  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/overview-view.js`,
+  `lib/tour.js` **before** `content.js` (classic scripts, shared via
+  `globalThis`).
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
@@ -81,6 +82,9 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
   `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
+- `src/lib/tour.js` — the first-run pinning tour's card, steps and geometry
+  (`OneJobTour.start` / `OneJobTour.place`); loaded by the content script and the
+  tests, never by the page.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins (the strip and the menu's pin
   buttons), the pins strip, settings, and the overview overlay.
@@ -93,8 +97,8 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/overview.html` / `overview.js` — standalone pinned resources page; the
   body is empty and `overview.js` mounts the shared view into it.
 - `src/overview.css` — stylesheet for both variants (page and overlay).
-- `src/popup.*` — toolbar settings UI (four toggles, group cache status, link to
-  the pinned overview).
+- `src/popup.*` — toolbar settings UI (four toggles, the tour replay row, group
+  cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
   images, with invented members, machines and bookings). Both run from
@@ -241,7 +245,8 @@ dashboard's notes field and, if they need to live on disk, into
   instead. The check runs on every ensure pass, and `resize` schedules one,
   because the portal only adds `d-lg-flex` from 992px up.
 - The menu exposes individual resources through the group chevron; the pin
-  button is hover/focus-visible on desktop and always visible on touch.
+  button is always visible (dimmed at `opacity: 0.55`, full on hover/focus and
+  when pinned) because hover-only hid the one affordance people needed to find.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts
@@ -343,6 +348,50 @@ dashboard's notes field and, if they need to live on disk, into
   Its scripts do not need to be listed (they load from the extension origin).
 - Unpinning from the page writes the same `onejob:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.
+
+## First-run onboarding
+
+- Pinning was invisible to a tester: the only ways in were the group chevron and
+  a pin icon that appeared on row hover. `src/lib/tour.js` is a one-time,
+  non-modal tour that opens the menu itself and walks from the group arrow to
+  the pin button to the chip in the strip. The pin button is now visible at
+  `opacity: 0.55` without hovering.
+- No backdrop. The targets sit inside the portal's navbar and inside our own
+  dropdown, so darkening the page needs z-index surgery on React-rendered
+  ancestors. The card floats next to the target and the target gets
+  `.onejob-tour-target` (outline + pulse, which respects
+  `prefers-reduced-motion`).
+- Step targets are **getters**, called on every 250 ms position tick: `fillMenu`
+  rebuilds the rows whenever pins or the route change, so a stored element
+  reference goes stale. `lib/tour.js::place()` is pure and covered by
+  `tests/tour.test.mjs`.
+- A step's `enter` runs before its target is looked up. That is how step 2 opens
+  the menu and expands the group (`openTourMenu()`), and how step 4 closes it so
+  the strip is visible. `openTourMenu()` prefers the navbar item only when
+  `isVisible()` — below 1200 px the portal hides the navbar but leaves the DOM
+  in place, and the tour must use the dock's sheet instead. The sheet renders
+  the same `renderMenuContent`, so the selectors carry over.
+- `settings.onboardingVersion` (`onejob:settings`, default 0) is the seen marker;
+  `config.onboarding.version` is the current tour. Bump the config value to show
+  the tour again after a rewrite. It is written **when the intro is shown**, not
+  when the tour ends: clicking a resource name mid-tour navigates away, and that
+  is the exact habit the tour is about, so it must not make the tour restart on
+  every page.
+- There are two ways back in: *Show me how pinning works* in the menu footer
+  (`replayTour()`, immediate) and *Replay* in the popup, which writes
+  `onejob:tour-request` (`Date.now()`). `content.js` consumes the request on load
+  and on `chrome.storage.onChanged` (reset to 0, so it runs once) and forces the
+  tour even when it was already seen. The popup refuses with a hint while the
+  Resources menu is switched off, since the tour walks through it.
+- The tour never runs while the Resources menu is switched off, and it defers
+  (without marking itself seen) until groups have loaded and the navigation is
+  on screen. Someone with pins already is marked seen without a tour.
+- Escape, Skip and a click outside the card end it; `onDocumentClick` ignores
+  clicks on the card, and the card's `ignore` selector covers the nav item, the
+  menu, the sheet, the dock, the overview items and the strip so clicking the pin
+  does not end the tour. Pinning during step 3 advances to the strip.
+- `tests/fixture.html?tour=1` forces the tour; without the parameter the fixture
+  store counts it as seen. `tests/screenshots.html` always marks it seen.
 
 ## Luma events
 

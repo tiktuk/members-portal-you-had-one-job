@@ -14,6 +14,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.
+- A one-time tour on the first portal visit. It opens the Resources menu,
+  points at the group arrow, at the pin button, and at the chip in the strip, so
+  pinning is shown instead of hidden behind a chevron. Escape, *Skip* or a click
+  outside ends it. *Show me how pinning works* at the bottom of the Resources
+  menu, and *Replay* in the toolbar popup, start it again.
 
 ### Fixed
 
@@ -24,6 +29,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- Pin icons are visible in the Resources menu without hovering a row. On
+  hover-only they were the one affordance nobody found; the hover background now
+  carries the emphasis instead.
 - The injected menu is called **Resources** instead of **Filters**. The label
   still comes from `config.nav.label`, and the popup rows and the overview's
   empty state now read it from there too instead of repeating it in prose.

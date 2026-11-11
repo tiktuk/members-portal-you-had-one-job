@@ -23,7 +23,10 @@ It does six things:
    horizontal scrolling through every machine of the type, and the pin icon on
    the chip unpins it. While one resource is shown alone, the strip ends with
    *Show all CNC Machining*, which keeps the category in view instead of jumping
-   to the first resource of the whole type.
+   to the first resource of the whole type. The first time you open the portal, a
+   short tour opens the menu and points at the group arrow and the pin icon;
+   *Show me how pinning works* at the bottom of the menu, or *Replay* in the
+   popup, brings it back.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -251,7 +254,7 @@ Three scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
   `calendar` **before the app boots**, injects the menu, caches groups and
-  resources, and stores pins.
+  resources, stores pins and runs the first-run tour (`src/lib/tour.js`).
 - `src/page.js` (page world) patches `history.pushState`/`replaceState` so
   client-side navigation also lands on the calendar, and remembers an explicit
   *List* choice from the portal's *View* dropdown. It also hides
@@ -296,6 +299,9 @@ python3 -m http.server 8765    # from this folder
 open http://localhost:8765/tests/fixture.html
 ```
 
+Add `?tour=1` to watch the first-run tour; without it the fixture counts the
+tour as already seen.
+
 ### Troubleshooting
 
 - **Nothing happens on another space** — the build is tied to one portal (see
@@ -309,6 +315,10 @@ open http://localhost:8765/tests/fixture.html
 - **Only one resource is shown** — a pinned resource is active. Use *Show all
   …* in the pinned strip at the top of the page, or unpin it in the **Resources**
   menu.
+- **The tour does not appear** — it runs once per install; use *Show me how
+  pinning works* at the bottom of the **Resources** menu, or *Replay* in the
+  popup. It also waits for the Resources menu, so it cannot run while that toggle
+  is off or before the resource groups have loaded.
 - **Overview says “Connect to the members portal”** — the extension has no
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session

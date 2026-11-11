@@ -19,6 +19,8 @@
   const refreshButton = document.getElementById("refresh");
   const status = document.getElementById("groups-status");
   const pinsStatus = document.getElementById("pins-status");
+  const tourReplay = document.getElementById("tour-replay");
+  const tourStatus = document.getElementById("tour-status");
   const overviewLink = document.getElementById("overview-link");
 
   init();
@@ -62,6 +64,17 @@
         refreshButton.disabled = false;
         refreshButton.textContent = "Refresh groups";
       }, 2500);
+    });
+
+    tourReplay.addEventListener("click", async () => {
+      if (!navToggle.checked) {
+        tourStatus.textContent = `Turn on “${cfg.nav.label} in the main menu” first — the tour walks through it.`;
+        return;
+      }
+      // The content script consumes this on its next storage change, or on the
+      // next portal load if no portal tab is open.
+      await set(cfg.storageKeys.tourRequest, Date.now());
+      tourStatus.textContent = "Opens on the portal tab; on your next visit if it is closed.";
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {

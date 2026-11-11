@@ -210,6 +210,29 @@ body {
   color: var(--muted);
 }
 
+.tour-row {
+  cursor: default;
+}
+
+.tour-replay {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tour-replay:hover,
+.tour-replay:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .row-text {
   display: block;
   min-width: 0;

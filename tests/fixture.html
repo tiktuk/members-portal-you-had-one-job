@@ -125,6 +125,10 @@
     <div class="fixture-bar" id="fixture-bar"></div>
 
     <script>
+      // `?tour=1` forces the first-run pinning tour; without it the tour counts
+      // as already seen, so a normal fixture reload stays quiet.
+      const fixtureTour = new URLSearchParams(location.search).has("tour");
+
       // Pretend we are on the real portal route.
       history.replaceState(
         {},
@@ -155,7 +159,8 @@
         ],
       };
 
-      const settings = { calendarDefault: true, navMenu: true, lumaEvents: true, geoBlockPrompt: true };
+      // Set onboardingVersion to 0 (or delete it) to watch the first-run tour.
+      const settings = { calendarDefault: true, navMenu: true, lumaEvents: true, geoBlockPrompt: true, onboardingVersion: fixtureTour ? 0 : 1 };
       const store = {
         "onejob:settings": settings,
         "onejob:pins": [],
@@ -304,6 +309,7 @@
     <script src="/src/lib/groups.js"></script>
     <script src="/src/lib/overview.js"></script>
     <script src="/src/lib/overview-view.js"></script>
+    <script src="/src/lib/tour.js"></script>
     <script src="/src/content.js"></script>
   </body>
 </html>

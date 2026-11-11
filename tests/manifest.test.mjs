@@ -92,6 +92,7 @@ test("content script loads shared libraries before itself", () => {
     "lib/groups.js",
     "lib/overview.js",
     "lib/overview-view.js",
+    "lib/tour.js",
     "content.js",
   ]);
   assert.equal(entry.run_at, "document_start");

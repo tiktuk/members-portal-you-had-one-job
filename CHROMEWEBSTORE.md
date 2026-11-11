@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Members portal, you had one job
 
-> Last Updated: 2026-11-06
+> Last Updated: 2026-11-11
 
 Everything below is meant to be copy-pasted into the Chrome Developer Dashboard.
 Source of truth for the store presence: update it whenever the manifest, the
@@ -35,6 +35,8 @@ FEATURES
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
+• First-run tour — the first time you open the portal, a short tour opens the Resources menu and points at the group arrow, the pin icon and the strip, so pinning is shown instead of hidden behind a chevron. Replay it from the bottom of the Resources menu or from the toolbar popup.
+
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
@@ -47,7 +49,7 @@ FEATURES
 
 HOW TO USE
 
-1. Install the extension and open your members portal, signed in as usual.
+1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the bottom of the Resources menu or the toolbar popup.
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.

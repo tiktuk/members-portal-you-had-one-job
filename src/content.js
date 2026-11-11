@@ -13,6 +13,7 @@
   const cfg = globalThis.OneJobConfig;
   const U = globalThis.OneJobUrl;
   const G = globalThis.OneJobGroups;
+  const T = globalThis.OneJobTour;
   if (!cfg || !U || !G) return;
 
   const NAV_ID = "onejob-nav-item";
@@ -27,6 +28,8 @@
     calendarDefault: true,
     navMenu: true,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
+    /** `cfg.onboarding.version` once the pinning tour has been shown. */
+    onboardingVersion: 0,
   };
   const hasExtensionApis = typeof chrome !== "undefined" && Boolean(chrome.runtime && chrome.runtime.id);
 
@@ -49,6 +52,11 @@
     expandedGroups: new Set(),
     signature: "",
     ensureTimer: 0,
+    tour: null,
+    tourStarting: false,
+    tourPending: false,
+    tourRequested: false,
+    tourTimer: 0,
   };
 
   let overviewOverlay = null;
@@ -86,7 +94,9 @@
     observeNav();
     scheduleEnsure();
 
-    if (state.settings.navMenu !== false && cfg.nav.enabled) refreshGroups();
+    if (hasExtensionApis) state.tourRequested = await consumeTourRequest();
+    if (state.settings.navMenu !== false && cfg.nav.enabled) await refreshGroups();
+    scheduleTour();
   }
 
   /* ------------------------------------------------------------------ *
@@ -177,6 +187,7 @@
 
   function ensureNav() {
     ensurePinsBar();
+    if (state.tourPending) maybeStartTour();
 
     const menuEnabled = state.settings.navMenu !== false && cfg.nav.enabled;
     if (menuEnabled) {
@@ -411,6 +422,8 @@
     const item = document.getElementById(NAV_ID);
     if (!item || !item.querySelector(`#${MENU_ID}`)?.classList.contains("show")) return;
     if (item.contains(event.target)) return;
+    // The tour card floats outside the menu but belongs to it.
+    if (state.tour && event.target instanceof Element && event.target.closest("#onejob-tour")) return;
     closeMenu();
   }
 
@@ -548,6 +561,23 @@
     }
 
     content.appendChild(columns);
+
+    // The tour's way back in, where the pin buttons are: the popup link alone
+    // was too easy to miss, and this is the menu the tour walks through.
+    const footer = document.createElement("div");
+    footer.className = "onejob-menu-footer";
+    const replay = document.createElement("button");
+    replay.type = "button";
+    replay.className = "onejob-menu-tour";
+    replay.textContent = "Show me how pinning works";
+    replay.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      replayTour();
+    });
+    footer.appendChild(replay);
+    content.appendChild(footer);
+
     return content;
   }
 
@@ -726,6 +756,8 @@
 
   async function openOverviewOverlay() {
     if (overviewOverlay || overviewOpening || !hasExtensionApis) return;
+    // The overlay covers the page the tour is pointing at.
+    state.tour?.end("overview");
     overviewOpening = true;
 
     try {
@@ -796,6 +828,238 @@
     if (event.key !== "Escape") return;
     event.stopPropagation();
     closeOverviewOverlay();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * First-run pinning tour
+   *
+   * Pinning is the point of the extension, but it lives behind two things
+   * nobody finds on their own: the group chevron and a pin icon that used to
+   * appear only on row hover. The tour opens the menu itself, expands a group
+   * and walks from the chevron to the pin button to the chip in the strip.
+   * ------------------------------------------------------------------ */
+
+  async function consumeTourRequest() {
+    const requested = await storageGet(cfg.storageKeys.tourRequest);
+    if (!requested) return false;
+    // Consume it, so a replay requested while no portal tab was open runs once.
+    await storageSet(cfg.storageKeys.tourRequest, 0);
+    return true;
+  }
+
+  function scheduleTour() {
+    if (!hasExtensionApis || !cfg.onboarding?.enabled || !T) return;
+    clearTimeout(state.tourTimer);
+    state.tourTimer = setTimeout(() => {
+      state.tourTimer = 0;
+      maybeStartTour();
+    }, Number(cfg.onboarding.delayMs) || 900);
+  }
+
+  function maybeStartTour() {
+    if (!hasExtensionApis || !cfg.onboarding?.enabled || !T) return;
+    if (state.tour || state.tourStarting) return;
+    // The tour walks through the menu, so it cannot run without it.
+    if (state.settings.navMenu === false || !cfg.nav.enabled) return;
+
+    const version = Number(cfg.onboarding.version) || 1;
+    const seen = Number(state.settings.onboardingVersion || 0) >= version;
+    if (seen && !state.tourRequested) return;
+
+    const group = tourGroup();
+    const nav = document.getElementById(NAV_ID);
+    const dock = findDock();
+    if (!group || (!isVisible(nav) && !isVisible(dock))) {
+      // Groups or the navigation are not on screen yet; ensureNav retries.
+      state.tourPending = true;
+      return;
+    }
+
+    state.tourPending = false;
+    state.tourRequested = false;
+
+    // Someone who already pinned a resource found the feature on their own.
+    if (!seen && state.pins.length) {
+      markTourSeen();
+      return;
+    }
+
+    state.tourStarting = true;
+    markTourSeen();
+    state.tourStarting = false;
+
+    state.tour = T.start({
+      steps: tourSteps(group),
+      ignore: [
+        `#${NAV_ID}`,
+        `#${MENU_ID}`,
+        `#${SHEET_ID}`,
+        `#${DOCK_ID}`,
+        `#${OVERVIEW_NAV_ID}`,
+        `#${OVERVIEW_DOCK_ID}`,
+        `#${PINS_BAR_ID}`,
+      ].join(", "),
+      onEnd: () => {
+        state.tour = null;
+      },
+    });
+  }
+
+  /** The first group with resources, in the order the menu shows them. */
+  function tourGroup() {
+    if (!state.groups?.resources?.length) return null;
+
+    const list = findNavList();
+    const model = G.buildMenuModel(state.groups.groupsBySlug || {}, list ? readNavTypes(list) : [], {
+      stripPrefix: cfg.nav.stripGroupPrefix,
+      hideEmptyTypes: true,
+    });
+
+    for (const type of model) {
+      for (const group of type.groups) {
+        const resources = resourcesForGroup(type.slug, group.name);
+        if (resources.length) {
+          return {
+            key: groupKey(type.slug, group.name),
+            name: group.name,
+            label: group.label,
+            resource: resources[0],
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  function tourSteps(group) {
+    return [
+      {
+        title: "Book a machine in one click",
+        body: `Pin the machines you use and they wait at the top of every page. A 20-second tour of the ${cfg.nav.label} menu?`,
+        enter: () => {
+          closeMenu();
+          closeSheet();
+        },
+        target: () => tourNavTarget(),
+        primaryLabel: "Show me",
+      },
+      {
+        title: "Groups hide their machines",
+        body: "The arrow next to a group opens its resources. Clicking the group name jumps to that whole group's calendar.",
+        enter: () => {
+          state.expandedGroups.add(group.key);
+          openTourMenu();
+        },
+        target: () => tourGroupToggle(group),
+      },
+      {
+        title: "Pin the one you book most",
+        body: "The name opens the whole group. The pin keeps one machine at the top of every page, one click from its calendar.",
+        target: () => tourResourcePin(group),
+      },
+      {
+        title: "Pinned",
+        body: `Your pin lives here: click it for its calendar, × to unpin it. ${shortcutLabel()} shows every pin with its bookings.`,
+        // The strip sits under the open menu, so step out of the way for it.
+        enter: () => {
+          closeMenu();
+          closeSheet();
+        },
+        target: () => tourPinChip() || tourNavTarget(),
+        primaryLabel: "Got it",
+      },
+    ];
+  }
+
+  /** Starts the tour again from the menu footer or the popup request. */
+  function replayTour() {
+    state.tourRequested = true;
+    state.tourPending = false;
+    maybeStartTour();
+  }
+
+  /** Whichever of the two entry points the current width actually shows. */
+  function tourNavTarget() {
+    const nav = document.getElementById(NAV_ID);
+    if (isVisible(nav)) return nav;
+    const dock = document.getElementById(DOCK_ID);
+    return isVisible(dock) ? dock : nav || dock;
+  }
+
+  /** The open menu, or the open bottom sheet on narrow windows. */
+  function tourMenuRoot() {
+    const menu = document.getElementById(MENU_ID);
+    if (menu && menu.classList.contains("show") && isVisible(menu)) return menu;
+    return isSheetOpen() ? document.getElementById(SHEET_ID) : null;
+  }
+
+  function tourGroupToggle(group) {
+    for (const row of tourMenuRoot()?.querySelectorAll(".onejob-group-row") || []) {
+      const link = row.querySelector(".onejob-link");
+      if (!link) continue;
+      try {
+        if (U.currentGroup(new URL(link.href, location.href).search) === group.name) {
+          return row.querySelector(".onejob-group-toggle");
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return null;
+  }
+
+  function tourResourcePin(group) {
+    for (const row of tourMenuRoot()?.querySelectorAll(".onejob-resource-row") || []) {
+      const link = row.querySelector(".onejob-link");
+      if (!link) continue;
+      try {
+        const url = new URL(link.href, location.href);
+        if (U.currentPinnedResource(url.search) === String(group.resource.id)) {
+          return row.querySelector(".onejob-pin-button");
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return null;
+  }
+
+  function tourPinChip() {
+    return (
+      document.querySelector(`#${PINS_BAR_ID} .onejob-pin-chip.is-active`) ||
+      document.querySelector(`#${PINS_BAR_ID} .onejob-pin-chip`)
+    );
+  }
+
+  function openTourMenu() {
+    const item = document.getElementById(NAV_ID);
+    const menu = item?.querySelector(`#${MENU_ID}`);
+    // Below 1200px the portal hides the navbar; the menu is still in the DOM.
+    if (item && menu && isVisible(item)) {
+      fillMenu(item);
+      if (!menu.classList.contains("show")) toggleMenu(item);
+      return;
+    }
+    if (isVisible(findDock())) openSheet();
+  }
+
+  function isVisible(element) {
+    if (!element || !element.getClientRects().length) return false;
+    return getComputedStyle(element).visibility !== "hidden";
+  }
+
+  /**
+   * Recorded when the tour is *shown*, not when it ends: clicking a resource
+   * name mid-tour navigates away, and that is exactly the habit the tour is
+   * about, so it must not make the tour restart on every page. The popup's
+   * replay button is the way back in.
+   */
+  function markTourSeen() {
+    const version = Number(cfg.onboarding?.version) || 1;
+    if (Number(state.settings.onboardingVersion || 0) >= version) return;
+    state.settings = { ...state.settings, onboardingVersion: version };
+    writeCachedSettings(state.settings);
+    storageSet(cfg.storageKeys.settings, state.settings);
   }
 
   /**
@@ -1031,6 +1295,10 @@
     await storageSet(cfg.storageKeys.pins, state.pins);
     state.signature = "";
     scheduleEnsure();
+
+    // Pinning during the tour's pin step is the success case; move on to the
+    // strip where the new chip is about to appear.
+    if (!exists && state.tour && state.tour.index === 2) state.tour.next();
 
     // Unpinning the resource that is currently shown alone should return to
     // its group's calendar instead of leaving a stale single-resource view.
@@ -1320,5 +1588,11 @@
     }
 
     if (changes[cfg.storageKeys.refreshRequest]) refreshGroups({ force: true });
+
+    if (changes[cfg.storageKeys.tourRequest] && changes[cfg.storageKeys.tourRequest].newValue) {
+      state.tourRequested = true;
+      storageSet(cfg.storageKeys.tourRequest, 0);
+      scheduleTour();
+    }
   }
 })();

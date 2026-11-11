@@ -38,6 +38,7 @@
         "lib/groups.js",
         "lib/overview.js",
         "lib/overview-view.js",
+        "lib/tour.js",
         "content.js"
       ],
       "css": ["portal.css"],

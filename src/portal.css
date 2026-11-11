@@ -257,7 +257,9 @@
   border-radius: 0.35rem;
   background: none;
   color: var(--bs-secondary-color, #6c757d);
-  opacity: 0;
+  /* Visible without hovering: on hover-only the pin was the one affordance
+     nobody found. The hover background is the emphasis, not the icon itself. */
+  opacity: 0.55;
 }
 
 .onejob-resource-row:hover .onejob-pin-button,
@@ -274,12 +276,6 @@
 
 .onejob-pin-button.is-pinned {
   color: var(--bs-primary, #0d6efd);
-}
-
-@media (hover: none) {
-  .onejob-pin-button {
-    opacity: 1;
-  }
 }
 
 .onejob-section {
@@ -330,6 +326,34 @@
   padding: 0.5rem;
   font-size: 0.9rem;
   color: var(--bs-secondary-color, #6c757d);
+}
+
+/* "Show me how pinning works" — the tour's way back in, at the foot of the
+   menu. Muted so it does not compete with the resource links. */
+.onejob-menu-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.15rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.onejob-menu-tour {
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: none;
+  color: var(--bs-secondary-color, #6c757d);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.onejob-menu-tour:hover,
+.onejob-menu-tour:focus-visible {
+  background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
+  color: var(--bs-primary, #ff5b13);
+  text-decoration: underline;
 }
 
 /* ------------------------------------------------------------------ *
@@ -418,5 +442,141 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * First-run pinning tour (lib/tour.js). Non-modal: no backdrop, the
+ * target gets a ring and the card floats next to it. Above the sheet
+ * (2000) and the overview overlay, since the tour can point into the
+ * sheet on narrow windows.
+ * ------------------------------------------------------------------ */
+
+.onejob-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  pointer-events: none;
+}
+
+.onejob-tour-card {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--bs-primary-border-subtle, #ffbd9f);
+  border-radius: 0.85rem;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+
+.onejob-tour-step {
+  margin: 0 0 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.onejob-tour-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.onejob-tour-body {
+  margin: 0 0 0.8rem;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.onejob-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.onejob-tour-nav {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.onejob-tour button {
+  font: inherit;
+  font-size: 0.82rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.onejob-tour button:focus-visible {
+  outline: 2px solid var(--bs-primary, #ff5b13);
+  outline-offset: 2px;
+}
+
+.onejob-tour-skip {
+  padding: 0.3rem 0.45rem;
+  border: 0;
+  background: none;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.onejob-tour-skip:hover,
+.onejob-tour-skip:focus-visible {
+  color: var(--bs-body-color, #212529);
+  text-decoration: underline;
+}
+
+.onejob-tour-back {
+  padding: 0.32rem 0.6rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+}
+
+.onejob-tour-back[hidden] {
+  display: none;
+}
+
+/* The portal's accent is a tint everywhere else; a solid fill with white text
+   is the one treatment nothing else on the page uses. */
+.onejob-tour-next {
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--bs-primary-border-subtle, #ffbd9f);
+  background: var(--bs-primary-bg-subtle, #ffdecf);
+  color: var(--bs-primary, #ff5b13);
+  font-weight: 600;
+}
+
+.onejob-tour-next:hover,
+.onejob-tour-next:focus-visible {
+  border-color: var(--bs-primary, #ff5b13);
+}
+
+.onejob-tour-target {
+  position: relative;
+  z-index: 1;
+  border-radius: 0.4rem;
+  outline: 2px solid var(--bs-primary, #ff5b13);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--bs-primary-bg-subtle, #ffdecf);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .onejob-tour-target {
+    animation: onejob-tour-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes onejob-tour-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--bs-primary-bg-subtle, #ffdecf);
+  }
+  50% {
+    box-shadow: 0 0 0 7px var(--bs-primary-bg-subtle, #ffdecf);
   }
 }
