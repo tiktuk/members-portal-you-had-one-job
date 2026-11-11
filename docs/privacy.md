@@ -17,7 +17,7 @@ already signed in with, and keeps your settings on your device.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned and the five toggles in
+- **Your pins and settings.** Which resources you pinned and the six toggles in
   the toolbar popup.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to
@@ -64,8 +64,9 @@ Only requests to services you already use:
 - **Your members portal** (your space's Nexudus address), with your own session,
   to read the resource list and your bookings.
 - **The space's public events calendar** (Luma's public API), to list upcoming
-  events in the overview. Only public event data is requested; nothing about you
-  is sent. This can be turned off with the popup's events toggle.
+  events in the overview and mark them on the calendar heatmap. Only public
+  event data is requested; nothing about you is sent. This can be turned off
+  with the popup's events toggle.
 
 Both requests go directly from your browser. No intermediary, proxy or service
 of ours is involved.

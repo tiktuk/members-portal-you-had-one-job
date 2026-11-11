@@ -108,7 +108,7 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/stats.css` — the statistics screen's own styles, loaded after
   `overview.css` in the same shadow root so it can reuse the palette, header,
   buttons, notices and footer.
-- `src/popup.*` — toolbar settings UI (five toggles, the tour replay row, group
+- `src/popup.*` — toolbar settings UI (six toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
@@ -443,7 +443,8 @@ dashboard's notes field and, if they need to live on disk, into
 - **Setting:** the popup's *Bookings heatmap* toggle writes `settings.dayGrid`
   (default `config.dayGrid.enabled`). `ensureDayGrid()` treats it like having no
   pin and removes the card, so the toggle takes effect on the next ensure pass
-  without a reload.
+  without a reload. *Luma event dots* writes `settings.dayGridEvents` (default
+  `config.dayGrid.events`); off means no fetch, no dots, heatmap unchanged.
 - **Window:** `lib/stats.js::dayGridRange` aligns to the Monday of the current
   week, goes `config.dayGrid.daysBack` days back and `daysAhead` days forward
   (7 + 21 = 28 columns). The window is anchored to today, not to the week the
@@ -463,6 +464,25 @@ dashboard's notes field and, if they need to live on disk, into
   storage key. A failed fetch renders an empty grid with a "Bookings
   unavailable" note and retries after 60 s; responses for a superseded key are
   dropped.
+- **Luma events:** `loadDayGridLuma()` asks the background worker for
+  `onejob:luma-events` (the same message the overview uses), normalises the
+  entries with `O.normalizeLumaEvent` and passes `{ start, end, name }` into
+  `S.dayGrid({ events })`. A cell they overlap gets `has-event` (a 4 px black
+  dot with a 1 px `--onejob-daygrid-line` ring, the same grey as the weekend
+  edge) and the tooltip gives the event's start time and name
+  (`eventNames`/`eventStarts` are parallel arrays); they never change the
+  booked share. Gated by `settings.lumaEvents` and
+  `settings.dayGridEvents` (the popup's *Luma event dots*); content.js only runs
+  on the portal, so the origin check the overview needs (`lumaAvailable()`) is
+  not repeated here. The list is space-wide, so it is fetched once per document
+  and cached by the worker for 5 minutes.
+- **Own bookings:** `loadDayGridMine(pin)` fetches `/api/public/bookings/my` for
+  the same window (paged; naive local `FromTime`/`ToTime` via
+  `O.toQueryTimestamp`), narrows it to the pinned `ResourceId` and passes
+  `{ start, end }` into `S.dayGrid({ mine })`. A cell gets `is-mine` — a 3 px
+  `--bs-success` bar along the bottom (`::before`; the Luma dot is `::after`) —
+  and the tooltip says "your booking". No extra setting: it follows the session
+  token, and the endpoint is the same one the overview's My bookings card uses.
 - **Rebuild key:** `dayGridKey()` = pin id + window start day + data revision +
   visible week. The `MutationObserver` schedules an ensure pass for every DOM
   mutation, so the grid must not be rebuilt unconditionally; `revision` only

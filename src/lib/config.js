@@ -86,6 +86,8 @@
     dayGrid: {
       /** Default for the popup's "Bookings heatmap" toggle. */
       enabled: true,
+      /** Default for the popup's "Luma event dots" toggle. */
+      events: true,
       /** Columns: the current week plus one back and three ahead. */
       daysBack: 7,
       daysAhead: 21,

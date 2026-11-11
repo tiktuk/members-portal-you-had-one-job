@@ -136,6 +136,9 @@
  * ------------------------------------------------------------------ */
 
 .onejob-daygrid {
+  /* One quiet grey line for the weekend edges and the event dots. */
+  --onejob-daygrid-line: color-mix(in srgb, var(--bs-secondary-color, #6c757d) 35%, transparent);
+
   margin: 0.5rem 0 0.25rem;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--bs-border-color, #dee2e6);
@@ -207,10 +210,35 @@
 }
 
 .onejob-daygrid-cell {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   aspect-ratio: 1;
   border-radius: 2px;
   background: var(--bs-tertiary-bg, #f1f3f5);
+}
+
+/* The member's own booking: a short success-green bar along the bottom. */
+.onejob-daygrid-cell.is-mine::before {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--bs-success, #198754);
+}
+
+/* A Luma event in that block: a small black dot, edged like the weekends. */
+.onejob-daygrid-cell.has-event::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--onejob-daygrid-line, rgba(108, 117, 125, 0.35));
 }
 
 /* Days before today are history; keep them readable but quiet. */
@@ -220,7 +248,7 @@
 
 /* Weekends get a quiet solid edge inside the square. */
 .onejob-daygrid-cell.is-weekend {
-  outline: 1px solid color-mix(in srgb, var(--bs-secondary-color, #6c757d) 35%, transparent);
+  outline: 1px solid var(--onejob-daygrid-line, rgba(108, 117, 125, 0.35));
   outline-offset: -1px;
 }
 

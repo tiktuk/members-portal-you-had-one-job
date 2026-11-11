@@ -55,8 +55,11 @@ It does eight things:
    the pins: 28 days from last week to the week in two weeks, with morning,
    afternoon, evening and night rows. Each square is coloured by how much of
    that six-hour block is booked, so a busy week is visible before scrolling the
-   calendar. Click a square to open that day's week. The popup's *Bookings
-   heatmap* toggle hides it.
+   calendar. Click a square to open that day's week; a dot marks a Luma event in
+   that block (when *Luma events* is on) and its tooltip gives the start time and
+   name; a green bar marks your own bookings. The popup's
+   *Bookings heatmap* toggle hides the heatmap and *Luma event dots* hides the
+   dots.
 7. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
@@ -69,7 +72,7 @@ It does eight things:
    **Show events** checkbox in the overview header toggles the same setting as
    the popup.
 
-The five toggles live in the toolbar popup; pins are managed from the strip at
+The six toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page and from the menu's group chevrons. The overview page uses
 the portal session the content script mirrors into extension storage, so open the
 portal once while signed in.
@@ -120,7 +123,7 @@ and every resource colour-coded by booked hours per day:
 
 ![Resource tiles colour-coded by booked hours](docs/screenshots/statistics-resources.png)
 
-**The toolbar popup** — five toggles, the pin count and the overview link:
+**The toolbar popup** — six toggles, the pin count and the overview link:
 
 <img src="docs/screenshots/popup.png" alt="The toolbar popup" width="320">
 
@@ -205,6 +208,7 @@ the *Block location prompt* and *Luma events* toggles.
 | `stats.bands` | Booked-hours-per-day thresholds for the resource colour scale (`[0.5, 1.5, 3]`). |
 | `stats.cacheTtlMs` / `stats.pastCacheTtlMs` | How long cached statistics stay fresh: 15 minutes for the current month, 24 hours for past months. |
 | `dayGrid.enabled` | Default for the popup's *Bookings heatmap* toggle (`true`). |
+| `dayGrid.events` | Default for the popup's *Luma event dots* toggle (`true`). |
 | `dayGrid.daysBack` / `dayGrid.daysAhead` | Window of the heatmap on a single-resource calendar: 7 days before the current week and 21 after its Monday, so 28 columns. |
 | `dayGrid.buckets` | The heatmap's rows: morning 06–12, afternoon 12–18, evening 18–24, night 00–06 by default, top to bottom. |
 | `dayGrid.bands` | Booked share of a block thresholds for the heatmap colours (`[0.1, 0.3, 0.6]`). |

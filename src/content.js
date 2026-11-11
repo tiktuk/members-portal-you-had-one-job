@@ -32,6 +32,7 @@
     calendarDefault: true,
     navMenu: true,
     dayGrid: cfg.dayGrid?.enabled !== false,
+    dayGridEvents: cfg.dayGrid?.events !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
     /** `cfg.onboarding.version` once the pinning tour has been shown. */
     onboardingVersion: 0,
@@ -65,7 +66,21 @@
     tourRequested: false,
     tourTimer: 0,
     /** Fetch state of the single-resource day/time heatmap. */
-    dayGrid: { key: "", status: "idle", records: [], revision: 0, error: false, attemptedAt: 0 },
+    dayGrid: {
+      key: "",
+      status: "idle",
+      records: [],
+      revision: 0,
+      error: false,
+      attemptedAt: 0,
+      /** Space-wide Luma events, fetched through the background worker. */
+      lumaStatus: "idle",
+      events: [],
+      /** The member's own bookings on the pinned resource. */
+      mineKey: "",
+      mineStatus: "idle",
+      mine: [],
+    },
   };
 
   let activeOverlay = null;
@@ -1336,6 +1351,8 @@
 
     mountStrip(wrap, main, document.getElementById(PINS_BAR_WRAP_ID));
     loadDayGrid(pin);
+    loadDayGridLuma();
+    loadDayGridMine(pin);
 
     const key = dayGridKey(pin);
     if (grid.dataset.key === key) return;
@@ -1455,6 +1472,128 @@
     scheduleEnsure();
   }
 
+  /**
+   * `config.luma.source` is the built-in portal's calendar. content.js only
+   * runs on that portal (the manifest names one origin), so the gate is the
+   * setting rather than the origin; the overview needs the origin check because
+   * its page can run anywhere.
+   */
+  function dayGridLumaEnabled() {
+    return (
+      hasExtensionApis &&
+      Boolean(cfg.luma?.source) &&
+      state.settings.lumaEvents !== false &&
+      state.settings.dayGridEvents !== false
+    );
+  }
+
+  function loadDayGridLuma() {
+    if (!dayGridLumaEnabled()) {
+      if (state.dayGrid.events.length) {
+        state.dayGrid.events = [];
+        state.dayGrid.lumaStatus = "idle";
+        state.dayGrid.revision += 1;
+        scheduleEnsure();
+      }
+      return;
+    }
+    if (state.dayGrid.lumaStatus !== "idle") return;
+    state.dayGrid.lumaStatus = "loading";
+
+    chrome.runtime.sendMessage({ type: "onejob:luma-events" }, (response) => {
+      const error = chrome.runtime.lastError;
+      state.dayGrid.lumaStatus = "ready";
+      if (error || !response?.ok) return;
+
+      state.dayGrid.events = (response.entries || [])
+        .map((entry) => O.normalizeLumaEvent(entry))
+        .filter(Boolean)
+        .map((event) => ({
+          start: event.stamp,
+          end: event.endStamp,
+          name: event.coworker,
+          url: event.url,
+        }));
+      state.dayGrid.revision += 1;
+      scheduleEnsure();
+    });
+  }
+
+  /**
+   * The member's own bookings on the pinned resource, so their cells can be
+   * marked. `/api/public/bookings/my` returns every resource, so the response
+   * is narrowed to this pin; the records' times are naive local strings.
+   */
+  async function loadDayGridMine(pin) {
+    const { start, end } = dayGridWindow();
+    const key = `${pin.id}|${start.getTime()}|${end.getTime()}`;
+    if (state.dayGrid.mineKey === key) return;
+
+    state.dayGrid.mineKey = key;
+    state.dayGrid.mine = [];
+    state.dayGrid.mineStatus = "loading";
+    state.dayGrid.revision += 1;
+
+    const token = readAccessToken();
+    if (!token) {
+      state.dayGrid.mineStatus = "idle";
+      return;
+    }
+
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const base = `${U.apiBaseUrl(webAddress)}/api/public/bookings/my`;
+    const records = [];
+
+    try {
+      for (let page = 1; page <= 5; page += 1) {
+        const params = new URLSearchParams({
+          from_Booking_FromTime: O.toQueryTimestamp(start),
+          to_Booking_FromTime: O.toQueryTimestamp(end),
+          orderBy: "FromTime",
+          dir: "0",
+          size: "100",
+          page: String(page),
+        });
+        const response = await fetch(`${base}?${params.toString()}`, {
+          method: "GET",
+          credentials: "omit",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+            "x-nx-app-name": "portal",
+            "X-Use-Timezone": "true",
+          },
+        });
+        if (!response.ok) break;
+        const payload = await response.json();
+        if (!Array.isArray(payload?.Records)) break;
+        records.push(...payload.Records);
+        if (!payload.HasNextPage) break;
+      }
+    } catch {
+      if (state.dayGrid.mineKey === key) state.dayGrid.mineStatus = "error";
+      return;
+    }
+
+    if (state.dayGrid.mineKey !== key) return;
+    state.dayGrid.mine = records
+      .filter(
+        (record) =>
+          record &&
+          record.Cancelled !== true &&
+          String(record.ResourceId) === String(pin.id),
+      )
+      .map((record) => {
+        const from = O.parseTimestamp(record.FromTime || record.fromTime || record.start);
+        const to = O.parseTimestamp(record.ToTime || record.toTime || record.end);
+        return from && to ? { start: from.stamp, end: to.stamp } : null;
+      })
+      .filter(Boolean);
+    state.dayGrid.mineStatus = "ready";
+    state.dayGrid.revision += 1;
+    scheduleEnsure();
+  }
+
   function renderDayGrid(grid, pin) {
     const config = cfg.dayGrid || {};
     const model = S.dayGrid(state.dayGrid.records, [{ id: pin.id }], {
@@ -1462,6 +1601,8 @@
       daysAhead: config.daysAhead,
       buckets: config.buckets,
       bands: config.bands,
+      events: dayGridLumaEnabled() ? state.dayGrid.events : [],
+      mine: state.dayGrid.mine,
     });
     const now = new Date();
     const visible = visibleWeekKey();
@@ -1516,6 +1657,8 @@
           cell.date.getTime() < todayStart ? "is-past" : "",
           weekday === 0 || weekday === 6 ? "is-weekend" : "",
           cell.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
+          cell.eventCount ? "has-event" : "",
+          cell.mine ? "is-mine" : "",
         ].filter(Boolean).join(" ");
         link.href = dayGridHref(cell.date, pin);
         link.dataset.day = cell.key;
@@ -1553,7 +1696,19 @@
     const date = dayLabel(cell.date);
     const bookings = `${cell.count} ${cell.count === 1 ? "booking" : "bookings"}`;
     const share = Math.round(cell.share * 100);
-    return `${date}, ${row.label.toLowerCase()} · ${bookings} · ${S.formatHours(cell.hours)} booked (${share}%)`;
+    const events = cell.eventNames?.length
+      ? ` · Luma: ${cell.eventNames
+          .map((name, index) => `${timeLabel(cell.eventStarts[index])} ${name}`)
+          .join(", ")}`
+      : "";
+    const mine = cell.mine ? " · your booking" : "";
+    return `${date}, ${row.label.toLowerCase()} · ${bookings} · ${S.formatHours(cell.hours)} booked (${share}%)${mine}${events}`;
+  }
+
+  function timeLabel(stamp) {
+    return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(
+      new Date(stamp),
+    );
   }
 
   function dayLabel(date) {

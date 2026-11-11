@@ -332,6 +332,71 @@ test("dayGrid bands a block's booked share", () => {
   assert.deepEqual(plain(levels), [1, 2, 3, 4, 0]);
 });
 
+test("dayGrid marks Luma events on the blocks they overlap", () => {
+  const events = [
+    { name: "Breakfast", start: nov(3, 9), end: nov(3, 11) },
+    { name: "Workshop", start: nov(4, 17), end: nov(4, 19) },
+    // Outside the 28-day window.
+    { name: "Outside", start: nov(30, 9), end: nov(30, 10) },
+  ];
+  const model = S.dayGrid([], [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    events,
+  });
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const cell = (label, day) =>
+    row(label).days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === day);
+
+  assert.equal(cell("Morning", 3).eventCount, 1);
+  assert.deepEqual(plain(cell("Morning", 3).eventNames), ["Breakfast"]);
+  assert.deepEqual(plain(cell("Morning", 3).eventStarts), [nov(3, 9)]);
+  // Events mark a cell; they never make it look booked.
+  assert.equal(cell("Morning", 3).hours, 0);
+  assert.equal(cell("Morning", 3).level, 0);
+
+  // 17:00-19:00 covers the last afternoon hour and the first evening one.
+  assert.equal(cell("Afternoon", 4).eventCount, 1);
+  assert.deepEqual(plain(cell("Afternoon", 4).eventNames), ["Workshop"]);
+  assert.equal(cell("Evening", 4).eventCount, 1);
+  assert.equal(cell("Morning", 4).eventCount, 0);
+
+  const total = model.rows.reduce(
+    (sum, entry) => sum + entry.days.reduce((count, day) => count + day.eventCount, 0),
+    0,
+  );
+  assert.equal(total, 3);
+});
+
+test("dayGrid marks the member's own bookings", () => {
+  const mine = [
+    { start: nov(3, 9), end: nov(3, 11) },
+    { start: nov(4, 17), end: nov(4, 19) },
+    // Outside the 28-day window.
+    { start: nov(30, 9), end: nov(30, 10) },
+  ];
+  const model = S.dayGrid([], [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    mine,
+  });
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const cell = (label, day) =>
+    row(label).days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === day);
+
+  assert.equal(cell("Morning", 3).mine, true);
+  // A marker, not a booking: the level stays empty.
+  assert.equal(cell("Morning", 3).hours, 0);
+  assert.equal(cell("Morning", 3).level, 0);
+  assert.equal(cell("Afternoon", 4).mine, true);
+  assert.equal(cell("Evening", 4).mine, true);
+  assert.equal(cell("Morning", 4).mine, false);
+
+  const total = model.rows.reduce(
+    (sum, entry) => sum + entry.days.reduce((count, day) => count + (day.mine ? 1 : 0), 0),
+    0,
+  );
+  assert.equal(total, 3);
+});
+
 test("an empty dayGrid is still four rows of zero levels", () => {
   const model = S.dayGrid([], [{ id: "10" }], { now: new Date(2026, 10, 11, 12) });
 

@@ -471,7 +471,10 @@
    * blocks, so one that spans midnight contributes to whichever blocks it
    * overlaps on each side (evening on the first day, night on the next, with
    * the default buckets). `share` is measured against the block's own length,
-   * not the whole day.
+   * not the whole day. `options.events` are space-wide Luma events
+   * (`{ start, end, name }`) and `options.mine` the member's own bookings on
+   * this resource (`{ start, end }`); both only mark the cells they overlap,
+   * without changing the booked share.
    */
   function dayGrid(records, resources, options = {}) {
     const bands = Array.isArray(options.bands) && options.bands.length === 3
@@ -526,8 +529,32 @@
         hours: 0,
         share: 0,
         level: 0,
+        eventCount: 0,
+        eventNames: [],
+        eventStarts: [],
+        mine: false,
       })),
     }));
+
+    /** Visits every (day, block) cell an interval touches, clipped to it. */
+    function walkBlocks(from, to, visit) {
+      let day = startOfDay(new Date(from));
+      while (day.getTime() < to) {
+        const dayIndex = dayIndexByKey.get(dayKey(day));
+        const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+        if (dayIndex != null) {
+          for (let rowIndex = 0; rowIndex < buckets.length; rowIndex += 1) {
+            const bucket = buckets[rowIndex];
+            const blockStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.from);
+            const blockEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.to);
+            const blockFrom = Math.max(blockStart.getTime(), from);
+            const blockTo = Math.min(blockEnd.getTime(), to);
+            if (blockTo > blockFrom) visit(rows[rowIndex].days[dayIndex], blockTo - blockFrom);
+          }
+        }
+        day = next;
+      }
+    }
 
     const seen = new Set();
     for (const record of Array.isArray(records) ? records : []) {
@@ -545,26 +572,46 @@
       const to = Math.min(recordEnd, end);
       if (to <= from) continue;
 
-      let day = startOfDay(new Date(from));
-      while (day.getTime() < to) {
-        const dayIndex = dayIndexByKey.get(dayKey(day));
-        const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
-        if (dayIndex != null) {
-          for (let rowIndex = 0; rowIndex < buckets.length; rowIndex += 1) {
-            const bucket = buckets[rowIndex];
-            const blockStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.from);
-            const blockEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.to);
-            const blockFrom = Math.max(blockStart.getTime(), from);
-            const blockTo = Math.min(blockEnd.getTime(), to);
-            if (blockTo > blockFrom) {
-              const cell = rows[rowIndex].days[dayIndex];
-              cell.hours += (blockTo - blockFrom) / HOUR_MS;
-              cell.count += 1;
-            }
-          }
-        }
-        day = next;
-      }
+      walkBlocks(from, to, (cell, duration) => {
+        cell.hours += duration / HOUR_MS;
+        cell.count += 1;
+      });
+    }
+
+    // Luma events are space-wide, so they only mark the cells they cover;
+    // they never change the booked share.
+    for (const event of Array.isArray(options.events) ? options.events : []) {
+      if (!event) continue;
+      const eventStart = Number(event.start);
+      const eventEnd = Number(event.end);
+      if (!Number.isFinite(eventStart) || !Number.isFinite(eventEnd)) continue;
+
+      const from = Math.max(eventStart, start);
+      const to = Math.min(eventEnd, end);
+      if (to <= from) continue;
+
+      const name = String(event.name || "");
+      walkBlocks(from, to, (cell) => {
+        cell.eventCount += 1;
+        cell.eventNames.push(name);
+        cell.eventStarts.push(eventStart);
+      });
+    }
+
+    // The member's own bookings on this resource, from /api/public/bookings/my.
+    for (const booking of Array.isArray(options.mine) ? options.mine : []) {
+      if (!booking) continue;
+      const bookingStart = Number(booking.start);
+      const bookingEnd = Number(booking.end);
+      if (!Number.isFinite(bookingStart) || !Number.isFinite(bookingEnd)) continue;
+
+      const from = Math.max(bookingStart, start);
+      const to = Math.min(bookingEnd, end);
+      if (to <= from) continue;
+
+      walkBlocks(from, to, (cell) => {
+        cell.mine = true;
+      });
     }
 
     for (const row of rows) {
