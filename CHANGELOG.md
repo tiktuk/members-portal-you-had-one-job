@@ -26,11 +26,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - A 4 × 28 heatmap at the top of a single-resource calendar, under the pins:
   28 days from last week to the week in two weeks, with morning, afternoon,
   evening and night rows. Each square is coloured by how much of that six-hour
-  block is booked; clicking one opens that day's week in the calendar. A dot
-  marks a Luma event in that block (when *Luma events* is on) and the tooltip
-  gives its start time and name, and a green bar marks the member's own
-  bookings. The popup's *Bookings heatmap* and *Luma event dots* toggles hide
-  the heatmap and the dots respectively.
+  block is booked; clicking one opens that day's week in the calendar. Workshop
+  reservations count as occupied and get an orange bar, the member's own
+  bookings a green one, and a dot marks a Luma event (when *Luma events* is
+  on). Bookings linked to the resource from another resource's booking count
+  too and are marked "(linked)". The tooltip gives the times and names. The
+  popup's *Bookings heatmap* and *Luma event dots* toggles hide the heatmap and
+  the dots respectively.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.

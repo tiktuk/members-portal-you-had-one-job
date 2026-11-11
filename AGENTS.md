@@ -464,6 +464,13 @@ dashboard's notes field and, if they need to live on disk, into
   storage key. A failed fetch renders an empty grid with a "Bookings
   unavailable" note and retries after 60 s; responses for a superseded key are
   dropped.
+- **Linked bookings:** the feed repeats one booking once per linked resource,
+  with the same `id` and `isLinked: true`. The heatmap therefore calls
+  `S.normalizeRecords(payload, O.parseTimestamp, { perResource: true })`, and
+  `S.dayGrid` filters by the pinned resource *before* deduping by id. Without
+  that order the primary record (another resource) wins the dedupe and the
+  pinned resource's time looks free. The tooltip says "(linked)" for such a
+  booking. The statistics screen keeps the default global dedupe.
 - **Luma events:** `loadDayGridLuma()` asks the background worker for
   `onejob:luma-events` (the same message the overview uses), normalises the
   entries with `O.normalizeLumaEvent` and passes `{ start, end, name }` into

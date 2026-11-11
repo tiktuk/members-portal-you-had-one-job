@@ -57,7 +57,9 @@ It does eight things:
    that six-hour block is booked, so a busy week is visible before scrolling the
    calendar. Click a square to open that day's week; a dot marks a Luma event in
    that block (when *Luma events* is on) and its tooltip gives the start time and
-   name; a green bar marks your own bookings. The popup's
+   name; a green bar marks your own bookings, and workshop reservations count as
+   occupied with an orange bar. Bookings linked to the resource from another
+   resource's booking count too and say "(linked)" in the tooltip. The popup's
    *Bookings heatmap* toggle hides the heatmap and *Luma event dots* hides the
    dots.
 7. **No location prompt.** The portal asks for the browser location on every

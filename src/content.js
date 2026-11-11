@@ -80,6 +80,10 @@
       mineKey: "",
       mineStatus: "idle",
       mine: [],
+      /** Workshop reservations of the pinned resource (`fullCalendarEvents`). */
+      reservedKey: "",
+      reservedStatus: "idle",
+      reserved: [],
     },
   };
 
@@ -1353,6 +1357,7 @@
     loadDayGrid(pin);
     loadDayGridLuma();
     loadDayGridMine(pin);
+    loadDayGridReserved(pin);
 
     const key = dayGridKey(pin);
     if (grid.dataset.key === key) return;
@@ -1452,7 +1457,10 @@
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
         if (state.dayGrid.key !== key) return;
-        const records = Array.isArray(payload) ? S.normalizeRecords(payload, O.parseTimestamp) : [];
+        // A linked booking repeats per resource; keep the pinned resource's row.
+        const records = Array.isArray(payload)
+          ? S.normalizeRecords(payload, O.parseTimestamp, { perResource: true })
+          : [];
         state.dayGrid.records = records;
         state.dayGrid.status = Array.isArray(payload) ? "ready" : "error";
         state.dayGrid.error = !Array.isArray(payload);
@@ -1594,6 +1602,73 @@
     scheduleEnsure();
   }
 
+  /**
+   * Workshop reservations of the pinned resource, from the same
+   * `fullCalendarEvents` feed the overview's *Reserved* rows use. They block
+   * the resource, so the heatmap counts them; space-wide events
+   * (`resourceId: 0`) are ignored.
+   */
+  async function loadDayGridReserved(pin) {
+    const { start, end } = dayGridWindow();
+    const key = `${pin.id}|${start.getTime()}|${end.getTime()}`;
+    if (state.dayGrid.reservedKey === key) return;
+
+    state.dayGrid.reservedKey = key;
+    state.dayGrid.reserved = [];
+    state.dayGrid.reservedStatus = "loading";
+    state.dayGrid.revision += 1;
+
+    const token = readAccessToken();
+    if (!token) {
+      state.dayGrid.reservedStatus = "idle";
+      return;
+    }
+
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const params = new URLSearchParams({
+      start: O.toPortalIso(start),
+      end: O.toPortalIso(end),
+    });
+
+    try {
+      const response = await fetch(
+        `${U.apiBaseUrl(webAddress)}/en/bookings/fullCalendarEvents?${params.toString()}`,
+        {
+          method: "GET",
+          credentials: "omit",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+            "x-nx-app-name": "portal",
+            "X-Use-Timezone": "true",
+          },
+        },
+      );
+      if (!response.ok) throw new Error("events");
+      const payload = await response.json();
+      if (state.dayGrid.reservedKey !== key) return;
+
+      state.dayGrid.reserved = (Array.isArray(payload) ? payload : [])
+        .filter((record) => record && String(record.resourceId) === String(pin.id))
+        .map((record) => {
+          const from = O.parseTimestamp(record.start);
+          const to = O.parseTimestamp(record.end);
+          if (!from || !to) return null;
+          return {
+            start: from.stamp,
+            end: to.stamp,
+            name: String(record.title || record.shortDescription || "Reserved"),
+          };
+        })
+        .filter(Boolean);
+      state.dayGrid.reservedStatus = "ready";
+      state.dayGrid.revision += 1;
+      scheduleEnsure();
+    } catch {
+      if (state.dayGrid.reservedKey === key) state.dayGrid.reservedStatus = "error";
+    }
+  }
+
   function renderDayGrid(grid, pin) {
     const config = cfg.dayGrid || {};
     const model = S.dayGrid(state.dayGrid.records, [{ id: pin.id }], {
@@ -1603,6 +1678,7 @@
       bands: config.bands,
       events: dayGridLumaEnabled() ? state.dayGrid.events : [],
       mine: state.dayGrid.mine,
+      reserved: state.dayGrid.reserved,
     });
     const now = new Date();
     const visible = visibleWeekKey();
@@ -1658,6 +1734,7 @@
           weekday === 0 || weekday === 6 ? "is-weekend" : "",
           cell.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
           cell.eventCount ? "has-event" : "",
+          cell.reservedCount ? "has-reserved" : "",
           cell.mine ? "is-mine" : "",
         ].filter(Boolean).join(" ");
         link.href = dayGridHref(cell.date, pin);
@@ -1665,6 +1742,11 @@
         const text = dayGridCellLabel(cell, row);
         link.title = text;
         link.setAttribute("aria-label", text);
+        if (cell.reservedCount) {
+          const bar = document.createElement("span");
+          bar.className = "onejob-daygrid-reserved";
+          link.appendChild(bar);
+        }
         table.appendChild(link);
       }
     }
@@ -1694,15 +1776,23 @@
 
   function dayGridCellLabel(cell, row) {
     const date = dayLabel(cell.date);
-    const bookings = `${cell.count} ${cell.count === 1 ? "booking" : "bookings"}`;
+    const bookings = `${cell.count} ${cell.count === 1 ? "booking" : "bookings"}${cell.linked ? " (linked)" : ""}`;
     const share = Math.round(cell.share * 100);
+    const hours = cell.reservedHours > 0
+      ? `${S.formatHours(cell.hours)} booked + ${S.formatHours(cell.reservedHours)} reserved`
+      : `${S.formatHours(cell.hours)} booked`;
+    const mine = cell.mine ? " · your booking" : "";
+    const reserved = cell.reservedNames?.length
+      ? ` · Reserved: ${cell.reservedNames
+          .map((name, index) => `${timeLabel(cell.reservedStarts[index])} ${name}`)
+          .join(", ")}`
+      : "";
     const events = cell.eventNames?.length
       ? ` · Luma: ${cell.eventNames
           .map((name, index) => `${timeLabel(cell.eventStarts[index])} ${name}`)
           .join(", ")}`
       : "";
-    const mine = cell.mine ? " · your booking" : "";
-    return `${date}, ${row.label.toLowerCase()} · ${bookings} · ${S.formatHours(cell.hours)} booked (${share}%)${mine}${events}`;
+    return `${date}, ${row.label.toLowerCase()} · ${bookings} · ${hours} (${share}%)${mine}${reserved}${events}`;
   }
 
   function timeLabel(stamp) {

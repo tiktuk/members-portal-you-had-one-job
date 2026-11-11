@@ -97,9 +97,15 @@
   /**
    * `parseTimestamp` is `lib/overview.js::parseTimestamp` (or a test stub).
    * Records keep only what the aggregates need; member names are not kept.
+   *
+   * A linked booking appears once per resource with the same `id`, and the
+   * space-wide aggregates want it once, so the default dedupe is by id. The
+   * single-resource heatmap passes `perResource` to keep the record for the
+   * pinned resource even when the primary one came first.
    */
-  function normalizeRecords(payload, parseTimestamp) {
+  function normalizeRecords(payload, parseTimestamp, options = {}) {
     const parse = typeof parseTimestamp === "function" ? parseTimestamp : defaultParse;
+    const perResource = options.perResource === true;
     const seen = new Set();
     const records = [];
 
@@ -113,9 +119,16 @@
       if (!start || !end || end.stamp <= start.stamp) continue;
 
       const id = String(raw.id ?? `${resourceId}-${start.stamp}`);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      records.push({ id, resourceId, start: start.stamp, end: end.stamp });
+      const key = perResource ? `${id}|${resourceId}` : id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      records.push({
+        id,
+        resourceId,
+        start: start.stamp,
+        end: end.stamp,
+        linked: raw.isLinked === true,
+      });
     }
 
     return records;
@@ -471,10 +484,11 @@
    * blocks, so one that spans midnight contributes to whichever blocks it
    * overlaps on each side (evening on the first day, night on the next, with
    * the default buckets). `share` is measured against the block's own length,
-   * not the whole day. `options.events` are space-wide Luma events
-   * (`{ start, end, name }`) and `options.mine` the member's own bookings on
-   * this resource (`{ start, end }`); both only mark the cells they overlap,
-   * without changing the booked share.
+   * not the whole day. `options.reserved` are the resource's workshop
+   * reservations (`{ start, end, name }`), which count towards the share
+   * because they block the resource. `options.events` are space-wide Luma
+   * events and `options.mine` the member's own bookings; both only mark the
+   * cells they overlap, without changing the share.
    */
   function dayGrid(records, resources, options = {}) {
     const bands = Array.isArray(options.bands) && options.bands.length === 3
@@ -532,7 +546,12 @@
         eventCount: 0,
         eventNames: [],
         eventStarts: [],
+        reservedCount: 0,
+        reservedHours: 0,
+        reservedNames: [],
+        reservedStarts: [],
         mine: false,
+        linked: false,
       })),
     }));
 
@@ -559,10 +578,12 @@
     const seen = new Set();
     for (const record of Array.isArray(records) ? records : []) {
       if (!record) continue;
+      // Filter first: a linked booking shares its id with the primary record
+      // of another resource, so deduping before this would drop this resource's.
+      if (!ids.has(String(record.resourceId))) continue;
       const id = record.id != null ? String(record.id) : `${record.resourceId}-${record.start}`;
       if (seen.has(id)) continue;
       seen.add(id);
-      if (!ids.has(String(record.resourceId))) continue;
 
       const recordStart = Number(record.start);
       const recordEnd = Number(record.end);
@@ -575,6 +596,7 @@
       walkBlocks(from, to, (cell, duration) => {
         cell.hours += duration / HOUR_MS;
         cell.count += 1;
+        if (record.linked) cell.linked = true;
       });
     }
 
@@ -598,6 +620,27 @@
       });
     }
 
+    // Workshop reservations (`fullCalendarEvents`) block the resource, so they
+    // count towards the cell's share as well as getting their own marker.
+    for (const event of Array.isArray(options.reserved) ? options.reserved : []) {
+      if (!event) continue;
+      const eventStart = Number(event.start);
+      const eventEnd = Number(event.end);
+      if (!Number.isFinite(eventStart) || !Number.isFinite(eventEnd)) continue;
+
+      const from = Math.max(eventStart, start);
+      const to = Math.min(eventEnd, end);
+      if (to <= from) continue;
+
+      const name = String(event.name || "");
+      walkBlocks(from, to, (cell, duration) => {
+        cell.reservedCount += 1;
+        cell.reservedHours += duration / HOUR_MS;
+        cell.reservedNames.push(name);
+        cell.reservedStarts.push(eventStart);
+      });
+    }
+
     // The member's own bookings on this resource, from /api/public/bookings/my.
     for (const booking of Array.isArray(options.mine) ? options.mine : []) {
       if (!booking) continue;
@@ -617,7 +660,7 @@
     for (const row of rows) {
       const blockHours = Math.max(1, row.to - row.from);
       for (const cell of row.days) {
-        cell.share = cell.hours / blockHours;
+        cell.share = (cell.hours + cell.reservedHours) / blockHours;
         cell.level = bandForRate(cell.share, bands);
       }
     }

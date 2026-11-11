@@ -97,6 +97,25 @@ test("normalizeRecords drops events, invalid spans and duplicates", () => {
   assert.equal(records[0].end, new Date("2026-01-05T12:00:00Z").getTime());
 });
 
+test("normalizeRecords keeps a linked record per resource when asked", () => {
+  const parse = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : { stamp: date.getTime() };
+  };
+  const payload = [
+    { id: 7, resourceId: 10, isLinked: false, start: "2026-01-05T10:00:00Z", end: "2026-01-05T11:30:00Z" },
+    { id: 7, resourceId: 11, isLinked: true, start: "2026-01-05T10:00:00Z", end: "2026-01-05T11:30:00Z" },
+  ];
+
+  assert.equal(plain(S.normalizeRecords(payload, parse)).length, 1);
+  const perResource = plain(S.normalizeRecords(payload, parse, { perResource: true }));
+  assert.equal(perResource.length, 2);
+  assert.deepEqual(
+    perResource.map((record) => record.resourceId),
+    ["10", "11"],
+  );
+});
+
 test("aggregate clips, splits days and hours, and keeps zero-booking resources", () => {
   const start = new Date(2026, 0, 5);
   const end = new Date(2026, 0, 7);
@@ -395,6 +414,74 @@ test("dayGrid marks the member's own bookings", () => {
     0,
   );
   assert.equal(total, 3);
+});
+
+test("dayGrid counts workshop reservations as occupied", () => {
+  const reserved = [{ name: "CNC Workshop", start: nov(20, 9), end: nov(20, 12) }];
+  const model = S.dayGrid([], [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    reserved,
+  });
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const morning = row("Morning").days.find(
+    (entry) => entry.date.getMonth() === 10 && entry.date.getDate() === 20,
+  );
+
+  assert.equal(morning.count, 0);
+  assert.equal(morning.hours, 0);
+  assert.equal(morning.reservedCount, 1);
+  assert.equal(morning.reservedHours, 3);
+  assert.deepEqual(plain(morning.reservedNames), ["CNC Workshop"]);
+  assert.deepEqual(plain(morning.reservedStarts), [nov(20, 9)]);
+  // 3 h of a 6 h block is 50%, so the cell no longer looks free.
+  assert.equal(morning.share, 0.5);
+  assert.equal(morning.level, 3);
+});
+
+test("dayGrid adds bookings and reservations for the level", () => {
+  const records = [{ id: "1", resourceId: "10", start: nov(20, 6), end: nov(20, 9) }];
+  const reserved = [{ name: "CNC Workshop", start: nov(20, 9), end: nov(20, 12) }];
+  const model = S.dayGrid(records, [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    reserved,
+  });
+  const morning = model.rows
+    .find((entry) => entry.label === "Morning")
+    .days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === 20);
+
+  assert.equal(morning.hours, 3);
+  assert.equal(morning.reservedHours, 3);
+  assert.equal(morning.share, 1);
+  assert.equal(morning.level, 4);
+});
+
+test("dayGrid counts a linked booking on the resource it is linked to", () => {
+  const parse = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : { stamp: date.getTime() };
+  };
+  const start = nov(10, 10);
+  const end = nov(10, 11, 30);
+  const payload = [
+    { id: 7, resourceId: 10, start: new Date(start).toISOString(), end: new Date(end).toISOString() },
+    {
+      id: 7,
+      resourceId: 11,
+      isLinked: true,
+      start: new Date(start).toISOString(),
+      end: new Date(end).toISOString(),
+    },
+  ];
+  const records = S.normalizeRecords(payload, parse, { perResource: true });
+  const model = S.dayGrid(records, [{ id: "11" }], { now: new Date(2026, 10, 11, 12) });
+  const morning = model.rows
+    .find((row) => row.label === "Morning")
+    .days.find((day) => day.key === "2026-11-10");
+
+  assert.equal(morning.count, 1);
+  assert.equal(morning.hours, 1.5);
+  assert.equal(morning.level, 2);
+  assert.equal(morning.linked, true);
 });
 
 test("an empty dayGrid is still four rows of zero levels", () => {
