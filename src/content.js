@@ -947,7 +947,7 @@
   function tourSteps(group) {
     return [
       {
-        title: "Book a machine in one click",
+        title: "Open a machine in one click",
         body: `Pin the machines you use and they wait at the top of every page. A 20-second tour of the ${cfg.nav.label} menu?`,
         enter: () => {
           closeMenu();
