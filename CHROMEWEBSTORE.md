@@ -31,7 +31,7 @@ Adds resource filters and pinned single-resource calendars to the MotionLab.Berl
 
 FEATURES
 
-• Resources menu — a "Resources" item next to Bookings lists every bookable resource type and its groups, so you jump straight to "Machines › CNC Machining" instead of Bookings → Machines → Filters → Group → Close. On narrow windows, where the portal replaces its top navigation with a bottom bar, the same list opens as a sheet.
+• Resources menu — a "Resources" item next to Bookings lists every bookable resource type and its groups, so you jump straight to "Machines › CNC Machining" instead of Bookings → Machines → Filters → Group → Close. Clicking a group opens its machines, and the "Show all" row at the end of that list opens the whole group's calendar. On narrow windows, where the portal replaces its top navigation with a bottom bar, the same list opens as a sheet.
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
@@ -50,7 +50,7 @@ FEATURES
 HOW TO USE
 
 1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the bottom of the Resources menu or the toolbar popup.
-2. Click "Resources" in the portal navigation. Every resource type and group is listed there.
+2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
 5. The toolbar icon opens the same overview as a full page, lists your pins, and holds the four toggles.

@@ -10,12 +10,13 @@ It does six things:
 
 1. **Resource filters in the main menu.** A new **Resources** item next to
    *Bookings* lists every bookable resource type and its resource groups
-   (Machines › CNC Machining, Labs › Outdoor Lab, …). One click jumps straight
-   to that group instead of *Bookings → Machines → Filters → Group → Close*.
-   Below 1200 px the portal swaps the top navigation for its bottom dock, so the
-   extension adds a **Resources** button there that opens the same list as a
-   bottom sheet.
-2. **Pinnable resources.** Expand a group in the **Resources** menu and press the
+   (Machines › CNC Machining, Labs › Outdoor Lab, …). Clicking a group opens its
+   machines; the *Show all* row at the end of that list opens the whole group's
+   calendar, so one click replaces *Bookings → Machines → Filters → Group →
+   Close*. Below 1200 px the portal swaps the top navigation for its bottom
+   dock, so the extension adds a **Resources** button there that opens the same
+   list as a bottom sheet.
+2. **Pinnable resources.** Click a group in the **Resources** menu and press the
    pin icon next to a resource (for example *OLSK Large CNC*). Pins sit in a
    strip at the top of every portal page, just below the navigation, so they are
    visible without opening the menu; the menu itself no longer repeats them.

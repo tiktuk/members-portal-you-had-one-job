@@ -29,6 +29,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- Clicking a group name in the Resources menu opens that group's machines
+  instead of jumping to its calendar; the whole row is the toggle now, and the
+  arrow is only its affordance. The group's own calendar is a *Show all* row at
+  the end of the expanded list. Clicking names was what people did instead of
+  finding the small chevron, and it took them away from the list.
 - Pin icons are visible in the Resources menu without hovering a row. On
   hover-only they were the one affordance nobody found; the hover background now
   carries the emphasis instead.

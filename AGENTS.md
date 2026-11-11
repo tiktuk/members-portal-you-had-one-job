@@ -244,9 +244,12 @@ dashboard's notes field and, if they need to live on disk, into
   For a flex/grid `<main>` the strip is inserted immediately before `<main>`
   instead. The check runs on every ensure pass, and `resize` schedules one,
   because the portal only adds `d-lg-flex` from 992px up.
-- The menu exposes individual resources through the group chevron; the pin
-  button is always visible (dimmed at `opacity: 0.55`, full on hover/focus and
-  when pinned) because hover-only hid the one affordance people needed to find.
+- The group row is the toggle: clicking the group name opens its resources. It
+  used to navigate to the group's calendar, which is what testers clicked
+  instead of the chevron. The group's own calendar is the *Show all* row at the
+  end of the expanded list (a group with no resources keeps the plain link). The pin button is always visible (dimmed at `opacity: 0.55`,
+  full on hover/focus and when pinned) because hover-only hid the one
+  affordance people needed to find.
 - The calendar's Previous/Next buttons are horizontal scrollers for
   `.fc-scroller`, not week navigation. A single pinned resource fits, so the
   clicks are no-ops; `page.js` intercepts them in the capture phase and shifts
@@ -353,7 +356,7 @@ dashboard's notes field and, if they need to live on disk, into
 
 - Pinning was invisible to a tester: the only ways in were the group chevron and
   a pin icon that appeared on row hover. `src/lib/tour.js` is a one-time,
-  non-modal tour that opens the menu itself and walks from the group arrow to
+  non-modal tour that opens the menu itself and walks from the group row to
   the pin button to the chip in the strip. The pin button is now visible at
   `opacity: 0.55` without hovering.
 - No backdrop. The targets sit inside the portal's navbar and inside our own

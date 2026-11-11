@@ -486,33 +486,31 @@
         const key = groupKey(type.slug, group.name);
         const resources = resourcesForGroup(type.slug, group.name);
         const expanded = state.expandedGroups.has(key);
+        const groupHref = U.bookingHref({
+          webAddress,
+          type: type.slug,
+          view,
+          group: group.name,
+          start,
+          end,
+        });
+        const groupActive = current?.type === type.slug && currentGroup === group.name && !pinnedId;
 
         const row = document.createElement("div");
         row.className = "onejob-group-row";
-        row.appendChild(
-          menuLink({
-            label: group.label,
-            title: group.name,
-            href: U.bookingHref({ webAddress, type: type.slug, view, group: group.name, start, end }),
-            active: current?.type === type.slug && currentGroup === group.name && !pinnedId,
-            onActivate: clearPinnedResource,
-          }),
-        );
-
         if (resources.length) {
-          const toggle = document.createElement("button");
-          toggle.type = "button";
-          toggle.className = "onejob-group-toggle";
-          toggle.title = expanded ? "Hide resources" : "Show resources";
-          toggle.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${group.label} resources`);
-          toggle.setAttribute("aria-expanded", String(expanded));
-          toggle.innerHTML = CHEVRON_ICON;
-          toggle.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleGroup(key);
-          });
-          row.appendChild(toggle);
+          row.appendChild(groupToggle({ group, key, expanded, active: groupActive }));
+        } else {
+          // A group with no resources cannot expand, so it keeps the link.
+          row.appendChild(
+            menuLink({
+              label: group.label,
+              title: group.name,
+              href: groupHref,
+              active: groupActive,
+              onActivate: clearPinnedResource,
+            }),
+          );
         }
         section.appendChild(row);
 
@@ -544,6 +542,21 @@
             resourceRow.appendChild(pinButton({ ...resource, type: type.slug }));
             resourceList.appendChild(resourceRow);
           }
+
+          // The group's own calendar lives here now: the group name opens the
+          // list, so this is the only way to that whole group.
+          const allRow = document.createElement("div");
+          allRow.className = "onejob-resource-row";
+          allRow.appendChild(
+            menuLink({
+              label: "Show all",
+              title: `Show all ${group.label}`,
+              href: groupHref,
+              onActivate: clearPinnedResource,
+            }),
+          );
+          resourceList.appendChild(allRow);
+
           section.appendChild(resourceList);
         }
       }
@@ -944,8 +957,8 @@
         primaryLabel: "Show me",
       },
       {
-        title: "Groups hide their machines",
-        body: "The arrow next to a group opens its resources. Clicking the group name jumps to that whole group's calendar.",
+        title: "Click a group to open it",
+        body: "Group names open their machines instead of jumping to the calendar. Click the name again to close the list.",
         enter: () => {
           state.expandedGroups.add(group.key);
           openTourMenu();
@@ -954,7 +967,14 @@
       },
       {
         title: "Pin the one you book most",
-        body: "The name opens the whole group. The pin keeps one machine at the top of every page, one click from its calendar.",
+        body: "The pin keeps one machine at the top of every page, one click from its calendar.",
+        enter: () => {
+          // Re-open the group if it was collapsed between the steps.
+          if (!state.expandedGroups.has(group.key)) {
+            state.expandedGroups.add(group.key);
+            openTourMenu();
+          }
+        },
         target: () => tourResourcePin(group),
       },
       {
@@ -994,16 +1014,8 @@
   }
 
   function tourGroupToggle(group) {
-    for (const row of tourMenuRoot()?.querySelectorAll(".onejob-group-row") || []) {
-      const link = row.querySelector(".onejob-link");
-      if (!link) continue;
-      try {
-        if (U.currentGroup(new URL(link.href, location.href).search) === group.name) {
-          return row.querySelector(".onejob-group-toggle");
-        }
-      } catch {
-        /* ignore */
-      }
+    for (const button of tourMenuRoot()?.querySelectorAll(".onejob-group-toggle") || []) {
+      if (button.dataset.group === group.name) return button;
     }
     return null;
   }
@@ -1257,6 +1269,36 @@
       closeSheet();
     });
     return link;
+  }
+
+  /**
+   * The whole group row is the toggle. Clicking a group name used to jump to
+   * that group's calendar, which is what testers did instead of expanding the
+   * list — the group's calendar is the "Show all" row at the end of the list now.
+   */
+  function groupToggle({ group, key, expanded, active }) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `onejob-group-toggle${active ? " is-active" : ""}`;
+    button.dataset.group = group.name;
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute("aria-label", `${expanded ? "Hide" : "Show"} ${group.label} resources`);
+
+    const label = document.createElement("span");
+    label.className = "onejob-group-label";
+    label.textContent = group.label;
+
+    const chevron = document.createElement("span");
+    chevron.className = "onejob-group-chevron";
+    chevron.innerHTML = CHEVRON_ICON;
+
+    button.append(label, chevron);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleGroup(key);
+    });
+    return button;
   }
 
   function pinButton(resource) {
