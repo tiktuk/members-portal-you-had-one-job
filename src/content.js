@@ -13,6 +13,8 @@
   const cfg = globalThis.OneJobConfig;
   const U = globalThis.OneJobUrl;
   const G = globalThis.OneJobGroups;
+  const S = globalThis.OneJobStats;
+  const O = globalThis.OneJobOverview;
   const T = globalThis.OneJobTour;
   if (!cfg || !U || !G) return;
 
@@ -24,9 +26,12 @@
   const OVERVIEW_DOCK_ID = "onejob-overview-dock-button";
   const PINS_BAR_ID = "onejob-pins-bar";
   const PINS_BAR_WRAP_ID = "onejob-pins-bar-wrap";
+  const DAY_GRID_ID = "onejob-day-grid";
+  const DAY_GRID_WRAP_ID = "onejob-day-grid-wrap";
   const DEFAULT_SETTINGS = {
     calendarDefault: true,
     navMenu: true,
+    dayGrid: cfg.dayGrid?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
     /** `cfg.onboarding.version` once the pinning tour has been shown. */
     onboardingVersion: 0,
@@ -59,6 +64,8 @@
     tourPending: false,
     tourRequested: false,
     tourTimer: 0,
+    /** Fetch state of the single-resource day/time heatmap. */
+    dayGrid: { key: "", status: "idle", records: [], revision: 0, error: false, attemptedAt: 0 },
   };
 
   let activeOverlay = null;
@@ -198,6 +205,7 @@
 
   function ensureNav() {
     ensurePinsBar();
+    ensureDayGrid();
     if (state.tourPending) maybeStartTour();
 
     const menuEnabled = state.settings.navMenu !== false && cfg.nav.enabled;
@@ -1173,7 +1181,7 @@
       wrap.appendChild(bar);
     }
     // Match the width of the portal's content container.
-    mountPinsBar(wrap, main);
+    mountStrip(wrap, main);
 
     const key = pinsBarKey(pins);
     if (bar.dataset.key === key) return;
@@ -1185,18 +1193,24 @@
    * Personal pages (`/user/dashboard/*`) lay `<main>` out as a flex row — a
    * 200px left menu next to the content — so a child of it becomes a column of
    * its own and the page reflows around the strip. Where `<main>` is a flex or
-   * grid container, the strip goes just above it instead.
+   * grid container, the strip goes just above it instead. `after` keeps a
+   * second strip (the day grid) below the one it belongs under.
    */
-  function mountPinsBar(wrap, main) {
+  function mountStrip(wrap, main, after) {
     const display = getComputedStyle(main).display;
     const rowLayout = display.includes("flex") || display.includes("grid");
-    if (!rowLayout || !main.parentElement) {
-      if (wrap.parentElement !== main || main.firstElementChild !== wrap) main.prepend(wrap);
+    const host = rowLayout && main.parentElement ? main.parentElement : main;
+    const anchor = after && after.parentElement === host ? after : null;
+
+    if (anchor) {
+      if (wrap.parentElement !== host || wrap.previousElementSibling !== anchor) anchor.after(wrap);
       return;
     }
-    const host = main.parentElement;
-    if (wrap.parentElement === host && wrap.nextElementSibling === main) return;
-    host.insertBefore(wrap, main);
+    if (rowLayout) {
+      if (wrap.parentElement !== host || wrap.nextElementSibling !== main) host.insertBefore(wrap, main);
+      return;
+    }
+    if (wrap.parentElement !== main || main.firstElementChild !== wrap) main.prepend(wrap);
   }
 
   /**
@@ -1280,6 +1294,324 @@
       : `Show all ${G.typeLabel(type).toLowerCase()}`;
     link.addEventListener("click", () => clearPinnedResource());
     return link;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Day/time heatmap (single-resource calendar)
+   *
+   * A 4 × 28 grid under the pins: 28 days across, morning / afternoon /
+   * evening / night down. It only exists while a pin is the only resource on
+   * screen, because the booking feed returns every resource and there is no
+   * per-resource filter; the rows are coloured by that resource's booked
+   * share of each six-hour block.
+   * ------------------------------------------------------------------ */
+
+  function ensureDayGrid() {
+    const pin = state.settings.dayGrid === false ? null : dayGridPin();
+    const existing = document.getElementById(DAY_GRID_WRAP_ID);
+    if (!pin) {
+      existing?.remove();
+      return;
+    }
+
+    const main = document.querySelector("main");
+    if (!main) return;
+
+    let wrap = existing;
+    let grid = document.getElementById(DAY_GRID_ID);
+    if (!wrap || !grid) {
+      wrap?.remove();
+      wrap = document.createElement("div");
+      wrap.id = DAY_GRID_WRAP_ID;
+      wrap.className = "container";
+      grid = document.createElement("section");
+      grid.id = DAY_GRID_ID;
+      grid.className = "onejob-daygrid";
+      grid.setAttribute("aria-label", "Bookings per day and time of day");
+      grid.addEventListener("click", onDayGridClick);
+      grid.addEventListener("pointerover", onDayGridPointerOver);
+      grid.addEventListener("pointerleave", () => setDayGridHover(grid, ""));
+      wrap.appendChild(grid);
+    }
+
+    mountStrip(wrap, main, document.getElementById(PINS_BAR_WRAP_ID));
+    loadDayGrid(pin);
+
+    const key = dayGridKey(pin);
+    if (grid.dataset.key === key) return;
+    grid.dataset.key = key;
+    renderDayGrid(grid, pin);
+  }
+
+  /** The pinned resource, but only while its calendar is the page on screen. */
+  function dayGridPin() {
+    if (!hasExtensionApis || !S || !O) return null;
+    const info = U.parseBookingPath(location.pathname);
+    if (!info || info.view !== "calendar") return null;
+    const id = currentPinnedId();
+    if (!id) return null;
+
+    const session = readPinnedSession();
+    const resource = findResource(id);
+    return {
+      id,
+      name: session?.name || resource?.name || "",
+      group: session?.group || resource?.group || "",
+      type: session?.type || resource?.type || info.type,
+    };
+  }
+
+  function dayGridWindow() {
+    const config = cfg.dayGrid || {};
+    return S.dayGridRange({ daysBack: config.daysBack, daysAhead: config.daysAhead });
+  }
+
+  function visibleWeekKey() {
+    const { start } = U.currentRange(location.search);
+    const date = start ? new Date(start) : new Date();
+    if (Number.isNaN(date.getTime())) return "";
+    return S.dayKey(S.dayGridRange({ now: date }).current);
+  }
+
+  /**
+   * The grid is rebuilt only when this changes: the MutationObserver schedules
+   * an ensure pass for every DOM mutation, so rendering unconditionally loops.
+   */
+  function dayGridKey(pin) {
+    const { start } = dayGridWindow();
+    return [
+      pin.id,
+      S.dayKey(start),
+      state.dayGrid.revision,
+      state.groupsVersion,
+      visibleWeekKey(),
+    ].join("|");
+  }
+
+  function loadDayGrid(pin) {
+    if (!S || !O) return;
+    const { start, end } = dayGridWindow();
+    const key = `${pin.id}|${start.getTime()}|${end.getTime()}`;
+
+    if (state.dayGrid.key === key) {
+      const retry = state.dayGrid.status === "error" && Date.now() - state.dayGrid.attemptedAt > 60000;
+      if (!retry) return;
+    }
+
+    state.dayGrid.key = key;
+    state.dayGrid.status = "loading";
+    state.dayGrid.attemptedAt = Date.now();
+    state.dayGrid.error = false;
+    // A different resource or window must not show the previous grid's data.
+    state.dayGrid.records = [];
+    state.dayGrid.revision += 1;
+
+    const token = readAccessToken();
+    if (!token) {
+      failDayGrid(key);
+      return;
+    }
+
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const params = new URLSearchParams({
+      start: O.toPortalIso(start),
+      end: O.toPortalIso(end),
+      showAll: "",
+    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), cfg.api.timeoutMs);
+
+    fetch(`${U.apiBaseUrl(webAddress)}/en/bookings/fullCalendarBookings?${params.toString()}`, {
+      method: "GET",
+      credentials: "omit",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+        "x-nx-app-name": "portal",
+        "X-Use-Timezone": "true",
+      },
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (state.dayGrid.key !== key) return;
+        const records = Array.isArray(payload) ? S.normalizeRecords(payload, O.parseTimestamp) : [];
+        state.dayGrid.records = records;
+        state.dayGrid.status = Array.isArray(payload) ? "ready" : "error";
+        state.dayGrid.error = !Array.isArray(payload);
+        state.dayGrid.revision += 1;
+        scheduleEnsure();
+      })
+      .catch(() => failDayGrid(key))
+      .finally(() => clearTimeout(timeout));
+  }
+
+  function failDayGrid(key) {
+    if (state.dayGrid.key !== key) return;
+    state.dayGrid.records = [];
+    state.dayGrid.status = "error";
+    state.dayGrid.error = true;
+    state.dayGrid.revision += 1;
+    scheduleEnsure();
+  }
+
+  function renderDayGrid(grid, pin) {
+    const config = cfg.dayGrid || {};
+    const model = S.dayGrid(state.dayGrid.records, [{ id: pin.id }], {
+      daysBack: config.daysBack,
+      daysAhead: config.daysAhead,
+      buckets: config.buckets,
+      bands: config.bands,
+    });
+    const now = new Date();
+    const visible = visibleWeekKey();
+    const today = S.dayKey(now);
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    const table = document.createElement("div");
+    table.className = "onejob-daygrid-grid";
+
+    const weekCorner = document.createElement("span");
+    weekCorner.className = "onejob-daygrid-corner";
+    table.appendChild(weekCorner);
+    for (const week of model.weeks) {
+      const label = document.createElement("span");
+      label.className = `onejob-daygrid-week${S.dayKey(week.start) === visible ? " is-visible" : ""}`;
+      label.textContent = week.label;
+      label.title = weekRangeLabel(week.start);
+      table.appendChild(label);
+    }
+
+    const dayCorner = document.createElement("span");
+    dayCorner.className = "onejob-daygrid-corner";
+    table.appendChild(dayCorner);
+    for (const day of model.days) {
+      const number = document.createElement("span");
+      const weekday = day.date.getDay();
+      number.className = [
+        "onejob-daygrid-daynum",
+        day.key === today ? "is-today" : "",
+        weekday === 0 || weekday === 6 ? "is-weekend" : "",
+        day.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
+      ].filter(Boolean).join(" ");
+      number.textContent = String(day.date.getDate());
+      number.title = dayLabel(day.date);
+      table.appendChild(number);
+    }
+
+    for (const row of model.rows) {
+      const label = document.createElement("span");
+      label.className = "onejob-daygrid-row";
+      label.textContent = row.label;
+      label.title = `${padHour(row.from)}:00–${padHour(row.to % 24)}:00`;
+      table.appendChild(label);
+
+      for (const cell of row.days) {
+        const link = document.createElement("a");
+        const weekday = cell.date.getDay();
+        link.className = [
+          "onejob-daygrid-cell",
+          `onejob-daygrid-level-${cell.level}`,
+          cell.key === today ? "is-today" : "",
+          cell.date.getTime() < todayStart ? "is-past" : "",
+          weekday === 0 || weekday === 6 ? "is-weekend" : "",
+          cell.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
+        ].filter(Boolean).join(" ");
+        link.href = dayGridHref(cell.date, pin);
+        link.dataset.day = cell.key;
+        const text = dayGridCellLabel(cell, row);
+        link.title = text;
+        link.setAttribute("aria-label", text);
+        table.appendChild(link);
+      }
+    }
+
+    if (!state.dayGrid.error) {
+      grid.replaceChildren(table);
+      return;
+    }
+
+    // The grid itself is self-explanatory; only a failed fetch needs a word.
+    const note = document.createElement("p");
+    note.className = "onejob-daygrid-note";
+    note.textContent = "Bookings unavailable";
+    grid.replaceChildren(note, table);
+  }
+
+  /** Every square of a week links to that week's calendar. */
+  function dayGridHref(date, pin) {
+    const params = new URLSearchParams(location.search);
+    const monday = S.dayGridRange({ now: date }).current;
+    const end = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
+    params.set("start", O.toPortalIso(monday));
+    params.set("end", O.toPortalIso(end));
+    if (pin?.id) params.set(U.RESOURCE_PARAM, String(pin.id));
+    return `${location.pathname}?${params.toString()}${location.hash}`;
+  }
+
+  function dayGridCellLabel(cell, row) {
+    const date = dayLabel(cell.date);
+    const bookings = `${cell.count} ${cell.count === 1 ? "booking" : "bookings"}`;
+    const share = Math.round(cell.share * 100);
+    return `${date}, ${row.label.toLowerCase()} · ${bookings} · ${S.formatHours(cell.hours)} booked (${share}%)`;
+  }
+
+  function dayLabel(date) {
+    return new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(date);
+  }
+
+  function weekRangeLabel(start) {
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+    return `${dayLabel(start)} – ${dayLabel(end)}`;
+  }
+
+  function padHour(value) {
+    return String(value).padStart(2, "0");
+  }
+
+  function onDayGridClick(event) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const cell = target.closest(".onejob-daygrid-cell");
+    if (!cell) return;
+
+    const pin = dayGridPin();
+    if (pin) rememberPinnedResource(pin);
+
+    event.preventDefault();
+    try {
+      history.pushState(history.state, "", cell.href);
+      // React Router only reacts to history events; pushState alone is invisible.
+      window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+    } catch {
+      location.assign(cell.href);
+    }
+  }
+
+  function onDayGridPointerOver(event) {
+    const grid = event.currentTarget;
+    const target = event.target;
+    const cell = target instanceof Element ? target.closest(".onejob-daygrid-cell") : null;
+    if (!cell || !grid.contains(cell)) return;
+    setDayGridHover(grid, cell.dataset.day || "");
+  }
+
+  /** Light up the four squares of the hovered day so a column reads as a day. */
+  function setDayGridHover(grid, day) {
+    if (grid.dataset.hover === day) return;
+    grid.dataset.hover = day;
+    for (const cell of grid.querySelectorAll(".onejob-daygrid-cell.is-hover")) {
+      cell.classList.remove("is-hover");
+    }
+    if (!day) return;
+    for (const cell of grid.querySelectorAll(`.onejob-daygrid-cell[data-day="${day}"]`)) {
+      cell.classList.add("is-hover");
+    }
   }
 
   function resourcesForGroup(slug, groupName) {

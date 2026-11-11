@@ -77,8 +77,9 @@ dashboard's notes field and, if they need to live on disk, into
   and personal-bookings model (day sections, timestamp parsing, icons); loaded
   by the page and the tests.
 - `src/lib/stats.js` — bookings → resource-statistics model (periods, month
-  keys, day/hour buckets, colour bands, heatmap weeks); pure, loaded by the
-  content script and the tests.
+  keys, day/hour buckets, colour bands, heatmap weeks) and the single-resource
+  day grid (`dayGrid`, `dayGridRange`); pure, loaded by the content script and
+  the tests.
 - `src/lib/luma.js` — Luma public API helpers (source parsing, list/event URLs,
   ProseMirror description flattening); loaded by the background worker and the
   tests, never by the page.
@@ -93,8 +94,8 @@ dashboard's notes field and, if they need to live on disk, into
   tests, never by the page.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins (the strip and the menu's pin
-  buttons), the pins strip, settings, the shared overlay shell and both
-  overlays (pinned overview and resource statistics).
+  buttons), the pins strip, the day grid under it, settings, the shared overlay
+  shell and both overlays (pinned overview and resource statistics).
 - `src/page.js` — page world: `history.pushState`/`replaceState` patch, the
   explicit-list detection, the single-resource calendar (XHR payload filter
   + group-filter bypass), and the `navigator.geolocation` block.
@@ -107,7 +108,7 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/stats.css` — the statistics screen's own styles, loaded after
   `overview.css` in the same shadow root so it can reuse the palette, header,
   buttons, notices and footer.
-- `src/popup.*` — toolbar settings UI (four toggles, the tour replay row, group
+- `src/popup.*` — toolbar settings UI (five toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
@@ -424,6 +425,82 @@ dashboard's notes field and, if they need to live on disk, into
   data. `tests/fixture.html` filters the fixture bookings by the requested
   range; `tests/screenshots.html` generates a deterministic year of invented
   bookings when `window.__statsMode` is set by clicking the stats menu row.
+
+## Calendar day grid
+
+- **Placement:** `ensureDayGrid()` runs from `ensureNav()` right after
+  `ensurePinsBar()`, so the grid's `.container` wrapper can be mounted under the
+  pins wrap with `mountStrip(wrap, main, pinsWrap)`. `mountStrip` is the old
+  `mountPinsBar` generalised: a block `<main>` gets the strip as a child, a
+  flex/grid `<main>` (the personal pages) gets it just above `<main>`, and the
+  optional `after` keeps the day grid below the pins.
+- **Scope:** only a *single-resource calendar* — a bookings `calendar` route
+  while `currentPinnedId()` is set. It is deliberately not shown on group, type
+  or `/all` calendars: the booking feed has no resource filter, so a multi-
+  resource grid would need the resource list and an average that is not what
+  "bookedness" means here. `dayGridPin()` also returns the name/group/type for
+  the pin marker.
+- **Setting:** the popup's *Bookings heatmap* toggle writes `settings.dayGrid`
+  (default `config.dayGrid.enabled`). `ensureDayGrid()` treats it like having no
+  pin and removes the card, so the toggle takes effect on the next ensure pass
+  without a reload.
+- **Window:** `lib/stats.js::dayGridRange` aligns to the Monday of the current
+  week, goes `config.dayGrid.daysBack` days back and `daysAhead` days forward
+  (7 + 21 = 28 columns). The window is anchored to today, not to the week the
+  calendar shows, so browsing weeks does not move or refetch the grid.
+- **Model:** `lib/stats.js::dayGrid` clips each booking to the window, splits it
+  across local days and then across the configured hour blocks, and measures
+  `share` against the block's own length. With the default 6-hour blocks a
+  23:00–05:00 booking counts one hour in the first day's *evening* row and five
+  in the next day's *night* row; the night row is 00–06 of the same calendar
+  day, not "the night after". Levels come from `bandForRate(share, bands)`, so
+  `config.dayGrid.bands` is a share, not booked hours. The rows are top to
+  bottom in `config.dayGrid.buckets` order (morning, afternoon, evening, night).
+- **Data:** one `GET /en/bookings/fullCalendarBookings?showAll=&start=…&end=…`
+  per page, with the `AUTH_TOKEN` bearer token and the same headers as
+  `fetchGroups`; records go through `S.normalizeRecords(payload,
+  O.parseTimestamp)`. Everything stays in memory (`state.dayGrid`); no new
+  storage key. A failed fetch renders an empty grid with a "Bookings
+  unavailable" note and retries after 60 s; responses for a superseded key are
+  dropped.
+- **Rebuild key:** `dayGridKey()` = pin id + window start day + data revision +
+  visible week. The `MutationObserver` schedules an ensure pass for every DOM
+  mutation, so the grid must not be rebuilt unconditionally; `revision` only
+  changes when a fetch lands.
+- **Click:** every square links to that day's week — the current query with
+  `start`/`end` set to Monday 00:00 → +7 days and `onejob-resource` re-added —
+  so middle-click/new-tab work. A plain click writes the full pin marker
+  (`rememberPinnedResource`) and does `history.pushState` + a `PopStateEvent`,
+  the same mechanism `page.js` uses for the ◀ ▶ buttons; `page.js`'s patched
+  `pushState` is not involved (the content script has its own `history`
+  wrapper), but the URL stays a calendar URL of the pinned type, so nothing is
+  rewritten. If a future portal stops reacting to the dispatched event, switch
+  the handler to `location.assign(cell.href)`.
+- **Rendering:** one CSS grid,
+  `max-content repeat(28, minmax(14px, 28px))` with `justify-content:
+  space-between`: week labels span seven columns, the header row has the day of
+  the month, and the four rows have a label column plus square anchors. Cells
+  before today get `is-past` (`opacity: 0.35`), so last week and the elapsed part
+  of this week read as history. Saturday and Sunday get `is-weekend`, a 1 px
+  solid outline inside the square at 35% of `--bs-secondary-color` (their day
+  numbers are bold); today gets a 2 px `--bs-primary` inset ring.
+  `pointerover`/`pointerleave`
+  toggle `is-hover` on the four cells of a day with a 1 px
+  `--bs-primary-border-subtle` ring; only `:focus-visible` uses the full 2 px
+  primary outline. The card scrolls
+  horizontally instead of wrapping when 28 columns no longer fit.
+- **Colours:** `.onejob-daygrid-level-0…4` in `portal.css`; level 0 is
+  `--bs-tertiary-bg`, levels 1–4 mix 12/28/48/72% of `--bs-primary` into
+  `--bs-body-bg` with `color-mix` (the manifest's minimum Chrome 111 has it).
+  `[data-bs-theme="dark"]` overrides them: level 0 sits on `--bs-secondary-bg`
+  and levels 1–4 mix 30/48/66/84%, because a 12% tint disappears into `#212529`.
+  The dark hover ring uses a 60% primary mix for the same reason. No hardcoded
+  `#0d6efd`.
+- **Tests:** `tests/stats.test.mjs` covers the 28-day Monday alignment, the
+  four rows and their `from`/`to`, midnight and block splits, the share bands,
+  empty data and the `daysBack`/`daysAhead` overrides. `tests/fixture.html`
+  keeps an incoming `?onejob-resource=<id>` when it rewrites the URL, so the
+  pinned calendar (and the grid) can be opened directly.
 
 ## First-run onboarding
 

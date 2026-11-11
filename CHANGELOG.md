@@ -23,6 +23,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - Each group's expanded list has a **Statistics** row under *Show all* that opens
   the statistics screen scoped to that group: its heatmap, charts, totals and
   resource tiles only cover the group's resources.
+- A 4 × 28 heatmap at the top of a single-resource calendar, under the pins:
+  28 days from last week to the week in two weeks, with morning, afternoon,
+  evening and night rows. Each square is coloured by how much of that six-hour
+  block is booked; clicking one opens that day's week in the calendar. The
+  popup's *Bookings heatmap* toggle hides it.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.

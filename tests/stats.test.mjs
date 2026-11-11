@@ -241,6 +241,111 @@ test("bands and formatters", () => {  const bands = [0.5, 1.5, 3];
   assert.equal(S.formatRate(2.1), "2.1 h/day");
 });
 
+/** Local wall-clock stamp in the dayGrid tests' window (November 2026). */
+function nov(day, hour, minute = 0) {
+  return new Date(2026, 10, day, hour, minute).getTime();
+}
+
+test("dayGrid lays out four Monday-aligned weeks and four blocks", () => {
+  const model = S.dayGrid([], [{ id: "10" }], { now: new Date(2026, 10, 11, 14, 30) });
+
+  assert.equal(model.days.length, 28);
+  assert.equal(model.days[0].key, "2026-11-02");
+  assert.equal(model.days[0].date.getDate(), 2);
+  assert.equal(model.days[27].key, "2026-11-29");
+  assert.equal(model.days[27].date.getDate(), 29);
+  assert.deepEqual(
+    plain(model.weeks.map((week) => week.label)),
+    ["Last week", "This week", "Next week", "In 2 weeks"],
+  );
+  assert.deepEqual(
+    plain(model.rows.map((row) => row.label)),
+    ["Morning", "Afternoon", "Evening", "Night"],
+  );
+  assert.deepEqual(
+    plain(model.rows.map((row) => [row.from, row.to])),
+    [[6, 12], [12, 18], [18, 24], [0, 6]],
+  );
+  assert.equal(model.rows[0].days.length, 28);
+  assert.equal(model.days[7].weekIndex, 1);
+});
+
+test("dayGrid honours daysBack and daysAhead", () => {
+  const model = S.dayGrid([], [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    daysBack: 0,
+    daysAhead: 14,
+  });
+
+  assert.equal(model.days.length, 14);
+  assert.equal(model.days[0].key, "2026-11-09");
+  assert.deepEqual(plain(model.weeks.map((week) => week.label)), ["This week", "Next week"]);
+});
+
+test("dayGrid splits bookings across days and blocks", () => {
+  const records = [
+    { id: "1", resourceId: "10", start: nov(2, 9), end: nov(2, 11) },
+    { id: "2", resourceId: "10", start: nov(3, 18), end: nov(3, 20) },
+    // Crosses midnight: one hour in Wednesday's evening block, five in
+    // Thursday's night block.
+    { id: "3", resourceId: "10", start: nov(4, 23), end: nov(5, 5) },
+    // A different resource is not part of this grid.
+    { id: "4", resourceId: "11", start: nov(6, 9), end: nov(6, 12) },
+  ];
+  const model = S.dayGrid(records, [{ id: "10" }], { now: new Date(2026, 10, 11, 12) });
+
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const cell = (label, day) =>
+    row(label).days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === day);
+
+  assert.equal(cell("Morning", 2).hours, 2);
+  assert.equal(cell("Morning", 2).count, 1);
+  assert.equal(cell("Morning", 2).share, 2 / 6);
+  assert.equal(cell("Morning", 2).level, 3);
+
+  assert.equal(cell("Evening", 3).hours, 2);
+  assert.equal(cell("Evening", 4).hours, 1);
+  assert.equal(cell("Evening", 4).level, 2);
+  assert.equal(cell("Night", 5).hours, 5);
+  assert.equal(cell("Night", 5).level, 4);
+  assert.equal(cell("Morning", 5).hours, 0);
+  assert.equal(cell("Morning", 6).hours, 0);
+});
+
+test("dayGrid bands a block's booked share", () => {
+  const records = [
+    // 0.6 h = 10% of a block.
+    { id: "1", resourceId: "10", start: nov(2, 6), end: nov(2, 6, 36) },
+    // 1.8 h = 30%.
+    { id: "2", resourceId: "10", start: nov(3, 6), end: nov(3, 7, 48) },
+    // 3.6 h = 60%.
+    { id: "3", resourceId: "10", start: nov(4, 6), end: nov(4, 9, 36) },
+    // 4.5 h = 75%.
+    { id: "4", resourceId: "10", start: nov(5, 6), end: nov(5, 10, 30) },
+  ];
+  const model = S.dayGrid(records, [{ id: "10" }], { now: new Date(2026, 10, 11, 12) });
+  const morning = model.rows.find((row) => row.label === "Morning");
+  const levels = morning.days
+    .filter((day) => day.date.getMonth() === 10 && day.date.getDate() <= 6)
+    .map((day) => day.level);
+
+  assert.deepEqual(plain(levels), [1, 2, 3, 4, 0]);
+});
+
+test("an empty dayGrid is still four rows of zero levels", () => {
+  const model = S.dayGrid([], [{ id: "10" }], { now: new Date(2026, 10, 11, 12) });
+
+  assert.equal(model.rows.length, 4);
+  assert.equal(model.days.length, 28);
+  for (const row of model.rows) {
+    for (const day of row.days) {
+      assert.equal(day.hours, 0);
+      assert.equal(day.share, 0);
+      assert.equal(day.level, 0);
+    }
+  }
+});
+
 test("an empty period still produces a grid and zero totals", () => {
   const start = new Date(2026, 0, 5);
   const end = new Date(2026, 0, 6);

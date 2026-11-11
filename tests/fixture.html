@@ -128,12 +128,16 @@
       // `?tour=1` forces the first-run pinning tour; without it the tour counts
       // as already seen, so a normal fixture reload stays quiet.
       const fixtureTour = new URLSearchParams(location.search).has("tour");
+      // `?onejob-resource=<id>` opens the single-resource view, so the day grid
+      // can be checked without walking the menu first.
+      const fixtureResource = new URLSearchParams(location.search).get("onejob-resource");
 
       // Pretend we are on the real portal route.
       history.replaceState(
         {},
         "",
-        "/motionlabberlin/bookings/machines/list?start=2026-10-26T21%3A45%3A00.000%2B01%3A00&end=2026-10-26T22%3A45%3A00.000%2B01%3A00",
+        "/motionlabberlin/bookings/machines/list?start=2026-10-26T21%3A45%3A00.000%2B01%3A00&end=2026-10-26T22%3A45%3A00.000%2B01%3A00" +
+          (fixtureResource ? `&onejob-resource=${encodeURIComponent(fixtureResource)}` : ""),
       );
 
       // A session cookie so the resources fetch is attempted.

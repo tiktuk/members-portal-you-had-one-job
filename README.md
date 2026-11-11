@@ -6,7 +6,7 @@ Nexudus space lives on its own domain, so the build is tied to one portal; see
 [Using it on another space](#using-it-on-another-space) to retarget it. See
 [CHANGELOG.md](CHANGELOG.md) for the version history.
 
-It does seven things:
+It does eight things:
 
 1. **Resource filters in the main menu.** A new **Resources** item next to
    *Bookings* lists every bookable resource type and its resource groups
@@ -51,19 +51,25 @@ It does seven things:
 5. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
-6. **No location prompt.** The portal asks for the browser location on every
+6. **Bookings heatmap.** A single-resource calendar has a 4 × 28 heatmap under
+   the pins: 28 days from last week to the week in two weeks, with morning,
+   afternoon, evening and night rows. Each square is coloured by how much of
+   that six-hour block is booked, so a busy week is visible before scrolling the
+   calendar. Click a square to open that day's week. The popup's *Bookings
+   heatmap* toggle hides it.
+7. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
    makes the portal skip the request instead of prompting. The popup's *Block
    location prompt* toggle turns this off.
-7. **Luma events.** With the *Luma events* toggle on, the pinned overview also
+8. **Luma events.** With the *Luma events* toggle on, the pinned overview also
    merges MotionLab.Berlin's upcoming Luma events into every card and the
    **My bookings** card, with a purple *Event* badge. Expanding a row loads its
    description and links to the event on Luma, like the Django dashboard. The
    **Show events** checkbox in the overview header toggles the same setting as
    the popup.
 
-The four toggles live in the toolbar popup; pins are managed from the strip at
+The five toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page and from the menu's group chevrons. The overview page uses
 the portal session the content script mirrors into extension storage, so open the
 portal once while signed in.
@@ -114,7 +120,7 @@ and every resource colour-coded by booked hours per day:
 
 ![Resource tiles colour-coded by booked hours](docs/screenshots/statistics-resources.png)
 
-**The toolbar popup** — four toggles, the pin count and the overview link:
+**The toolbar popup** — five toggles, the pin count and the overview link:
 
 <img src="docs/screenshots/popup.png" alt="The toolbar popup" width="320">
 
@@ -198,6 +204,10 @@ the *Block location prompt* and *Luma events* toggles.
 | `stats.defaultPeriod` | Period the screen opens with (`12m`); the buttons offer `4w`, `3m` and `12m`. |
 | `stats.bands` | Booked-hours-per-day thresholds for the resource colour scale (`[0.5, 1.5, 3]`). |
 | `stats.cacheTtlMs` / `stats.pastCacheTtlMs` | How long cached statistics stay fresh: 15 minutes for the current month, 24 hours for past months. |
+| `dayGrid.enabled` | Default for the popup's *Bookings heatmap* toggle (`true`). |
+| `dayGrid.daysBack` / `dayGrid.daysAhead` | Window of the heatmap on a single-resource calendar: 7 days before the current week and 21 after its Monday, so 28 columns. |
+| `dayGrid.buckets` | The heatmap's rows: morning 06–12, afternoon 12–18, evening 18–24, night 00–06 by default, top to bottom. |
+| `dayGrid.bands` | Booked share of a block thresholds for the heatmap colours (`[0.1, 0.3, 0.6]`). |
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
 | `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |

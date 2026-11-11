@@ -78,6 +78,28 @@
     },
 
     /**
+     * The 4 × 28 heatmap above a single-resource calendar: 28 Monday-aligned
+     * days as columns and four equal six-hour blocks as rows. `buckets` are
+     * top to bottom; `to` may be 24 (midnight). Each cell is coloured by the
+     * booked share of its own block.
+     */
+    dayGrid: {
+      /** Default for the popup's "Bookings heatmap" toggle. */
+      enabled: true,
+      /** Columns: the current week plus one back and three ahead. */
+      daysBack: 7,
+      daysAhead: 21,
+      buckets: [
+        { id: "morning", label: "Morning", from: 6, to: 12 },
+        { id: "afternoon", label: "Afternoon", from: 12, to: 18 },
+        { id: "evening", label: "Evening", from: 18, to: 24 },
+        { id: "night", label: "Night", from: 0, to: 6 },
+      ],
+      /** Booked share of a block: quiet, moderate, busy. */
+      bands: [0.1, 0.3, 0.6],
+    },
+
+    /**
      * The one-time pinning tour on the first portal visit. `version` is the
      * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
      * again after rewriting it. The tour opens the Resources menu itself, so it

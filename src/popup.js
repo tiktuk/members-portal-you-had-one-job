@@ -6,11 +6,13 @@
   const DEFAULTS = {
     calendarDefault: true,
     navMenu: true,
+    dayGrid: cfg.dayGrid?.enabled !== false,
     lumaEvents: cfg.luma?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
   };
 
   const calendarToggle = document.getElementById("calendar-default");
+  const dayGridToggle = document.getElementById("day-grid");
   const navToggle = document.getElementById("nav-menu");
   const navRowTitle = document.getElementById("nav-row-title");
   const navRowHint = document.getElementById("nav-row-hint");
@@ -30,12 +32,16 @@
     navRowTitle.textContent = `${cfg.nav.label} in the main menu`;
     navRowHint.textContent = `Adds a “${cfg.nav.label}” menu with every resource group. Pin resources to keep them at the top of the page.`;
     calendarToggle.checked = settings.calendarDefault !== false;
+    dayGridToggle.checked = settings.dayGrid !== false;
     navToggle.checked = settings.navMenu !== false;
     lumaToggle.checked = settings.lumaEvents !== false;
     geoToggle.checked = settings.geoBlockPrompt !== false;
 
     calendarToggle.addEventListener("change", () =>
       saveSettings({ calendarDefault: calendarToggle.checked }),
+    );
+    dayGridToggle.addEventListener("change", () =>
+      saveSettings({ dayGrid: dayGridToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
     lumaToggle.addEventListener("change", () =>

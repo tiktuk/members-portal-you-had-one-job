@@ -17,7 +17,7 @@ already signed in with, and keeps your settings on your device.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned and the four toggles in
+- **Your pins and settings.** Which resources you pinned and the five toggles in
   the toolbar popup.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to

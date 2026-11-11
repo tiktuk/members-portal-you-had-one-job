@@ -43,6 +43,8 @@ FEATURES
 
 • Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
+• Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it.
+
 • Calendar by default — booking links open the calendar view instead of the list. Picking "List" in the portal's own View dropdown still works and is remembered for the tab.
 
 • No location prompt — the portal asks for your browser location on every page load. The extension stops that prompt. It never reads or stores your location, and the toolbar popup has a toggle to bring the prompt back.
@@ -54,9 +56,10 @@ HOW TO USE
 1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the toolbar popup.
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
-4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
-5. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
-6. The toolbar icon opens the overview as a full page, lists your pins, and holds the four toggles.
+4. Open that pin. The heatmap under the strip shows the resource's booked share of each six-hour block for the last week and the next three; click a square to jump to that week.
+5. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
+6. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
+7. The toolbar icon opens the overview as a full page, lists your pins, and holds the five toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
 
@@ -143,7 +146,7 @@ rejection reason.
 **Permissions justification** — 770 of 1,000 characters
 
 ```
-storage: keeps pins, the four popup toggles, a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
+storage: keeps pins, the five popup toggles, a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
 https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
@@ -264,7 +267,9 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
 2. Press the pin icon next to any resource. It appears in the strip at the top
    of the page, below the navigation.
 3. Click the pinned resource in that strip: the calendar shows only that
-   resource, and the strip ends with "Show all" for its group.
+   resource, and the strip ends with "Show all" for its group. Under the strip
+   a 4 × 28 heatmap shows the last week and the next three, with morning,
+   afternoon, evening and night rows; click a square to jump to that week.
 4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
@@ -274,8 +279,8 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
-6. The toolbar popup has four toggles: calendar as default view, the Resources
-   menu, Luma events and the location prompt block.
+6. The toolbar popup has five toggles: calendar as default view, the bookings
+   heatmap, the Resources menu, Luma events and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
 content_scripts.matches and asks for host access to just that site and to the

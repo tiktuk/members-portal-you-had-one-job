@@ -398,6 +398,195 @@
     return { weeks, maxHours: max, start: gridStart, end: gridEnd };
   }
 
+  const DEFAULT_BUCKETS = [
+    { id: "morning", label: "Morning", from: 6, to: 12 },
+    { id: "afternoon", label: "Afternoon", from: 12, to: 18 },
+    { id: "evening", label: "Evening", from: 18, to: 24 },
+    { id: "night", label: "Night", from: 0, to: 6 },
+  ];
+
+  function hourOfDay(value) {
+    const hour = Number(value);
+    if (!Number.isFinite(hour)) return 0;
+    return Math.min(24, Math.max(0, Math.round(hour)));
+  }
+
+  /** A bucket's `to` may be 24 (midnight) and must stay after `from`. */
+  function normalizeBuckets(value) {
+    const list = Array.isArray(value) && value.length ? value : DEFAULT_BUCKETS;
+    return list.map((bucket, index) => {
+      const from = hourOfDay(bucket?.from);
+      let to = hourOfDay(bucket?.to);
+      if (to <= from) to += 24;
+      return {
+        id: String(bucket?.id || `block-${index}`),
+        label: String(bucket?.label || ""),
+        from,
+        to,
+        hours: to - from,
+      };
+    });
+  }
+
+  function wholeDays(value, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.max(0, Math.round(number));
+  }
+
+  /**
+   * The Monday-aligned window of the 4 × 28 heatmap: `daysBack` days before
+   * the current week and `daysAhead` days after its Monday. Both the model and
+   * the content script use this, so the fetch range and the columns agree.
+   */
+  function dayGridRange(options = {}) {
+    const now = options.now instanceof Date ? options.now : new Date();
+    const back = wholeDays(options.daysBack, 7);
+    const ahead = wholeDays(options.daysAhead, 21);
+    const current = mondayOnOrBefore(startOfDay(now));
+    return {
+      current,
+      start: new Date(current.getFullYear(), current.getMonth(), current.getDate() - back),
+      end: new Date(current.getFullYear(), current.getMonth(), current.getDate() + ahead),
+    };
+  }
+
+  function weekOffset(weekStart, current) {
+    return Math.round((weekStart.getTime() - current.getTime()) / DAY_MS / 7);
+  }
+
+  function weekLabel(offset, weekStart) {
+    if (offset === -1) return "Last week";
+    if (offset === 0) return "This week";
+    if (offset === 1) return "Next week";
+    if (offset === 2) return "In 2 weeks";
+    if (offset === -2) return "2 weeks ago";
+    return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(weekStart);
+  }
+
+  /**
+   * The 4 × 28 heatmap above a single-resource calendar: one column per local
+   * day and one row per configured hour block. A booking is clipped to the
+   * window, split across the days it touches and then across each day's
+   * blocks, so one that spans midnight contributes to whichever blocks it
+   * overlaps on each side (evening on the first day, night on the next, with
+   * the default buckets). `share` is measured against the block's own length,
+   * not the whole day.
+   */
+  function dayGrid(records, resources, options = {}) {
+    const bands = Array.isArray(options.bands) && options.bands.length === 3
+      ? options.bands
+      : [0.1, 0.3, 0.6];
+    const buckets = normalizeBuckets(options.buckets);
+    const range = dayGridRange(options);
+    const start = range.start.getTime();
+    const end = range.end.getTime();
+
+    const ids = new Set();
+    for (const resource of resources || []) {
+      if (resource && resource.id != null) ids.add(String(resource.id));
+    }
+
+    const days = [];
+    let cursor = new Date(range.start);
+    while (cursor < range.end) {
+      days.push({
+        key: dayKey(cursor),
+        date: new Date(cursor),
+        weekIndex: Math.floor(days.length / 7),
+      });
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+    }
+
+    const weeks = [];
+    for (let index = 0; index < Math.ceil(days.length / 7); index += 1) {
+      const weekStart = new Date(
+        range.start.getFullYear(),
+        range.start.getMonth(),
+        range.start.getDate() + index * 7,
+      );
+      weeks.push({
+        index,
+        start: weekStart,
+        label: weekLabel(weekOffset(weekStart, range.current), weekStart),
+      });
+    }
+
+    const dayIndexByKey = new Map(days.map((day, index) => [day.key, index]));
+    const rows = buckets.map((bucket) => ({
+      id: bucket.id,
+      label: bucket.label,
+      from: bucket.from,
+      to: bucket.to,
+      days: days.map((day) => ({
+        key: day.key,
+        date: day.date,
+        weekIndex: day.weekIndex,
+        count: 0,
+        hours: 0,
+        share: 0,
+        level: 0,
+      })),
+    }));
+
+    const seen = new Set();
+    for (const record of Array.isArray(records) ? records : []) {
+      if (!record) continue;
+      const id = record.id != null ? String(record.id) : `${record.resourceId}-${record.start}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (!ids.has(String(record.resourceId))) continue;
+
+      const recordStart = Number(record.start);
+      const recordEnd = Number(record.end);
+      if (!Number.isFinite(recordStart) || !Number.isFinite(recordEnd)) continue;
+
+      const from = Math.max(recordStart, start);
+      const to = Math.min(recordEnd, end);
+      if (to <= from) continue;
+
+      let day = startOfDay(new Date(from));
+      while (day.getTime() < to) {
+        const dayIndex = dayIndexByKey.get(dayKey(day));
+        const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1);
+        if (dayIndex != null) {
+          for (let rowIndex = 0; rowIndex < buckets.length; rowIndex += 1) {
+            const bucket = buckets[rowIndex];
+            const blockStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.from);
+            const blockEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), bucket.to);
+            const blockFrom = Math.max(blockStart.getTime(), from);
+            const blockTo = Math.min(blockEnd.getTime(), to);
+            if (blockTo > blockFrom) {
+              const cell = rows[rowIndex].days[dayIndex];
+              cell.hours += (blockTo - blockFrom) / HOUR_MS;
+              cell.count += 1;
+            }
+          }
+        }
+        day = next;
+      }
+    }
+
+    for (const row of rows) {
+      const blockHours = Math.max(1, row.to - row.from);
+      for (const cell of row.days) {
+        cell.share = cell.hours / blockHours;
+        cell.level = bandForRate(cell.share, bands);
+      }
+    }
+
+    return {
+      start: range.start,
+      end: range.end,
+      current: range.current,
+      bands,
+      days,
+      weeks,
+      rows,
+      resourceCount: ids.size,
+    };
+  }
+
   function formatHours(hours) {
     if (!Number.isFinite(hours) || hours <= 0) return "0 h";
     if (hours < 10) return `${hours.toFixed(1)} h`;
@@ -414,6 +603,8 @@
     PERIODS,
     aggregate,
     bandForRate,
+    dayGrid,
+    dayGridRange,
     dayKey,
     filterResources,
     formatHours,
