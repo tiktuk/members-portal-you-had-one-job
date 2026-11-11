@@ -139,6 +139,22 @@
   }
 
   /**
+   * Narrows a resource list to a menu scope. `scope.type` matches the type
+   * slug and `scope.group` the raw GroupName, so a group-scoped screen uses
+   * the same exact string the portal's filter does.
+   */
+  function filterResources(resources, scope) {
+    const list = Array.isArray(resources) ? resources : [];
+    if (!scope || (!scope.type && !scope.group)) return list;
+    return list.filter((resource) => {
+      if (!resource) return false;
+      if (scope.type && resource.type !== scope.type) return false;
+      if (scope.group && resource.group !== scope.group) return false;
+      return true;
+    });
+  }
+
+  /**
    * Builds the whole statistics model for a period. Bookings are clipped to
    * the period, split across local days and hours, and attributed only to
    * resources in `resources` (the published list).
@@ -399,6 +415,7 @@
     aggregate,
     bandForRate,
     dayKey,
+    filterResources,
     formatHours,
     formatRate,
     heatmap,

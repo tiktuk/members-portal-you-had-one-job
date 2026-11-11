@@ -356,19 +356,36 @@
   background: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.08));
 }
 
+/* "Statistics" under a group's "Show all" row. */
+.onejob-stats-link {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--bs-secondary-color, #6c757d);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.onejob-stats-link:hover,
+.onejob-stats-link:focus-visible {
+  background: var(--bs-primary-bg-subtle, #ffdecf);
+  color: var(--bs-primary, #ff5b13);
+}
+
 .onejob-empty {
   padding: 0.5rem;
   font-size: 0.9rem;
   color: var(--bs-secondary-color, #6c757d);
 }
 
-/* "Resource statistics" and "Show me how pinning works" — two full-width
-   actions, so they stack instead of competing for one row. */
+/* The statistics screen sits at the bottom of the menu. */
 .onejob-menu-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.15rem;
   margin-top: 0.15rem;
   padding-top: 0.35rem;
   border-top: 1px solid var(--bs-border-color, #dee2e6);
@@ -401,25 +418,6 @@
 .onejob-menu-stats-button:focus-visible {
   background: var(--bs-primary-bg-subtle, #ffdecf);
   color: var(--bs-primary, #ff5b13);
-}
-
-.onejob-menu-tour {
-  align-self: flex-end;
-  padding: 0.25rem 0.4rem;
-  border: 0;
-  border-radius: 0.35rem;
-  background: none;
-  color: var(--bs-secondary-color, #6c757d);
-  font: inherit;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
-.onejob-menu-tour:hover,
-.onejob-menu-tour:focus-visible {
-  background: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.06));
-  color: var(--bs-primary, #ff5b13);
-  text-decoration: underline;
 }
 
 /* ------------------------------------------------------------------ *

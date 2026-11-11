@@ -369,6 +369,13 @@ dashboard's notes field and, if they need to live on disk, into
   the menu and mounts `OneJobStatsView` into the shared overlay shell. **Alt+S**
   (`config.stats.shortcut`) opens it even when the Resources menu is switched
   off. There is deliberately no separate nav item or popup link.
+- **Group scope:** each expanded group's resource list ends with a `Statistics`
+  row under `Show all`; it calls `openStatsOverlay({ scope: { type, group, label } })`.
+  `OneJobStatsView.mount` stores the scope and `lib/stats.js::filterResources`
+  narrows the resource list before `aggregate`, so the heatmap, charts, totals
+  and tiles only cover that group. The type filter chips are hidden while
+  scoped and the type summary drops the "share of booked hours" (it would always
+  be 100%).
 - **Data:** bookings from
   `GET /en/bookings/fullCalendarBookings?showAll=&start=…&end=…`, one request per
   **whole calendar month** (the current month ends at `now`). Resources come
@@ -446,8 +453,7 @@ dashboard's notes field and, if they need to live on disk, into
   when the tour ends: clicking a resource name mid-tour navigates away, and that
   is the exact habit the tour is about, so it must not make the tour restart on
   every page.
-- There are two ways back in: *Show me how pinning works* in the menu footer
-  (`replayTour()`, immediate) and *Replay* in the popup, which writes
+- There is one way back in: *Replay* in the popup, which writes
   `onejob:tour-request` (`Date.now()`). `content.js` consumes the request on load
   and on `chrome.storage.onChanged` (reset to 0, so it runs once) and forces the
   tour even when it was already seen. The popup refuses with a hint while the

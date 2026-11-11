@@ -35,6 +35,19 @@
   flex-wrap: wrap;
 }
 
+/* The group a scoped screen was opened from. */
+.stats-scope {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.2rem 0 0;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
 /* ------------------------------------------------------------------ *
  * Period switcher
  * ------------------------------------------------------------------ */

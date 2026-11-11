@@ -26,6 +26,8 @@
       months: {},
       period: cfg.stats?.defaultPeriod || "12m",
       periodInfo: null,
+      /** { type, group, label } when opened from a menu group. */
+      scope: null,
       type: "all",
       sort: "busy",
       loading: false,
@@ -65,12 +67,25 @@
     ui.root = root;
     ui.doc = root.ownerDocument;
     ui.onClose = typeof options.onClose === "function" ? options.onClose : null;
+    state.scope = normalizeScope(options.scope);
 
     root.classList.add("overview", "stats", "is-panel");
     root.replaceChildren(buildShell());
 
     start();
     return { refresh: () => load({ force: true }), destroy };
+  }
+
+  function normalizeScope(scope) {
+    if (!scope || typeof scope !== "object") return null;
+    const type = String(scope.type || "");
+    const group = String(scope.group || "");
+    if (!type && !group) return null;
+    return {
+      type,
+      group,
+      label: String(scope.label || group || type),
+    };
   }
 
   function destroy() {
@@ -118,6 +133,7 @@
     const header = el("header", "page-header");
     const heading = el("div", "page-heading");
     heading.appendChild(el("h1", null, cfg.stats?.label || "Resource statistics"));
+    if (state.scope) heading.appendChild(el("p", "stats-scope", state.scope.label));
     ui.summary = el("p", "summary", "Loading…");
     ui.summary.setAttribute("aria-live", "polite");
     heading.appendChild(ui.summary);
@@ -540,7 +556,8 @@
     const period = state.periodInfo || S.periodFor(state.period, new Date());
     state.periodInfo = period;
     const records = recordsForPeriod(period);
-    const resources = state.resources.length ? state.resources : deriveResources(records);
+    const base = state.resources.length ? state.resources : deriveResources(records);
+    const resources = S.filterResources(base, state.scope);
     state.model = S.aggregate(records, resources, period, { bands: cfg.stats?.bands });
     state.heat = S.heatmap(state.model, period);
   }
@@ -719,7 +736,11 @@
 
     grid.append(
       tile("Bookings", formatNumber(totals.bookings), S.periodLabel(state.period)),
-      tile("Booked hours", S.formatHours(totals.hours), "across all resources"),
+      tile(
+        "Booked hours",
+        S.formatHours(totals.hours),
+        state.scope ? "across this group" : "across all resources",
+      ),
       tile("Average booking", totals.bookings ? S.formatHours(totals.avgHours) : "—", "per booking"),
       tile(
         "Active resources",
@@ -756,7 +777,13 @@
     const head = el("div", "stats-section-head");
     head.append(
       el("h2", null, "Bookings per day"),
-      el("p", "stats-section-note", "Booked hours across every resource; darker means busier."),
+      el(
+        "p",
+        "stats-section-note",
+        state.scope
+          ? "Booked hours for this group; darker means busier."
+          : "Booked hours across every resource; darker means busier.",
+      ),
     );
     section.appendChild(head);
 
@@ -834,7 +861,7 @@
     const section = el("section", "stats-section");
     const head = el("div", "stats-section-head");
     head.append(
-      el("h2", null, "When the space is busy"),
+      el("h2", null, state.scope ? "When these resources are busy" : "When the space is busy"),
       el("p", "stats-section-note", "Booked hours by weekday and time of day."),
     );
 
@@ -980,32 +1007,36 @@
   function resourceControls(groups) {
     const controls = el("div", "stats-controls");
 
-    const filters = el("div", "stats-filters");
-    filters.setAttribute("role", "group");
-    filters.setAttribute("aria-label", "Resource type");
+    // A group-scoped screen is already filtered by the menu, so the type
+    // chips would only repeat the scope.
+    if (!state.scope) {
+      const filters = el("div", "stats-filters");
+      filters.setAttribute("role", "group");
+      filters.setAttribute("aria-label", "Resource type");
 
-    const all = el("button", "button stats-filter", `All resources ${state.model.resources.length}`);
-    all.type = "button";
-    all.dataset.type = "all";
-    all.setAttribute("aria-pressed", String(state.type === "all"));
-    all.addEventListener("click", () => {
-      state.type = "all";
-      render();
-    });
-    filters.appendChild(all);
-
-    for (const group of groups) {
-      const button = el("button", "button stats-filter", `${group.label} ${group.resources.length}`);
-      button.type = "button";
-      button.dataset.type = group.slug;
-      button.setAttribute("aria-pressed", String(state.type === group.slug));
-      button.addEventListener("click", () => {
-        state.type = group.slug;
+      const all = el("button", "button stats-filter", `All resources ${state.model.resources.length}`);
+      all.type = "button";
+      all.dataset.type = "all";
+      all.setAttribute("aria-pressed", String(state.type === "all"));
+      all.addEventListener("click", () => {
+        state.type = "all";
         render();
       });
-      filters.appendChild(button);
+      filters.appendChild(all);
+
+      for (const group of groups) {
+        const button = el("button", "button stats-filter", `${group.label} ${group.resources.length}`);
+        button.type = "button";
+        button.dataset.type = group.slug;
+        button.setAttribute("aria-pressed", String(state.type === group.slug));
+        button.addEventListener("click", () => {
+          state.type = group.slug;
+          render();
+        });
+        filters.appendChild(button);
+      }
+      controls.appendChild(filters);
     }
-    controls.appendChild(filters);
 
     const sort = el("div", "stats-sort");
     sort.setAttribute("role", "group");
@@ -1087,17 +1118,12 @@
     const section = el("div", "stats-type");
     const head = el("div", "stats-type-head");
     head.appendChild(el("h3", null, group.label));
-    head.appendChild(
-      el(
-        "p",
-        "stats-type-meta",
-        [
-          plural(group.resources.length, "resource"),
-          S.formatHours(group.hours),
-          `${Math.round(group.share * 100)}% of booked hours`,
-        ].join(" · "),
-      ),
-    );
+
+    const meta = [plural(group.resources.length, "resource"), S.formatHours(group.hours)];
+    // On a scoped screen every booking belongs to the scope, so the share
+    // would always be 100%.
+    if (!state.scope) meta.push(`${Math.round(group.share * 100)}% of booked hours`);
+    head.appendChild(el("p", "stats-type-meta", meta.join(" · ")));
     section.appendChild(head);
 
     const grid = el("div", "stats-grid");

@@ -26,8 +26,7 @@ It does seven things:
    *Show all CNC Machining*, which keeps the category in view instead of jumping
    to the first resource of the whole type. The first time you open the portal, a
    short tour opens the menu and points at the group arrow and the pin icon;
-   *Show me how pinning works* at the bottom of the menu, or *Replay* in the
-   popup, brings it back.
+   *Replay* in the popup brings it back.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -47,6 +46,8 @@ It does seven things:
    by booked hours per day, weekday and time-of-day charts, a booking-length
    distribution and summary tiles. Switch the period between 4 weeks, 3 months
    and 12 months; click a resource tile to open its single-resource calendar.
+   Each group's expanded list also has a **Statistics** row under *Show all*,
+   which opens the same screen scoped to that group.
 5. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
    is remembered for the tab.
@@ -285,7 +286,10 @@ day (`0`, `≤0.5`, `≤1.5`, `≤3`, `>3`), and the heatmap's intensity uses th
 95th percentile of daily hours so one outlier does not wash out the rest.
 Workshop reservations and Luma events are not included. The model lives in
 `src/lib/stats.js`; the screen in `src/lib/stats-view.js` and `src/stats.css`;
-the overlay shell is shared with the pinned overview.
+the overlay shell is shared with the pinned overview. Opening the screen from a
+group's **Statistics** row passes that group to the view, which filters the
+resource list before aggregating, so the heatmap, charts and tiles are scoped
+too.
 
 Three scripts do the work:
 
@@ -353,8 +357,7 @@ tour as already seen.
 - **Only one resource is shown** — a pinned resource is active. Use *Show all
   …* in the pinned strip at the top of the page, or unpin it in the **Resources**
   menu.
-- **The tour does not appear** — it runs once per install; use *Show me how
-  pinning works* at the bottom of the **Resources** menu, or *Replay* in the
+- **The tour does not appear** — it runs once per install; use *Replay* in the
   popup. It also waits for the Resources menu, so it cannot run while that toggle
   is off or before the resource groups have loaded.
 - **Statistics is missing from the menu** — it is the **Resource statistics** row

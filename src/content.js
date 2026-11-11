@@ -568,6 +568,26 @@
           );
           resourceList.appendChild(allRow);
 
+          const statsRow = document.createElement("div");
+          statsRow.className = "onejob-resource-row";
+          const statsButton = document.createElement("button");
+          statsButton.type = "button";
+          statsButton.className = "onejob-link onejob-stats-link";
+          statsButton.title = `Statistics for ${group.label}`;
+          statsButton.setAttribute("aria-label", `Statistics for ${group.label}`);
+          statsButton.append(document.createTextNode("Statistics"));
+          statsButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            closeMenu();
+            closeSheet();
+            openStatsOverlay({
+              scope: { type: type.slug, group: group.name, label: group.label },
+            });
+          });
+          statsRow.appendChild(statsButton);
+          resourceList.appendChild(statsRow);
+
           section.appendChild(resourceList);
         }
       }
@@ -586,8 +606,7 @@
 
     content.appendChild(columns);
 
-    // The footer holds the statistics screen and the tour's way back in. Both
-    // are full-width actions, so they stack instead of competing for the row.
+    // The statistics screen lives at the bottom of the menu.
     const footer = document.createElement("div");
     footer.className = "onejob-menu-footer";
 
@@ -605,17 +624,6 @@
       openStatsOverlay();
     });
     footer.appendChild(stats);
-
-    const replay = document.createElement("button");
-    replay.type = "button";
-    replay.className = "onejob-menu-tour";
-    replay.textContent = "Show me how pinning works";
-    replay.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      replayTour();
-    });
-    footer.appendChild(replay);
     content.appendChild(footer);
 
     return content;
@@ -877,14 +885,17 @@
     });
   }
 
-  function openStatsOverlay() {
+  function openStatsOverlay(options = {}) {
     if (activeOverlay?.kind === "stats" || overlayOpening || !globalThis.OneJobStatsView) return;
     state.tour?.end("statistics");
+    const scope = options.scope || null;
     openOverlay({
       kind: "stats",
-      label: cfg.stats?.label || "Resource statistics",
+      label: scope?.label
+        ? `${cfg.stats?.label || "Resource statistics"}: ${scope.label}`
+        : cfg.stats?.label || "Resource statistics",
       stylesheets: ["overview.css", "stats.css"],
-      mount: (root, options) => globalThis.OneJobStatsView.mount(root, options),
+      mount: (root, viewOptions) => globalThis.OneJobStatsView.mount(root, { ...viewOptions, scope }),
     });
   }
 
@@ -1053,13 +1064,6 @@
         primaryLabel: "Got it",
       },
     ];
-  }
-
-  /** Starts the tour again from the menu footer or the popup request. */
-  function replayTour() {
-    state.tourRequested = true;
-    state.tourPending = false;
-    maybeStartTour();
   }
 
   /** Whichever of the two entry points the current width actually shows. */

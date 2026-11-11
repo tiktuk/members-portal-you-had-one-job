@@ -35,13 +35,13 @@ FEATURES
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
-• First-run tour — the first time you open the portal, a short tour opens the Resources menu and points at the group arrow, the pin icon and the strip, so pinning is shown instead of hidden behind a chevron. Replay it from the bottom of the Resources menu or from the toolbar popup.
+• First-run tour — the first time you open the portal, a short tour opens the Resources menu and points at the group arrow, the pin icon and the strip, so pinning is shown instead of hidden behind a chevron. Replay it from the toolbar popup.
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
-• Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar.
+• Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
 • Calendar by default — booking links open the calendar view instead of the list. Picking "List" in the portal's own View dropdown still works and is remembered for the tab.
 
@@ -51,7 +51,7 @@ FEATURES
 
 HOW TO USE
 
-1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the bottom of the Resources menu or the toolbar popup.
+1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the toolbar popup.
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
@@ -272,7 +272,8 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
    press Alt+S). It loads the last 12 months from the portal's booking feed and
    shows the heatmap, the charts and every published resource colour-coded by
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
-   period; a resource tile opens that resource's calendar.
+   period; a resource tile opens that resource's calendar. Expand a group and
+   choose "Statistics" under "Show all" to see the same screen scoped to that group.
 6. The toolbar popup has four toggles: calendar as default view, the Resources
    menu, Luma events and the location prompt block.
 

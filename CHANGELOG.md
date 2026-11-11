@@ -20,14 +20,16 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   `chrome.storage.local` (`onejob:stats-cache`; the current month for 15
   minutes, past months for 24 hours, no member names), so reopening it does not
   refetch the year.
+- Each group's expanded list has a **Statistics** row under *Show all* that opens
+  the statistics screen scoped to that group: its heatmap, charts, totals and
+  resource tiles only cover the group's resources.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.
 - A one-time tour on the first portal visit. It opens the Resources menu,
   points at the group arrow, at the pin button, and at the chip in the strip, so
   pinning is shown instead of hidden behind a chevron. Escape, *Skip* or a click
-  outside ends it. *Show me how pinning works* at the bottom of the Resources
-  menu, and *Replay* in the toolbar popup, start it again.
+  outside ends it. *Replay* in the toolbar popup starts it again.
 
 ### Fixed
 
@@ -54,6 +56,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The *Pinned — Showing only …* banner is gone. Its *Show all* link now sits at
   the end of the strip while a single resource is shown, so the pin state is one
   row instead of two.
+- The Resources menu no longer has *Show me how pinning works*; replay the tour
+  from the toolbar popup.
 - The overview's *Events* pill is now a *Show events* checkbox. A pill that only
   changed colour gave no hint that it was a toggle; the tick says so, and the
   label reads as the state it switches.

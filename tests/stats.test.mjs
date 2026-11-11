@@ -205,8 +205,25 @@ test("heatmap levels scale to the busiest day", () => {
   assert.ok(tuesday.level >= 1 && tuesday.level < 4);
 });
 
-test("bands and formatters", () => {
-  const bands = [0.5, 1.5, 3];
+test("filterResources narrows a menu scope", () => {
+  assert.equal(S.filterResources(RESOURCES, null).length, 3);
+  assert.equal(S.filterResources(RESOURCES, {}).length, 3);
+  assert.deepEqual(
+    plain(S.filterResources(RESOURCES, { type: "machines" }).map((resource) => resource.id)),
+    ["10", "11"],
+  );
+  assert.deepEqual(
+    plain(
+      S.filterResources(RESOURCES, { type: "machines", group: "Machines: CNC" }).map(
+        (resource) => resource.id,
+      ),
+    ),
+    ["10"],
+  );
+  assert.deepEqual(plain(S.filterResources(RESOURCES, { type: "labs", group: "Machines: CNC" })), []);
+});
+
+test("bands and formatters", () => {  const bands = [0.5, 1.5, 3];
   assert.equal(S.bandForRate(0, bands), 0);
   assert.equal(S.bandForRate(0.4, bands), 1);
   assert.equal(S.bandForRate(0.5, bands), 1);
