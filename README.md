@@ -39,7 +39,9 @@ It does eight things:
    one books the resource so the new slot ends when that one starts, the right
    one so it starts when that one ends. The dialog only asks for the duration,
    shows the times and price the portal quotes, and creates the booking through
-   the portal's own checkout; see [Booking from the overview](#booking-from-the-overview).
+   the portal's own checkout. Your own rows also carry a **×** that cancels the
+   booking with one of the portal's cancellation reasons; see
+   [Booking from the overview](#booking-from-the-overview).
    Open it from
    **Booking Overview** in the portal's main navigation (or the **Overview**
    button in the bottom bar on a narrow window), which shows it in an overlay
@@ -338,6 +340,17 @@ dialog is a native `<dialog>` inside the view's root, so it sits in the top
 layer above the overlay and handles Escape and the focus trap itself; the
 overlay's Escape handler checks `hasOpenModal()` so the first Escape closes the
 dialog and the second the overlay.
+
+A row that is yours (it also appears in `/api/public/bookings/my`) carries a
+**×** next to the title. It opens a cancellation dialog with the portal's own
+reasons — *No longer needed*, *Too expensive*, *Bad previous experience*,
+*Re-booked for a different time*, and *Other* with a free-text field — and warns
+when `GET /api/public/bookings/<id>/cancellationFee` says a fee applies.
+Confirming sends `DELETE /api/public/bookings/<id>` with
+`{ id, cancellationReason, cancellationReasonDetails }`, the same body the
+portal's edit page sends. Refusals (`ALREADY_INVOICED`,
+`CANNOT_CANCEL_IF_STARTED`, `BREAKS_CANCELLATION_POLICY|<minutes>`, …) are
+translated and leave the dialog open with the reason still selected.
 
 The **Resource statistics** screen uses the same booking feed, one request per
 whole calendar month for the selected period (4 weeks, 3 months or 12 months,

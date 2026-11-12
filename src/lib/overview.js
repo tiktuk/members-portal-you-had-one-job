@@ -603,7 +603,58 @@
     }
   }
 
+  /**
+   * The portal's cancellation reasons, in its own order. The API rejects a
+   * cancellation without one, and "Other" needs a free-text detail.
+   */
+  const CANCEL_REASONS = [
+    { value: "", label: "-" },
+    { value: "NoLongerNeeded", label: "No longer needed" },
+    { value: "TooExpensive", label: "Too expensive" },
+    { value: "BadPreviousExperience", label: "Bad previous experience" },
+    { value: "RebookedForADifferentTime", label: "Re-booked for a different time" },
+    { value: "Other", label: "Other" },
+  ];
+
+  /** The body the portal sends to `DELETE /api/public/bookings/<id>`. */
+  function cancelBody(id, reason, details) {
+    return {
+      id: Number(id),
+      cancellationReason: String(reason || ""),
+      cancellationReasonDetails: reason === "Other" ? String(details || "") : "",
+    };
+  }
+
+  /**
+   * `DELETE /api/public/bookings/<id>` refuses with a code in `Message` (or a
+   * `BREAKS_CANCELLATION_POLICY|<minutes>` variant). Mirrors the portal's
+   * `getBookingError`; null for codes it does not know.
+   */
+  function cancelError(code) {
+    const value = String(code || "");
+    if (value.startsWith("BREAKS_CANCELLATION_POLICY")) {
+      const minutes = Number(value.split("|").pop());
+      return Number(minutes) > 0
+        ? `This booking cannot be cancelled: cancellations must be made at least ${durationLabel(minutes)} before the start.`
+        : "This booking cannot be cancelled because it is inside the cancellation policy window.";
+    }
+
+    switch (value) {
+      case "ALREADY_INVOICED":
+        return "This booking has already been invoiced, so it cannot be cancelled. Contact your administrator.";
+      case "NO_ACCESS":
+        return "You do not have permission to cancel this booking.";
+      case "CHANGE_NOT_ALLOWED":
+        return "You cannot change this booking. Contact your administrator.";
+      case "CANNOT_CANCEL_IF_STARTED":
+        return "You cannot cancel a booking that already started.";
+      default:
+        return null;
+    }
+  }
+
   globalThis.OneJobOverview = {
+    CANCEL_REASONS,
     LOOKAHEAD_DAYS,
     MAX_LUMA_EVENTS,
     basketBody,
@@ -611,6 +662,8 @@
     bookingWindow,
     buildModel,
     buildMyBookings,
+    cancelBody,
+    cancelError,
     dayLabel,
     defaultProfile,
     durationLabel,

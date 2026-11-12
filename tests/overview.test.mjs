@@ -629,3 +629,36 @@ test("bookingError translates the checkout codes it knows", () => {
   assert.equal(O.bookingError("SOMETHING_NEW"), null);
   assert.equal(O.bookingError(undefined), null);
 });
+
+test("cancelBody mirrors the portal's cancellation payload", () => {
+  const O = loadOverview();
+  assert.deepEqual(plain(O.cancelBody("9001", "NoLongerNeeded", "ignored")), {
+    id: 9001,
+    cancellationReason: "NoLongerNeeded",
+    cancellationReasonDetails: "",
+  });
+  assert.deepEqual(plain(O.cancelBody(9001, "Other", "  machine broken  ")), {
+    id: 9001,
+    cancellationReason: "Other",
+    cancellationReasonDetails: "  machine broken  ",
+  });
+});
+
+test("cancelError translates the cancellation refusals", () => {
+  const O = loadOverview();
+  assert.match(O.cancelError("ALREADY_INVOICED"), /already been invoiced/);
+  assert.match(O.cancelError("CANNOT_CANCEL_IF_STARTED"), /already started/);
+  assert.match(O.cancelError("NO_ACCESS"), /permission/);
+  assert.match(O.cancelError("BREAKS_CANCELLATION_POLICY|90"), /1 h 30 min before the start/);
+  assert.match(O.cancelError("BREAKS_CANCELLATION_POLICY"), /cancellation policy window/);
+  assert.equal(O.cancelError("SOMETHING_NEW"), null);
+});
+
+test("CANCEL_REASONS carries the portal's values and labels", () => {
+  const O = loadOverview();
+  assert.deepEqual(
+    plain(O.CANCEL_REASONS.map((reason) => reason.value)),
+    ["", "NoLongerNeeded", "TooExpensive", "BadPreviousExperience", "RebookedForADifferentTime", "Other"],
+  );
+  assert.equal(O.CANCEL_REASONS.find((reason) => reason.value === "Other").label, "Other");
+});

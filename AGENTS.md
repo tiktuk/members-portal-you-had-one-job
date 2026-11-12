@@ -445,12 +445,37 @@ dashboard's notes field and, if they need to live on disk, into
   where an in-flow notice was invisible. `load()` clears it and its timer, so a
   refresh removes it early; do not render it in `renderNotice` (that one is for
   failures).
+- **Cancelling is a DELETE with a reason body.** A row that is `mine` also gets
+  a `×` (`gap-cancel`, red hover) that opens the cancel dialog. It posts
+  `DELETE /api/public/bookings/<id>` with
+  `{ id, cancellationReason, cancellationReasonDetails }` — the same body the
+  portal's edit page sends — after `GET /api/public/bookings/<id>/cancellationFee`
+  (`{ hasCancellationFee, cancellationFee }`, only used for the warning; a failed
+  lookup must not block cancelling). The reasons are
+  `config`-free in `lib/overview.js::CANCEL_REASONS`: `NoLongerNeeded`,
+  `TooExpensive`, `BadPreviousExperience`, `RebookedForADifferentTime` and
+  `Other` (which needs the ≤1024-char detail, sent only for *Other*; every other
+  reason sends an empty string). The API rejects a cancellation without a
+  reason, so Confirm stays disabled until one is picked.
+- Cancellation refusals come back as `Message` (or `Errors[0].PropertyName`) and
+  are mapped by `cancelError`: `ALREADY_INVOICED`, `NO_ACCESS`,
+  `CHANGE_NOT_ALLOWED`, `CANNOT_CANCEL_IF_STARTED` and
+  `BREAKS_CANCELLATION_POLICY|<minutes>`. The dialog stays open on a refusal so
+  the reason can be changed; the row is only removed by the `load()` that follows
+  a success. A row that already started gets a disabled `×` — the API refuses
+  those anyway.
+- Both dialogs share `dialogShell` and one `closeDialog()`, which tears down
+  whichever is open (and bumps both tokens); `hasOpenModal()` checks both, so
+  Escape ordering keeps working for either. Do not add a third dialog without
+  going through the shell.
 - `tests/fixture.html` mocks the four endpoints and appends created bookings to
   `window.__fixtureBookings`; its invoice answer is the bare `{ Id }` the live
   endpoint actually returns, not the preview's envelope. `window.__fixtureBasket`
-  holds the last body. The preview there refuses overlaps with
+  holds the last body, and `window.__fixtureCancelled`/`__fixtureCancelBody` the
+  last cancellation. The preview there refuses overlaps with
   `BOOKING_CONFLICT` and slots that start in the past, which is how the error
-  path is exercised without the real portal.
+  path is exercised without the real portal; the `cancellationFee` mock answers
+  "no fee" and the `DELETE` removes the booking from both fixture feeds.
 
 ## Resource statistics
 

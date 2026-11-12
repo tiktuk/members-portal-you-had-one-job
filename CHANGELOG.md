@@ -23,6 +23,12 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   that already started only offers the slot after it, and a refused slot says
   why — already booked, outside the opening hours, not on the right plan — with
   a link to the portal's prefilled booking form.
+- Your own bookings in the overview can be cancelled from the row itself: a
+  small **×** next to the title asks for the portal's cancellation reason (with
+  the free-text field its *Other* option needs), warns when the portal quotes a
+  cancellation fee, and reports a refusal — already invoiced, inside the
+  cancellation window, already started — without leaving the page. Only rows
+  that are yours carry it.
 - A **Resource statistics** screen at the bottom of the Resources menu (and
   **Alt+S**): a 12-month daily heatmap, every published resource colour-coded
   by booked hours per day, weekday and time-of-day charts, a booking-length

@@ -172,10 +172,25 @@ h1 {
   filter: brightness(1.08);
 }
 
+.button-danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.button-danger:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+  filter: brightness(1.08);
+}
+
 /* The dark accent is a light blue, so white text on it loses contrast. */
 @media (prefers-color-scheme: dark) {
   .button-primary,
-  .button-primary:hover {
+  .button-primary:hover,
+  .button-danger,
+  .button-danger:hover {
     color: #10131a;
   }
 }
@@ -444,6 +459,13 @@ h1 {
 .booking-gap:focus-visible {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+/* Cancelling is destructive, so it must not look like the two "book" buttons. */
+.booking-gap.gap-cancel:hover,
+.booking-gap.gap-cancel:focus-visible {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
 }
 
 .booking-gap:disabled {
@@ -759,6 +781,41 @@ h1 {
 .booking-duration-unit {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.booking-dialog select,
+.booking-dialog textarea {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.booking-dialog textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.booking-dialog select:focus-visible,
+.booking-dialog textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* `.booking-dialog-field` is a flex column, which outranks the UA [hidden]. */
+.booking-dialog-field[hidden] {
+  display: none;
+}
+
+.booking-dialog-fee {
+  margin: 0;
+  color: var(--warning);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .booking-presets {

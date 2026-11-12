@@ -22,6 +22,9 @@
   const PLUS_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>';
 
+  const CANCEL_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>';
+
   function emptyState() {
     return {
       pins: [],
@@ -97,6 +100,20 @@
 
   let checkoutSession = "";
 
+  /** The cancel dialog, when it is the open one. */
+  const cancelState = {
+    node: null,
+    parts: null,
+    booking: null,
+    resourceName: "",
+    fee: null,
+    error: "",
+    busy: false,
+    abort: null,
+    timer: null,
+    token: 0,
+  };
+
   globalThis.OneJobOverviewView = { mount, destroy };
 
   /**
@@ -116,11 +133,15 @@
     root.replaceChildren(buildShell());
 
     start();
-    return { refresh: () => load(), destroy, hasOpenModal: () => Boolean(dialogState.node?.open) };
+    return {
+      refresh: () => load(),
+      destroy,
+      hasOpenModal: () => Boolean(dialogState.node?.open || cancelState.node?.open),
+    };
   }
 
   function destroy() {
-    closeBookingDialog();
+    closeDialog();
     if (ui.timer) clearInterval(ui.timer);
     if (ui.successTimer) clearTimeout(ui.successTimer);
     if (ui.onStorageChanged && typeof chrome?.storage?.onChanged?.removeListener === "function") {
@@ -863,8 +884,9 @@
   }
 
   /**
-   * The title with the two "book the gap" buttons around it. A row whose
-   * resource is unknown (Luma events) gets the title alone.
+   * The title with the "book the gap" buttons around it, plus the cancel
+   * button on the member's own rows. A row whose resource is unknown (Luma
+   * events) gets the title alone.
    */
   function titleWithGaps(title, booking, resourceName) {
     const main = el("span", "booking-main");
@@ -878,7 +900,34 @@
       title,
       gapButton(booking, "after", resourceName),
     );
+    if (booking.mine && cancelId(booking)) main.appendChild(cancelButton(booking, resourceName));
     return main;
+  }
+
+  /** The numeric booking id a cancellation needs, or "" when it has none. */
+  function cancelId(booking) {
+    const id = Number(booking?.id);
+    return Number.isFinite(id) && id > 0 ? String(id) : "";
+  }
+
+  function cancelButton(booking, resourceName) {
+    const button = el("button", "booking-gap gap-cancel");
+    button.type = "button";
+    button.innerHTML = CANCEL_ICON;
+
+    const name = resourceName || booking.resourceName || "this booking";
+    const started = booking.stamp <= Date.now();
+    button.title = started ? "This booking already started" : `Cancel the ${booking.startTime} booking`;
+    button.setAttribute("aria-label", started ? button.title : `Cancel ${name} at ${booking.startTime}`);
+    button.disabled = started;
+
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCancelDialog({ booking, resourceName: name });
+    });
+
+    return button;
   }
 
   function gapButton(booking, side, resourceName) {
@@ -1103,7 +1152,7 @@
     const id = String(resourceId || booking.resourceId || "");
     if (!id) return;
 
-    closeBookingDialog();
+    closeDialog();
 
     const settings = bookingCfg();
     const interval = Number(settings.intervalMinutes) || 15;
@@ -1124,37 +1173,13 @@
     dialogState.token += 1;
     const token = dialogState.token;
 
-    const node = ui.doc.createElement("dialog");
-    node.className = "booking-dialog";
-    node.setAttribute("aria-labelledby", "onejob-booking-title");
-    node.setAttribute("aria-describedby", "onejob-booking-range");
+    const { node, form, body, actions } = dialogShell({
+      title:
+        dialogState.side === "before" ? `Book before ${booking.startTime}` : `Book after ${booking.endTime}`,
+      subtitle: `${dialogState.resourceName} · ${dayLabelOf(booking.day)}`,
+      describedBy: "onejob-booking-range",
+    });
 
-    const form = el("form", "booking-dialog-form");
-    form.noValidate = true;
-
-    const head = el("header", "booking-dialog-head");
-    const titles = el("div", "booking-dialog-titles");
-    const heading = el(
-      "h2",
-      null,
-      dialogState.side === "before" ? `Book before ${booking.startTime}` : `Book after ${booking.endTime}`,
-    );
-    heading.id = "onejob-booking-title";
-    const subtitle = el(
-      "p",
-      "booking-dialog-sub",
-      `${dialogState.resourceName} · ${dayLabelOf(booking.day)}`,
-    );
-    titles.append(heading, subtitle);
-
-    const close = el("button", "button button-icon", "×");
-    close.type = "button";
-    close.title = "Close";
-    close.setAttribute("aria-label", "Close booking dialog");
-    close.addEventListener("click", closeBookingDialog);
-    head.append(titles, close);
-
-    const body = el("div", "booking-dialog-body");
     const field = el("div", "booking-dialog-field");
     const label = el("label", null, "Duration");
     label.htmlFor = "onejob-booking-duration";
@@ -1211,10 +1236,9 @@
 
     body.append(field, range, price, error, fallback, terms);
 
-    const actions = el("footer", "booking-dialog-actions");
     const cancel = el("button", "button button-ghost", "Cancel");
     cancel.type = "button";
-    cancel.addEventListener("click", closeBookingDialog);
+    cancel.addEventListener("click", closeDialog);
     const confirm = el("button", "button button-primary", "Confirm booking");
     confirm.type = "submit";
     actions.append(cancel, confirm);
@@ -1223,19 +1247,9 @@
       event.preventDefault();
       submitBooking();
     });
-    form.append(head, body, actions);
-    node.appendChild(form);
-
-    node.addEventListener("close", () => {
-      if (dialogState.node === node) closeBookingDialog();
-    });
 
     dialogState.node = node;
     dialogState.parts = { input, range, price, error, fallback, confirm, presets: presetButtons };
-
-    ui.root.appendChild(node);
-    if (typeof node.showModal === "function") node.showModal();
-    else node.setAttribute("open", "");
 
     renderDialog();
     input.focus();
@@ -1244,24 +1258,73 @@
     loadBookingContext(token);
   }
 
-  function closeBookingDialog() {
-    clearTimeout(dialogState.timer);
-    dialogState.timer = null;
-    dialogState.abort?.abort();
-    dialogState.abort = null;
+  /** Closes whichever dialog is open (booking or cancel) and drops its work. */
+  function closeDialog() {
+    const nodes = [];
 
-    const node = dialogState.node;
-    dialogState.node = null;
-    dialogState.parts = null;
-    dialogState.token += 1;
-
-    if (!node) return;
-    try {
-      node.close();
-    } catch {
-      /* not open */
+    for (const item of [dialogState, cancelState]) {
+      clearTimeout(item.timer);
+      item.timer = null;
+      item.abort?.abort();
+      item.abort = null;
+      item.token += 1;
+      if (item.node) nodes.push(item.node);
+      item.node = null;
+      item.parts = null;
     }
-    node.remove();
+
+    for (const node of nodes) {
+      try {
+        node.close();
+      } catch {
+        /* not open */
+      }
+      node.remove();
+    }
+  }
+
+  /**
+   * The frame both dialogs share: a native <dialog> in the top layer, with a
+   * title, a subtitle and a close button.
+   */
+  function dialogShell({ title, subtitle, describedBy }) {
+    const node = ui.doc.createElement("dialog");
+    node.className = "booking-dialog";
+    node.setAttribute("aria-labelledby", "onejob-dialog-title");
+    if (describedBy) node.setAttribute("aria-describedby", describedBy);
+
+    const form = el("form", "booking-dialog-form");
+    form.noValidate = true;
+
+    const head = el("header", "booking-dialog-head");
+    const titles = el("div", "booking-dialog-titles");
+    const heading = el("h2", null, title);
+    heading.id = "onejob-dialog-title";
+    const sub = el("p", "booking-dialog-sub", subtitle);
+    titles.append(heading, sub);
+
+    const close = el("button", "button button-icon", "×");
+    close.type = "button";
+    close.title = "Close";
+    close.setAttribute("aria-label", "Close dialog");
+    close.addEventListener("click", closeDialog);
+
+    const body = el("div", "booking-dialog-body");
+    const actions = el("footer", "booking-dialog-actions");
+
+    head.append(titles, close);
+    form.append(head, body, actions);
+    node.appendChild(form);
+
+    node.addEventListener("close", () => {
+      if (dialogState.node === node || cancelState.node === node) closeDialog();
+    });
+
+    ui.root.appendChild(node);
+    if (typeof node.showModal === "function") node.showModal();
+    else node.setAttribute("open", "");
+
+    return { node, form, body, actions };
   }
 
   /** The first duration the dialog offers: an hour, snapped to the interval. */
@@ -1527,7 +1590,7 @@
       const paymentUrl = total > 0 && invoiceId ? paymentHref(invoiceId) : "";
       const label = formatWindow(slot.start, slot.end);
 
-      closeBookingDialog();
+      closeDialog();
 
       // `ui.doc` is cleared when the panel closes, so keep it for the redirect.
       const view = ui.doc?.defaultView || window;
@@ -1560,6 +1623,189 @@
       dialogState.submitError = error.message || "Couldn't create the booking.";
       renderDialog();
     }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Cancelling one of the member's own bookings
+   *
+   * The portal's edit page deletes with a reason body:
+   * DELETE /api/public/bookings/<id> { id, cancellationReason,
+   * cancellationReasonDetails }, and warns about a fee read from
+   * /api/public/bookings/<id>/cancellationFee.
+   * ------------------------------------------------------------------ */
+
+  function openCancelDialog({ booking, resourceName }) {
+    if (!ui.root || !booking || !cancelId(booking)) return;
+
+    closeDialog();
+
+    cancelState.booking = booking;
+    cancelState.resourceName = String(resourceName || booking.resourceName || `Resource ${booking.resourceId}`);
+    cancelState.fee = null;
+    cancelState.error = "";
+    cancelState.busy = false;
+    cancelState.token += 1;
+    const token = cancelState.token;
+
+    const { node, form, body, actions } = dialogShell({
+      title: "Cancel booking",
+      subtitle: `${cancelState.resourceName} · ${dayLabelOf(booking.day)}, ${booking.startTime}–${booking.endTime}`,
+    });
+
+    const field = el("div", "booking-dialog-field");
+    const label = el("label", null, "Cancellation reason");
+    label.htmlFor = "onejob-cancel-reason";
+    const select = ui.doc.createElement("select");
+    select.id = "onejob-cancel-reason";
+    for (const reason of O.CANCEL_REASONS) {
+      const option = ui.doc.createElement("option");
+      option.value = reason.value;
+      option.textContent = reason.label;
+      select.appendChild(option);
+    }
+    select.addEventListener("change", () => {
+      cancelState.error = "";
+      renderCancelDialog();
+    });
+    field.append(label, select);
+
+    const detailsField = el("div", "booking-dialog-field");
+    detailsField.hidden = true;
+    const detailsLabel = el("label", null, "Please specify");
+    detailsLabel.htmlFor = "onejob-cancel-details";
+    const details = ui.doc.createElement("textarea");
+    details.id = "onejob-cancel-details";
+    details.rows = 3;
+    details.maxLength = 1024;
+    detailsField.append(detailsLabel, details);
+
+    const fee = el("p", "booking-dialog-fee");
+    fee.hidden = true;
+    const warning = el(
+      "p",
+      "booking-dialog-terms",
+      "Once a booking is cancelled it cannot be changed. You will need to make a new booking if needed.",
+    );
+    const error = el("p", "booking-dialog-error");
+    error.setAttribute("role", "alert");
+    error.hidden = true;
+
+    body.append(field, detailsField, fee, warning, error);
+
+    const keep = el("button", "button button-ghost", "Keep booking");
+    keep.type = "button";
+    keep.addEventListener("click", closeDialog);
+    const confirm = el("button", "button button-danger", "Cancel booking");
+    confirm.type = "submit";
+    actions.append(keep, confirm);
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitCancel();
+    });
+
+    cancelState.node = node;
+    cancelState.parts = { select, details, detailsField, fee, error, confirm };
+
+    renderCancelDialog();
+    select.focus();
+
+    loadCancellationFee(token);
+  }
+
+  function renderCancelDialog() {
+    if (!cancelState.node || !cancelState.parts) return;
+    const { select, detailsField, fee, error, confirm } = cancelState.parts;
+
+    detailsField.hidden = select.value !== "Other";
+
+    confirm.disabled = !select.value || cancelState.busy;
+    confirm.textContent = cancelState.busy ? "Cancelling…" : "Cancel booking";
+
+    error.hidden = !cancelState.error;
+    error.textContent = cancelState.error || "";
+
+    const amount = cancelState.fee?.amount || 0;
+    fee.hidden = !(amount > 0);
+    const amountLabel = cancelState.fee?.currency
+      ? formatPrice(amount, cancelState.fee.currency)
+      : amount.toFixed(2);
+    fee.textContent = amount > 0 ? `A cancellation fee of ${amountLabel} applies.` : "";
+  }
+
+  async function loadCancellationFee(token) {
+    const booking = cancelState.booking;
+    const session = currentSession();
+    if (!booking || session.status !== "ok") return;
+
+    try {
+      const url = `${U.apiBaseUrl(session.webAddress)}/api/public/bookings/${encodeURIComponent(booking.id)}/cancellationFee`;
+      const data = await fetchJson(session, url);
+      if (token !== cancelState.token || !cancelState.node) return;
+
+      const amount = Number(data?.cancellationFee ?? data?.CancellationFee ?? 0);
+      const currency = data?.currency?.Code || data?.Currency?.Code || data?.CurrencyCode || "";
+      const charged = data?.hasCancellationFee ?? data?.HasCancellationFee;
+      cancelState.fee = charged && amount > 0 ? { amount, currency } : null;
+      renderCancelDialog();
+    } catch {
+      /* the fee is only a warning; a failed lookup must not block cancelling */
+    }
+  }
+
+  async function submitCancel() {
+    if (cancelState.busy || !cancelState.node) return;
+
+    const session = currentSession();
+    const booking = cancelState.booking;
+    if (!booking) return;
+    if (session.status !== "ok") {
+      cancelState.error = "Your portal session expired.";
+      renderCancelDialog();
+      return;
+    }
+
+    const reason = cancelState.parts.select.value;
+    if (!reason) return;
+    const details = reason === "Other" ? cancelState.parts.details.value.trim().slice(0, 1024) : "";
+    const name = cancelState.resourceName;
+    const label = `${dayLabelOf(booking.day)}, ${booking.startTime}–${booking.endTime}`;
+
+    cancelState.busy = true;
+    cancelState.error = "";
+    renderCancelDialog();
+
+    try {
+      const url = `${U.apiBaseUrl(session.webAddress)}/api/public/bookings/${encodeURIComponent(booking.id)}`;
+      const { status, data } = await fetchJson(session, url, {
+        method: "DELETE",
+        body: JSON.stringify(O.cancelBody(booking.id, reason, details)),
+        allowErrorBody: true,
+        headers: { "Content-Type": "application/json" },
+      });
+      if (status >= 400) {
+        throw new Error(cancelMessage(data) || `The portal returned HTTP ${status}.`);
+      }
+
+      closeDialog();
+      await load();
+      if (!ui.root) return;
+      showSuccess({ title: "Booking cancelled", message: `Cancelled ${name} on ${label}.` });
+    } catch (error) {
+      if (!ui.root) return;
+      cancelState.busy = false;
+      cancelState.error = error.message || "Couldn't cancel the booking.";
+      renderCancelDialog();
+    }
+  }
+
+  /** The cancellation's refusal code or message, translated when known. */
+  function cancelMessage(data) {
+    const raw = data?.Message || data?.message || data?.Errors?.[0]?.PropertyName || "";
+    if (!raw) return "";
+    const translated = O.cancelError(raw);
+    if (translated) return translated;
+    return /^[A-Z][A-Z_ |]+$/.test(raw) ? "" : String(raw);
   }
 
   function basketBodyFor(slot) {

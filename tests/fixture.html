@@ -324,6 +324,25 @@
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
 
+        // Cancelling one of the member's own bookings: the fee lookup and the
+        // DELETE with the reason body the portal's edit page sends.
+        const feeMatch = target.match(/\/api\/public\/bookings\/(\d+)\/cancellationFee/);
+        if (feeMatch) return json({ hasCancellationFee: false });
+
+        const cancelMatch = target.match(/\/api\/public\/bookings\/(\d+)(?:[?#]|$)/);
+        if (cancelMatch && String(init?.method || "GET").toUpperCase() === "DELETE") {
+          const id = Number(cancelMatch[1]);
+          window.__fixtureBookings = (window.__fixtureBookings || []).filter(
+            (item) => Number(item.id) !== id,
+          );
+          window.__fixtureMyBookings.Records = (window.__fixtureMyBookings.Records || []).filter(
+            (item) => Number(item.Id) !== id,
+          );
+          window.__fixtureCancelled = (window.__fixtureCancelled || []).concat(id);
+          window.__fixtureCancelBody = init?.body ? JSON.parse(init.body) : null;
+          return json({});
+        }
+
         // The overview's booking dialog: who it books for, the resource's
         // interval, and the portal's own basket preview/invoice pair.
         if (target.includes("/api/public/coworkers/profiles")) {
