@@ -416,6 +416,90 @@ test("dayGrid marks the member's own bookings", () => {
   assert.equal(total, 3);
 });
 
+/**
+ * `/api/public/bookings/my` only lists active bookings, so a booking that has
+ * finished has to be recognised in the calendar feed instead: by the member
+ * the feed names, or by the id a linked booking repeats on every resource.
+ */
+test("dayGrid marks a finished booking of the member's by the feed's coworker", () => {
+  const records = [
+    {
+      id: "7",
+      resourceId: "10",
+      start: nov(10, 9),
+      end: nov(10, 11),
+      coworkerId: "5001",
+      coworkerName: "Alex Kim",
+    },
+    {
+      id: "8",
+      resourceId: "10",
+      start: nov(10, 13),
+      end: nov(10, 15),
+      coworkerId: "5002",
+      coworkerName: "Sam Ortiz",
+    },
+  ];
+  const model = S.dayGrid(records, [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    me: { id: "5001", name: "Alex Kim" },
+  });
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const cell = (label, day) =>
+    row(label).days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === day);
+
+  assert.equal(cell("Morning", 10).mine, true);
+  assert.equal(cell("Afternoon", 10).mine, false);
+
+  // Without the id the name still identifies the member.
+  const byName = S.dayGrid(records, [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    me: { id: "", name: "Alex Kim" },
+  });
+  const named = byName.rows.find((entry) => entry.label === "Morning").days.find(
+    (entry) => entry.date.getDate() === 10,
+  );
+  assert.equal(named.mine, true);
+});
+
+test("dayGrid marks a linked booking of the member's by id", () => {
+  const records = [
+    // The member booked the lab; the feed repeats that booking on the machine
+    // it blocks, under the same id and another resource.
+    {
+      id: "42",
+      resourceId: "10",
+      start: nov(5, 9),
+      end: nov(5, 11),
+      linked: true,
+      coworkerId: "5009",
+      coworkerName: "Someone Else",
+    },
+  ];
+  const mine = [{ id: "42", resourceId: "99", start: nov(5, 9), end: nov(5, 11) }];
+  const model = S.dayGrid(records, [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    mine,
+  });
+  const row = (label) => model.rows.find((entry) => entry.label === label);
+  const cell = (label, day) =>
+    row(label).days.find((entry) => entry.date.getMonth() === 10 && entry.date.getDate() === day);
+
+  assert.equal(cell("Morning", 5).mine, true);
+  assert.equal(cell("Morning", 5).linked, true);
+
+  // A booking of the member's on another resource with its own id is not this
+  // machine's, so it marks nothing here.
+  const elsewhere = S.dayGrid(records, [{ id: "10" }], {
+    now: new Date(2026, 10, 11, 12),
+    mine: [{ id: "43", resourceId: "99", start: nov(6, 9), end: nov(6, 11) }],
+  });
+  const other = elsewhere.rows.find((entry) => entry.label === "Morning").days.find(
+    (entry) => entry.date.getDate() === 5,
+  );
+  assert.equal(other.mine, false);
+});
+
 test("dayGrid counts workshop reservations as occupied", () => {
   const reserved = [{ name: "CNC Workshop", start: nov(20, 9), end: nov(20, 12) }];
   const model = S.dayGrid([], [{ id: "10" }], {

@@ -59,6 +59,17 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   row (a 200px activity menu next to the content), so the strip became a column
   of its own; it now sits just above `<main>` wherever that is a flex or grid
   container.
+- The heatmap's green *your booking* bar was invisible on days that are already
+  past. The square's `is-past` opacity covered the bar too, so a booking made
+  yesterday looked like it had never been marked. Only an empty past square is
+  dimmed now; one with a booking, a reservation or a Luma event keeps its full
+  colour and its bars.
+- A booking of your own that has already finished never got the green bar at
+  all. The marker came from `/api/public/bookings/my`, which only lists *active*
+  bookings, so the bar could only ever appear from today onwards. The heatmap
+  now also recognises your rows in the calendar feed it already fetches, by the
+  member the feed names and by booking id (which covers a booking of yours that
+  is linked to the pinned resource), so yesterday's booking is marked too.
 
 ### Changed
 

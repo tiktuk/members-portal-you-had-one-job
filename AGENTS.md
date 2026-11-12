@@ -486,11 +486,25 @@ dashboard's notes field and, if they need to live on disk, into
   is fetched once per document and cached by the worker for 5 minutes.
 - **Own bookings:** `loadDayGridMine(pin)` fetches `/api/public/bookings/my` for
   the same window (paged; naive local `FromTime`/`ToTime` via
-  `O.toQueryTimestamp`), narrows it to the pinned `ResourceId` and passes
-  `{ start, end }` into `S.dayGrid({ mine })`. A cell gets `is-mine` — a 3 px
-  `--bs-success` bar along the bottom (`::before`; the Luma dot is `::after`) —
-  and the tooltip says "your booking". No extra setting: it follows the session
-  token, and the endpoint is the same one the overview's My bookings card uses.
+  `O.toQueryTimestamp`) and passes the records' `{ id, resourceId, start, end }`
+  into `S.dayGrid({ mine })`. A cell gets `is-mine` — a 3 px `--bs-success` bar
+  along the bottom (`::before`; the Luma dot is `::after`) — and the tooltip
+  says "your booking". No extra setting: it follows the session token, and the
+  endpoint is the same one the overview's My bookings card uses.
+- **Finished bookings are not in that endpoint.** Nexudus documents it as
+  returning the member's *active* bookings, so a booking that ended yesterday is
+  never in the response and the bar could only ever appear on today and later.
+  The heatmap therefore also recognises the member's own rows in the calendar
+  feed it already fetches (`normalizeRecords` keeps `coworkerId`/
+  `coworkerName`): the first `/api/public/bookings/my` record that names its
+  coworker tells it who the member is (`state.dayGrid.me`, passed as
+  `S.dayGrid({ me })`), and a record of the pinned resource whose
+  `coworkerId`/`coworkerFullName` matches is marked. A booking id in the `mine`
+  list marks the record too, which is what covers a *linked* booking: the feed
+  repeats it once per resource under the same id while `my` names the primary
+  resource only. If `my` is empty (no active bookings) there is no identity to
+  learn and finished bookings stay unmarked — the tooltip then shows the
+  booking without "your booking".
 - **Rebuild key:** `dayGridKey()` = pin id + window start day + data revision +
   visible week. The `MutationObserver` schedules an ensure pass for every DOM
   mutation, so the grid must not be rebuilt unconditionally; `revision` only
@@ -515,7 +529,11 @@ dashboard's notes field and, if they need to live on disk, into
   `is-today`, `is-weekend` and the full-date `title` stay in step) and the same
   `.onejob-daygrid-weekday` / `.onejob-daygrid-daynum` styles. Cells before
   today get `is-past` (`opacity: 0.35`), so last week and the elapsed part of
-  this week read as history. Saturday and Sunday get `is-weekend` and today
+  this week read as history — but only an *empty* past square is dimmed
+  (`is-past.level-0` without `is-mine`, `has-reserved` or `has-event`): the
+  opacity applies to the whole square, markers included, so dimming a past
+  booking hid its level colour and its green bar and a booking made yesterday
+  looked unmarked. Saturday and Sunday get `is-weekend` and today
   gets `is-today`, but only their weekday labels and day numbers change: the
   weekend ones are bold and today's are bold and `--bs-primary`. The squares
   carry no outline and there is no rule between weeks — rings on the weekend

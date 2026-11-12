@@ -266,8 +266,11 @@
   box-shadow: 0 0 0 1px var(--onejob-daygrid-line, rgba(108, 117, 125, 0.35));
 }
 
-/* Days before today are history; keep them readable but quiet. */
-.onejob-daygrid-cell.is-past {
+/* Days before today are history; keep them readable but quiet. Only a square
+   with nothing in it is dimmed: a past booking's level colour and its green or
+   orange bar are what the grid is for, and at 35% the bar disappeared into the
+   square (a booking made yesterday looked like it had never been marked). */
+.onejob-daygrid-cell.is-past.onejob-daygrid-level-0:not(.is-mine):not(.has-reserved):not(.has-event) {
   opacity: 0.35;
 }
 

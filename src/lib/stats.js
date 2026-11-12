@@ -96,7 +96,10 @@
 
   /**
    * `parseTimestamp` is `lib/overview.js::parseTimestamp` (or a test stub).
-   * Records keep only what the aggregates need; member names are not kept.
+   * Records keep only what the aggregates need; the heatmap also keeps the
+   * booking's member (`coworkerId`/`coworkerName`), because a finished booking
+   * is never in `/api/public/bookings/my` and has to be recognised in the feed
+   * instead. The statistics cache stores tuples, not these records.
    *
    * A linked booking appears once per resource with the same `id`, and the
    * space-wide aggregates want it once, so the default dedupe is by id. The
@@ -128,6 +131,8 @@
         start: start.stamp,
         end: end.stamp,
         linked: raw.isLinked === true,
+        coworkerId: raw.coworkerId != null ? String(raw.coworkerId) : "",
+        coworkerName: String(raw.coworkerFullName || "").trim(),
       });
     }
 
@@ -489,6 +494,15 @@
    * because they block the resource. `options.events` are space-wide Luma
    * events and `options.mine` the member's own bookings; both only mark the
    * cells they overlap, without changing the share.
+   *
+   * A booking of the member's is marked in three ways, because
+   * `/api/public/bookings/my` returns only *active* bookings: by the booking id
+   * (the feed repeats a linked booking once per resource under the same id),
+   * by `options.me` (`{ id, name }`, the member learned from their own
+   * bookings, matched against the feed's `coworkerId`/`coworkerName`), and by
+   * time (`options.mine`, `{ id, resourceId, start, end }` — the span marks its
+   * cells even when the feed has no record for this resource). The last two are
+   * what keep a finished booking marked.
    */
   function dayGrid(records, resources, options = {}) {
     const bands = Array.isArray(options.bands) && options.bands.length === 3
@@ -575,6 +589,27 @@
       }
     }
 
+    const me = options.me && typeof options.me === "object" ? options.me : null;
+    const myId = me && me.id != null ? String(me.id) : "";
+    const myName = me && me.name ? String(me.name).trim() : "";
+
+    /** The member's own bookings, from `/api/public/bookings/my`. */
+    const mine = (Array.isArray(options.mine) ? options.mine : [])
+      .filter(Boolean)
+      .map((booking) => ({
+        id: booking.id != null ? String(booking.id) : "",
+        resourceId: booking.resourceId != null ? String(booking.resourceId) : "",
+        start: Number(booking.start),
+        end: Number(booking.end),
+      }))
+      .filter((booking) => Number.isFinite(booking.start) && Number.isFinite(booking.end));
+    const mineIds = new Set(mine.map((booking) => booking.id).filter(Boolean));
+    /** A booking without a resource is taken to be on the pinned one. */
+    const ownSpan = (booking, from, to) =>
+      (!booking.resourceId || ids.has(booking.resourceId)) &&
+      booking.start < to &&
+      booking.end > from;
+
     const seen = new Set();
     for (const record of Array.isArray(records) ? records : []) {
       if (!record) continue;
@@ -593,10 +628,20 @@
       const to = Math.min(recordEnd, end);
       if (to <= from) continue;
 
+      // `/api/public/bookings/my` only lists active bookings, so a finished one
+      // is recognised here: by its id (a linked booking repeats under the same
+      // id on every resource it blocks) or by the member the feed names.
+      const owned =
+        mineIds.has(id) ||
+        (myId !== "" && record.coworkerId === myId) ||
+        (myName !== "" && record.coworkerName === myName) ||
+        mine.some((booking) => ownSpan(booking, recordStart, recordEnd));
+
       walkBlocks(from, to, (cell, duration) => {
         cell.hours += duration / HOUR_MS;
         cell.count += 1;
         if (record.linked) cell.linked = true;
+        if (owned) cell.mine = true;
       });
     }
 
@@ -641,15 +686,12 @@
       });
     }
 
-    // The member's own bookings on this resource, from /api/public/bookings/my.
-    for (const booking of Array.isArray(options.mine) ? options.mine : []) {
-      if (!booking) continue;
-      const bookingStart = Number(booking.start);
-      const bookingEnd = Number(booking.end);
-      if (!Number.isFinite(bookingStart) || !Number.isFinite(bookingEnd)) continue;
-
-      const from = Math.max(bookingStart, start);
-      const to = Math.min(bookingEnd, end);
+    // A booking of the member's whose span is known but whose feed record is
+    // not (or which the caller passed without a resource) still marks its cells.
+    for (const booking of mine) {
+      if (booking.resourceId && !ids.has(booking.resourceId)) continue;
+      const from = Math.max(booking.start, start);
+      const to = Math.min(booking.end, end);
       if (to <= from) continue;
 
       walkBlocks(from, to, (cell) => {

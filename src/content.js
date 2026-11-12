@@ -78,10 +78,11 @@
       /** Space-wide Luma events, fetched through the background worker. */
       lumaStatus: "idle",
       events: [],
-      /** The member's own bookings on the pinned resource. */
+      /** The member's own bookings, and who they are in the calendar feed. */
       mineKey: "",
       mineStatus: "idle",
       mine: [],
+      me: { id: "", name: "" },
       /** Workshop reservations of the pinned resource (`fullCalendarEvents`). */
       reservedKey: "",
       reservedStatus: "idle",
@@ -1790,9 +1791,12 @@
   }
 
   /**
-   * The member's own bookings on the pinned resource, so their cells can be
-   * marked. `/api/public/bookings/my` returns every resource, so the response
-   * is narrowed to this pin; the records' times are naive local strings.
+   * The member's own bookings, so their cells can be marked. Nexudus returns
+   * only *active* bookings here ("List My Bookings"), so a finished one never
+   * arrives; the records are kept whole (id, resource, span) and the first one
+   * that names its coworker also tells the heatmap who the member is, which is
+   * how a finished booking is recognised in the calendar feed. Times are naive
+   * local strings.
    */
   async function loadDayGridMine(pin) {
     const { start, end } = dayGridWindow();
@@ -1846,19 +1850,31 @@
     }
 
     if (state.dayGrid.mineKey !== key) return;
-    state.dayGrid.mine = records
-      .filter(
-        (record) =>
-          record &&
-          record.Cancelled !== true &&
-          String(record.ResourceId) === String(pin.id),
-      )
+    // Not narrowed to the pin: a linked booking carries the id the calendar
+    // feed repeats for this resource, and the member's identity is what marks a
+    // finished booking, which `/api/public/bookings/my` no longer lists.
+    const own = records.filter((record) => record && record.Cancelled !== true);
+    state.dayGrid.mine = own
       .map((record) => {
         const from = O.parseTimestamp(record.FromTime || record.fromTime || record.start);
         const to = O.parseTimestamp(record.ToTime || record.toTime || record.end);
-        return from && to ? { start: from.stamp, end: to.stamp } : null;
+        if (!from || !to) return null;
+        return {
+          id: record.Id != null ? String(record.Id) : "",
+          resourceId: record.ResourceId != null ? String(record.ResourceId) : "",
+          start: from.stamp,
+          end: to.stamp,
+        };
       })
       .filter(Boolean);
+
+    const who = own.find((record) => record.CoworkerId != null || record.CoworkerFullName);
+    if (who) {
+      state.dayGrid.me = {
+        id: who.CoworkerId != null ? String(who.CoworkerId) : "",
+        name: String(who.CoworkerFullName || "").trim(),
+      };
+    }
     state.dayGrid.mineStatus = "ready";
     state.dayGrid.revision += 1;
     scheduleEnsure();
@@ -1940,6 +1956,7 @@
       bands: config.bands,
       events: dayGridLumaEnabled() ? state.dayGrid.events : [],
       mine: state.dayGrid.mine,
+      me: state.dayGrid.me,
       reserved: state.dayGrid.reserved,
     });
     const now = new Date();

@@ -243,13 +243,16 @@
         );
       };
 
+      // `coworkerId`/`coworkerFullName` are what the heatmap matches the
+      // member's own rows on; `/api/public/bookings/my` only lists active
+      // bookings, so the past one below is marked that way, not by the span.
       window.__fixtureBookings = [
-        { id: 9001, resourceId: 1415309496, start: iso(1, 8), end: iso(1, 10), coworkerFullName: "Alex Kim" },
-        { id: 9002, resourceId: 1415309496, start: iso(1, 9), end: iso(1, 11), coworkerFullName: "Sam Ortiz", tentative: true },
+        { id: 9001, resourceId: 1415309496, start: iso(1, 8), end: iso(1, 10), coworkerId: 5001, coworkerFullName: "Alex Kim" },
+        { id: 9002, resourceId: 1415309496, start: iso(1, 9), end: iso(1, 11), coworkerId: 5002, coworkerFullName: "Sam Ortiz", tentative: true },
         // In the past, so the statistics screen has something to show while
         // the overview (which only looks forward) ignores it.
-        { id: 9003, resourceId: 1415309496, start: iso(-5, 8), end: iso(-5, 10), coworkerFullName: "Alex Kim" },
-        { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerFullName: "Jo Weber" },
+        { id: 9003, resourceId: 1415309496, start: iso(-5, 8), end: iso(-5, 10), coworkerId: 5001, coworkerFullName: "Alex Kim" },
+        { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerId: 5003, coworkerFullName: "Jo Weber" },
       ];
       window.__fixtureEvents = [
         {
@@ -275,6 +278,9 @@
           },
         },
       ];
+      // Only the active booking: Nexudus's `/api/public/bookings/my` returns
+      // "active" bookings, so the past one on the same machine is absent here
+      // and the heatmap has to recognise it by the coworker the feed names.
       window.__fixtureMyBookings = {
         Records: [
           {
@@ -283,6 +289,8 @@
             ResourceName: "OLSK Large CNC",
             FromTime: naive(1, 8),
             ToTime: naive(1, 10),
+            CoworkerId: 5001,
+            CoworkerFullName: "Alex Kim",
           },
         ],
         HasNextPage: false,
