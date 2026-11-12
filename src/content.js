@@ -1699,21 +1699,27 @@
       table.appendChild(label);
     }
 
-    const dayCorner = document.createElement("span");
-    dayCorner.className = "onejob-daygrid-corner";
-    table.appendChild(dayCorner);
-    for (const day of model.days) {
-      const number = document.createElement("span");
+    const shortWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+    const headerCell = (day, className) => {
       const weekday = day.date.getDay();
-      number.className = [
-        "onejob-daygrid-daynum",
+      const node = document.createElement("span");
+      node.className = [
+        className,
         day.key === today ? "is-today" : "",
         weekday === 0 || weekday === 6 ? "is-weekend" : "",
         day.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
       ].filter(Boolean).join(" ");
-      number.textContent = String(day.date.getDate());
-      number.title = dayLabel(day.date);
-      table.appendChild(number);
+      node.title = dayLabel(day.date);
+      return node;
+    };
+
+    const weekdayCorner = document.createElement("span");
+    weekdayCorner.className = "onejob-daygrid-corner";
+    table.appendChild(weekdayCorner);
+    for (const day of model.days) {
+      const name = headerCell(day, "onejob-daygrid-weekday");
+      name.textContent = shortWeekday.format(day.date);
+      table.appendChild(name);
     }
 
     for (const row of model.rows) {
@@ -1749,6 +1755,16 @@
         }
         table.appendChild(link);
       }
+    }
+
+    // The dates sit under the squares so the weekday names can sit above them.
+    const dateCorner = document.createElement("span");
+    dateCorner.className = "onejob-daygrid-corner";
+    table.appendChild(dateCorner);
+    for (const day of model.days) {
+      const number = headerCell(day, "onejob-daygrid-daynum");
+      number.textContent = String(day.date.getDate());
+      table.appendChild(number);
     }
 
     if (!state.dayGrid.error) {

@@ -157,7 +157,8 @@
 
 .onejob-daygrid-grid {
   display: grid;
-  grid-template-columns: max-content repeat(28, minmax(14px, 28px));
+  /* 18px is the narrowest column that still fits a three-letter weekday. */
+  grid-template-columns: max-content repeat(28, minmax(18px, 28px));
   gap: 3px;
   width: 100%;
   justify-content: space-between;
@@ -183,6 +184,7 @@
   font-weight: 600;
 }
 
+.onejob-daygrid-weekday,
 .onejob-daygrid-daynum {
   font-size: 0.6rem;
   line-height: 1.1;
@@ -191,10 +193,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Three letters in an 18px column need a hair less than the numbers. */
+.onejob-daygrid-weekday {
+  font-size: 0.55rem;
+}
+
+.onejob-daygrid-weekday.is-weekend,
 .onejob-daygrid-daynum.is-weekend {
   font-weight: 600;
 }
 
+.onejob-daygrid-weekday.is-today,
 .onejob-daygrid-daynum.is-today {
   color: var(--bs-primary, #ff5b13);
   font-weight: 700;
@@ -274,6 +283,7 @@
 }
 
 /* A hairline at each Monday so the four weeks read as groups. */
+.onejob-daygrid-weekday.is-week-start,
 .onejob-daygrid-daynum.is-week-start,
 .onejob-daygrid-cell.is-week-start {
   box-shadow: inset 1px 0 0 var(--bs-border-color, #dee2e6);

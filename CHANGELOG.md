@@ -75,6 +75,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   item in the portal navigation, right after Resources — with an *Overview*
   button in the bottom dock on narrow windows. It is a separate entry point, so
   it stays when the Resources menu is switched off.
+- The 4 × 28 bookings heatmap labels each column with its weekday (Mon … Sun)
+  and puts the day-of-month numbers under the squares instead of above them, so
+  the columns read as days of the week first. Hovering a weekday or a square
+  still gives the full date.
 
 ## [1.0.2] - 2026-11-06
 

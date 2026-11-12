@@ -504,13 +504,21 @@ dashboard's notes field and, if they need to live on disk, into
   rewritten. If a future portal stops reacting to the dispatched event, switch
   the handler to `location.assign(cell.href)`.
 - **Rendering:** one CSS grid,
-  `max-content repeat(28, minmax(14px, 28px))` with `justify-content:
-  space-between`: week labels span seven columns, the header row has the day of
-  the month, and the four rows have a label column plus square anchors. Cells
-  before today get `is-past` (`opacity: 0.35`), so last week and the elapsed part
-  of this week read as history. Saturday and Sunday get `is-weekend`, a 1 px
-  solid outline inside the square at 35% of `--bs-secondary-color` (their day
-  numbers are bold); today gets a 2 px `--bs-primary` inset ring.
+  `max-content repeat(28, minmax(18px, 28px))` with `justify-content:
+  space-between`: week labels span seven columns, then a weekday row (`Mon` …
+  `Sun` from one `en-GB` short-weekday formatter), then the four rows with a
+  label column plus square anchors, then the day-of-month row at the bottom
+  under the night row. 18px is the narrowest column that still fits a
+  three-letter weekday (the labels are `0.55rem`, the numbers `0.6rem`). The
+  weekday and date spans share `headerCell()` in `renderDayGrid()` (so
+  `is-today`, `is-weekend`, `is-week-start` and the full-date `title` stay in
+  step) and the same `.onejob-daygrid-weekday` / `.onejob-daygrid-daynum`
+  styles. Cells before today get `is-past` (`opacity: 0.35`), so last week and
+  the elapsed part of this week read as history. Saturday and Sunday get
+  `is-weekend`, a 1 px
+  solid outline inside the square at 35% of `--bs-secondary-color` (their
+  weekday labels and day numbers are bold); today gets a 2 px `--bs-primary`
+  inset ring.
   `pointerover`/`pointerleave`
   toggle `is-hover` on the four cells of a day with a 1 px
   `--bs-primary-border-subtle` ring; only `:focus-visible` uses the full 2 px

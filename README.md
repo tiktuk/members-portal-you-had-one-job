@@ -53,15 +53,16 @@ It does eight things:
    is remembered for the tab.
 6. **Bookings heatmap.** A single-resource calendar has a 4 × 28 heatmap under
    the pins: 28 days from last week to the week in two weeks, with morning,
-   afternoon, evening and night rows. Each square is coloured by how much of
-   that six-hour block is booked, so a busy week is visible before scrolling the
-   calendar. Click a square to open that day's week; a dot marks a Luma event in
-   that block (when *Luma events* is on) and its tooltip gives the start time and
-   name; a green bar marks your own bookings, and workshop reservations count as
-   occupied with an orange bar. Bookings linked to the resource from another
-   resource's booking count too and say "(linked)" in the tooltip. The popup's
-   *Bookings heatmap* toggle hides the heatmap and *Luma event dots* hides the
-   dots.
+   afternoon, evening and night rows. Each column is labelled with its weekday
+   and the day-of-month numbers run under the grid. Each square is coloured by
+   how much of that six-hour block is booked, so a busy week is visible before
+   scrolling the calendar. Click a square to open that day's week; a dot marks a
+   Luma event in that block (when *Luma events* is on) and its tooltip gives the
+   start time and name; a green bar marks your own bookings, and workshop
+   reservations count as occupied with an orange bar. Bookings linked to the
+   resource from another resource's booking count too and say "(linked)" in the
+   tooltip. The popup's *Bookings heatmap* toggle hides the heatmap and *Luma
+   event dots* hides the dots.
 7. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
