@@ -102,12 +102,30 @@
     },
 
     /**
-     * The one-time pinning tour on the first portal visit. `version` is the
+     * The one-time feature tour on the first portal visit. `version` is the
      * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
-     * again after rewriting it. The tour opens the Resources menu itself, so it
-     * cannot run while that menu is switched off.
+     * again after rewriting it. The pin step opens the Resources menu itself,
+     * so it cannot run while that menu is switched off; the rest of the tour
+     * (heatmap, overview, statistics) does not need it.
      */
-    onboarding: { enabled: true, version: 1, delayMs: 900 },
+    onboarding: {
+      enabled: true,
+      version: 1,
+      delayMs: 900,
+      /**
+       * The settings the tour's settings step previews, in the popup's order.
+       * `key` is a field of `settings`; all of them are on unless false.
+       * `tests/popup.test.mjs` checks every label against popup.html.
+       */
+      settings: [
+        { key: "calendarDefault", label: "Calendar as default view" },
+        { key: "dayGrid", label: "Bookings heatmap" },
+        { key: "dayGridEvents", label: "Luma events in heatmap" },
+        { key: "lumaEvents", label: "Luma events in overview" },
+        { key: "navMenu", label: "Resources in the main menu" },
+        { key: "geoBlockPrompt", label: "Block location prompt" },
+      ],
+    },
 
     /**
      * Upcoming Luma events merged into the overview cards, mirroring the

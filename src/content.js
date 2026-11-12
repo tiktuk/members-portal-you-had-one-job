@@ -65,6 +65,8 @@
     tourPending: false,
     tourRequested: false,
     tourTimer: 0,
+    /** The pin made during the tour's pin step; the heatmap step follows it. */
+    tourPinId: "",
     /** Fetch state of the single-resource day/time heatmap. */
     dayGrid: {
       key: "",
@@ -123,8 +125,12 @@
     scheduleEnsure();
 
     if (hasExtensionApis) state.tourRequested = await consumeTourRequest();
+    // A resumed tour only needs the calendar heatmap, so it does not wait for
+    // the group list the menu steps need.
+    const resuming = Boolean(readTourResume());
+    if (resuming) scheduleTour();
     if (state.settings.navMenu !== false && cfg.nav.enabled) await refreshGroups();
-    scheduleTour();
+    if (!resuming) scheduleTour();
   }
 
   /* ------------------------------------------------------------------ *
@@ -560,6 +566,7 @@
           for (const resource of resources) {
             const resourceRow = document.createElement("div");
             resourceRow.className = "onejob-resource-row";
+            resourceRow.dataset.resourceId = String(resource.id);
             resourceRow.appendChild(
               menuLink({
                 label: resource.name || `Resource ${resource.id}`,
@@ -822,7 +829,16 @@
    * ------------------------------------------------------------------ */
 
   const overlayStyles = new Map();
-  let overlayOpening = false;
+  /** Opens are serialised: the tour can ask for the second screen while the
+   *  first one's stylesheet is still loading, and a dropped request would leave
+   *  the wrong screen on display. */
+  let overlayQueue = Promise.resolve();
+  /**
+   * Every user-visible close bumps this. An open that was queued, or that was
+   * still waiting for its stylesheet, must not resurrect a screen the member or
+   * the tour has already dismissed.
+   */
+  let overlayGeneration = 0;
 
   /** Cached per file: injected as <style> so the panel never flashes. */
   function loadOverlayStyles(files) {
@@ -841,80 +857,93 @@
     ).then((parts) => parts.join("\n"));
   }
 
-  async function openOverlay({ kind, label, stylesheets, mount }) {
-    if (!hasExtensionApis || overlayOpening) return;
-    if (activeOverlay) closeOverlay();
-    overlayOpening = true;
+  function openOverlay(options) {
+    const generation = overlayGeneration;
+    overlayQueue = overlayQueue
+      .then(() => (generation === overlayGeneration ? openOverlayNow(options, generation) : null))
+      .catch(() => {});
+    return overlayQueue;
+  }
+
+  async function openOverlayNow({ kind, label, stylesheets, mount, ariaModal = true }, generation) {
+    if (!hasExtensionApis) return;
+    if (activeOverlay) closeOverlay(false);
+
+    const css = await loadOverlayStyles(stylesheets);
+    // Closed (or replaced) while the stylesheet was loading.
+    if (generation !== overlayGeneration) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "onejob-overview-overlay";
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "onejob-overview-backdrop";
+    backdrop.addEventListener("click", () => closeOverlay());
+
+    const panel = document.createElement("div");
+    panel.className = "onejob-overview-panel";
+    panel.setAttribute("role", "dialog");
+    // The tour card lives outside the panel, so AT must still reach it while
+    // the tour is driving the overlay.
+    panel.setAttribute("aria-modal", ariaModal ? "true" : "false");
+    panel.setAttribute("aria-label", label);
+
+    const host = document.createElement("div");
+    host.className = "onejob-overview-host";
+
+    const shadow = host.attachShadow({ mode: "open" });
+    const styles = document.createElement("style");
+    styles.textContent = css;
+    const root = document.createElement("div");
+    shadow.append(styles, root);
+
+    panel.appendChild(host);
+    overlay.append(backdrop, panel);
+
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.addEventListener("keydown", onOverlayKeydown, true);
+    document.body.appendChild(overlay);
 
     try {
-      const css = await loadOverlayStyles(stylesheets);
-
-      const overlay = document.createElement("div");
-      overlay.className = "onejob-overview-overlay";
-
-      const backdrop = document.createElement("div");
-      backdrop.className = "onejob-overview-backdrop";
-      backdrop.addEventListener("click", closeOverlay);
-
-      const panel = document.createElement("div");
-      panel.className = "onejob-overview-panel";
-      panel.setAttribute("role", "dialog");
-      panel.setAttribute("aria-modal", "true");
-      panel.setAttribute("aria-label", label);
-
-      const host = document.createElement("div");
-      host.className = "onejob-overview-host";
-
-      const shadow = host.attachShadow({ mode: "open" });
-      const styles = document.createElement("style");
-      styles.textContent = css;
-      const root = document.createElement("div");
-      shadow.append(styles, root);
-
-      panel.appendChild(host);
-      overlay.append(backdrop, panel);
-
-      const previousFocus = document.activeElement;
-      const previousOverflow = document.documentElement.style.overflow;
-
-      document.documentElement.style.overflow = "hidden";
-      document.addEventListener("keydown", onOverlayKeydown, true);
-      document.body.appendChild(overlay);
-
-      try {
-        activeOverlay = {
-          kind,
-          overlay,
-          previousFocus,
-          previousOverflow,
-          view: mount(root, { variant: "panel", onClose: closeOverlay }),
-        };
-      } catch (error) {
-        document.removeEventListener("keydown", onOverlayKeydown, true);
-        document.documentElement.style.overflow = previousOverflow;
-        overlay.remove();
-        throw error;
-      }
-    } finally {
-      overlayOpening = false;
+      activeOverlay = {
+        kind,
+        overlay,
+        panel,
+        root,
+        previousFocus,
+        previousOverflow,
+        view: mount(root, { variant: "panel", onClose: closeOverlay }),
+      };
+    } catch (error) {
+      document.removeEventListener("keydown", onOverlayKeydown, true);
+      document.documentElement.style.overflow = previousOverflow;
+      overlay.remove();
+      throw error;
     }
   }
 
-  function openOverviewOverlay() {
-    if (activeOverlay?.kind === "overview" || overlayOpening) return;
-    // The overlay covers the page the tour is pointing at.
-    state.tour?.end("overview");
+  function openOverviewOverlay(options = {}) {
+    if (activeOverlay?.kind === "overview") return;
+    const fromTour = options.fromTour === true;
+    // The overlay covers the page the tour is pointing at; when the tour asked
+    // for it, it is the step's subject instead.
+    if (!fromTour) state.tour?.end("overview");
     openOverlay({
       kind: "overview",
       label: "Pinned resources overview",
       stylesheets: ["overview.css"],
-      mount: (root, options) => OneJobOverviewView.mount(root, options),
+      ariaModal: !fromTour,
+      mount: (root, viewOptions) => OneJobOverviewView.mount(root, viewOptions),
     });
   }
 
   function openStatsOverlay(options = {}) {
-    if (activeOverlay?.kind === "stats" || overlayOpening || !globalThis.OneJobStatsView) return;
-    state.tour?.end("statistics");
+    if (activeOverlay?.kind === "stats" || !globalThis.OneJobStatsView) return;
+    const fromTour = options.fromTour === true;
+    if (!fromTour) state.tour?.end("statistics");
     const scope = options.scope || null;
     openOverlay({
       kind: "stats",
@@ -922,11 +951,13 @@
         ? `${cfg.stats?.label || "Resource statistics"}: ${scope.label}`
         : cfg.stats?.label || "Resource statistics",
       stylesheets: ["overview.css", "stats.css"],
+      ariaModal: !fromTour,
       mount: (root, viewOptions) => globalThis.OneJobStatsView.mount(root, { ...viewOptions, scope }),
     });
   }
 
-  function closeOverlay() {
+  function closeOverlay(cancelPending = true) {
+    if (cancelPending) overlayGeneration += 1;
     if (!activeOverlay) return;
     const { overlay, previousFocus, previousOverflow, view } = activeOverlay;
     activeOverlay = null;
@@ -946,13 +977,19 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * First-run pinning tour
+   * First-run feature tour
    *
-   * Pinning is the point of the extension, but it lives behind two things
-   * nobody finds on their own: the group chevron and a pin icon that used to
-   * appear only on row hover. The tour opens the menu itself, expands a group
-   * and walks from the chevron to the pin button to the chip in the strip.
+   * Pinning is the way in, but the point of the extension is what it opens:
+   * the calendar heatmap, the booking overview and the statistics screen. The
+   * tour pins one machine, follows it to its calendar (the page change is
+   * bridged by a sessionStorage marker), then opens the two overlays and shows
+   * the settings that switch all of it on.
    * ------------------------------------------------------------------ */
+
+  /** Where a tour that navigated away resumes, in this tab only. */
+  const TOUR_RESUME_KEY = "onejob:tour-resume";
+  /** A marker older than this belongs to a visit the member abandoned. */
+  const TOUR_RESUME_MS = 30000;
 
   async function consumeTourRequest() {
     const requested = await storageGet(cfg.storageKeys.tourRequest);
@@ -971,30 +1008,91 @@
     }, Number(cfg.onboarding.delayMs) || 900);
   }
 
+  function writeTourResume(step) {
+    try {
+      sessionStorage.setItem(
+        TOUR_RESUME_KEY,
+        JSON.stringify({
+          version: Number(cfg.onboarding?.version) || 1,
+          step,
+          at: Date.now(),
+        }),
+      );
+    } catch {
+      /* storage can be unavailable in private modes */
+    }
+  }
+
+  function readTourResume() {
+    let value = null;
+    try {
+      value = JSON.parse(sessionStorage.getItem(TOUR_RESUME_KEY) || "null");
+    } catch {
+      value = null;
+    }
+
+    const fresh =
+      value &&
+      value.step &&
+      Number(value.version) === (Number(cfg.onboarding?.version) || 1) &&
+      Date.now() - Number(value.at || 0) < TOUR_RESUME_MS;
+    if (!fresh) clearTourResume();
+    return fresh ? value : null;
+  }
+
+  function clearTourResume() {
+    try {
+      sessionStorage.removeItem(TOUR_RESUME_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
   function maybeStartTour() {
     if (!hasExtensionApis || !cfg.onboarding?.enabled || !T) return;
     if (state.tour || state.tourStarting) return;
-    // The tour walks through the menu, so it cannot run without it.
-    if (state.settings.navMenu === false || !cfg.nav.enabled) return;
 
     const version = Number(cfg.onboarding.version) || 1;
     const seen = Number(state.settings.onboardingVersion || 0) >= version;
-    if (seen && !state.tourRequested) return;
 
-    const group = tourGroup();
-    const nav = document.getElementById(NAV_ID);
-    const dock = findDock();
-    if (!group || (!isVisible(nav) && !isVisible(dock))) {
-      // Groups or the navigation are not on screen yet; ensureNav retries.
-      state.tourPending = true;
+    // A resumed tour is this visit continuing after the heatmap step's
+    // navigation, so the seen marker is already written and must not stop it.
+    const resume = readTourResume();
+    const steps = tourSteps(tourGroup());
+    const resumeIndex = resume ? steps.findIndex((step) => step.id === resume.step) : -1;
+    const resumed = resumeIndex >= 0;
+    // A marker for a step this build no longer has is a dead end.
+    if (resume && !resumed) clearTourResume();
+    if (seen && !state.tourRequested && !resumed) {
+      // Nothing is waiting for this page any more.
+      state.tourPending = false;
       return;
+    }
+
+    if (resumed) {
+      // The calendar page has not mounted its heatmap yet; ensureNav retries.
+      if (!document.getElementById(DAY_GRID_ID)) {
+        state.tourPending = true;
+        return;
+      }
+    } else {
+      // The pin step opens the menu, so the tour cannot run without it.
+      if (state.settings.navMenu === false || !cfg.nav.enabled) return;
+      const nav = document.getElementById(NAV_ID);
+      const dock = findDock();
+      if (!isVisible(nav) && !isVisible(dock)) {
+        // The navigation is not on screen yet; ensureNav retries.
+        state.tourPending = true;
+        return;
+      }
     }
 
     state.tourPending = false;
     state.tourRequested = false;
+    clearTourResume();
 
     // Someone who already pinned a resource found the feature on their own.
-    if (!seen && state.pins.length) {
+    if (!seen && !resumed && state.pins.length) {
       markTourSeen();
       return;
     }
@@ -1004,7 +1102,8 @@
     state.tourStarting = false;
 
     state.tour = T.start({
-      steps: tourSteps(group),
+      steps,
+      startIndex: resumed ? resumeIndex : 0,
       ignore: [
         `#${NAV_ID}`,
         `#${MENU_ID}`,
@@ -1013,9 +1112,13 @@
         `#${OVERVIEW_NAV_ID}`,
         `#${OVERVIEW_DOCK_ID}`,
         `#${PINS_BAR_ID}`,
+        ".onejob-overview-overlay",
       ].join(", "),
       onEnd: () => {
         state.tour = null;
+        state.tourPinId = "";
+        // The tour relaxed the panel's aria-modal so its card stayed reachable.
+        activeOverlay?.panel?.setAttribute("aria-modal", "true");
       },
     });
   }
@@ -1047,10 +1150,11 @@
   }
 
   function tourSteps(group) {
-    return [
+    const steps = [
       {
-        title: "Open a machine in one click",
-        body: `Pin the machines you use and they wait at the top of every page. A 20-second tour of the ${cfg.nav.label} menu?`,
+        id: "intro",
+        title: "Three screens, one click away",
+        body: `Booking Overview, resource statistics and a 28-day heatmap on any machine's calendar. A 30-second tour?`,
         enter: () => {
           closeMenu();
           closeSheet();
@@ -1058,39 +1162,176 @@
         target: () => tourNavTarget(),
         primaryLabel: "Show me",
       },
-      {
-        title: "Click a group to open it",
-        body: "Group names open their machines instead of jumping to the calendar. Click the name again to close the list.",
-        enter: () => {
-          state.expandedGroups.add(group.key);
-          openTourMenu();
-        },
-        target: () => tourGroupToggle(group),
-      },
-      {
-        title: "Pin the one you book most",
-        body: "The pin keeps one machine at the top of every page, one click from its calendar.",
-        enter: () => {
-          // Re-open the group if it was collapsed between the steps.
-          if (!state.expandedGroups.has(group.key)) {
-            state.expandedGroups.add(group.key);
-            openTourMenu();
-          }
-        },
-        target: () => tourResourcePin(group),
-      },
-      {
-        title: "Pinned",
-        body: `Your pin lives here: click it for its calendar, × to unpin it. ${shortcutLabel(SHORTCUTS.overview)} shows every pin with its bookings.`,
-        // The strip sits under the open menu, so step out of the way for it.
-        enter: () => {
+    ];
+
+    // Pinning is the way in; the heatmap step then opens that machine's
+    // calendar. Kept in the list even when a pin exists, so the step count does
+    // not change across the page change; the step itself adapts to that pin.
+    if (group) steps.push(tourPinStep(group));
+
+    if (state.settings.dayGrid !== false) steps.push(tourHeatmapStep());
+    steps.push(tourOverviewStep(), tourSettingsStep(), tourStatsStep());
+    return steps;
+  }
+
+  /**
+   * Pinning is the way in. With nothing pinned the step opens the menu and
+   * waits for a pin; with a pin already in place it points at that chip, so a
+   * replay never asks the member to pin a second time (and never lands on a
+   * pin button that would unpin the machine they already have).
+   */
+  function tourPinStep(group) {
+    const pinned = () => Boolean(tourPin());
+    return {
+      id: "pin",
+      title: () => (pinned() ? "Your pinned machine" : "Pin the machine you book most"),
+      body: () =>
+        pinned()
+          ? `You already have ${tourPin().name || "a machine"} pinned. The tour carries on with its calendar, where the heatmap lives.`
+          : "Press the pin icon at the right of a machine's row. The tour carries on with that machine's calendar, where the heatmap lives.",
+      enter: () => {
+        if (pinned()) {
           closeMenu();
           closeSheet();
-        },
-        target: () => tourPinChip() || tourNavTarget(),
-        primaryLabel: "Got it",
+          return;
+        }
+        // Re-open the group if it was collapsed between the steps.
+        state.expandedGroups.add(group.key);
+        openTourMenu();
       },
-    ];
+      target: () => (pinned() ? tourPinChip() || tourNavTarget() : tourResourcePin(group)),
+      // Nothing to see on the calendar until something is pinned.
+      blocked: () => !pinned(),
+      primaryLabel: () => (pinned() ? "" : "Pin one to continue"),
+    };
+  }
+
+  /**
+   * The heatmap lives on the pinned resource's calendar, so this step either
+   * navigates there (and the tour resumes on the next page) or, once the page
+   * has it, simply points at the grid.
+   */
+  function tourHeatmapStep() {
+    return {
+      id: "heatmap",
+      title: "A 4 × 28 heatmap on its calendar",
+      body: heatmapBody,
+      enter: () => {
+        closeMenu();
+        closeSheet();
+      },
+      target: () => document.getElementById(DAY_GRID_ID) || tourPinChip() || tourNavTarget(),
+      primaryLabel: () => (dayGridMounted() || !tourPin() ? "" : "Open the calendar"),
+      onPrimary: (tour) => {
+        const pin = dayGridMounted() ? null : tourPin();
+        if (!pin) {
+          tour.next();
+          return;
+        }
+        // The marker is what lets the next page pick the tour up again.
+        writeTourResume("heatmap");
+        rememberPinnedResource(pin);
+        location.assign(tourPinHref(pin));
+      },
+    };
+  }
+
+  function heatmapBody() {
+    if (dayGridMounted()) {
+      return "This is the 28-day heatmap: morning, afternoon, evening and night for last week and the next three. A black dot marks a Luma event, a green bar along the bottom your own booking and an orange bar a workshop reservation; the square's colour is how much of that six-hour block is booked. Click a square to open that day's week.";
+    }
+    const pin = tourPin();
+    if (pin) {
+      return `Next stop: ${pin.name || "the pin"}'s calendar, where a 4 × 28 heatmap under the strip shows when it is booked — morning, afternoon, evening and night, last week and the next three.`;
+    }
+    return "Pin a machine and its calendar gets a 4 × 28 heatmap under the strip: morning, afternoon, evening and night for last week and the next three.";
+  }
+
+  function dayGridMounted() {
+    return Boolean(document.getElementById(DAY_GRID_ID));
+  }
+
+  function tourOverviewStep() {
+    return {
+      id: "overview",
+      title: "Every pin, two weeks ahead",
+      body: `One card per pinned machine with its next 14 days of bookings, your own bookings above them and workshops marked Reserved. ${shortcutLabel(SHORTCUTS.overview)} opens it from anywhere.`,
+      enter: () => {
+        closeMenu();
+        closeSheet();
+        openOverviewOverlay({ fromTour: true });
+      },
+      leave: () => closeOverlay(),
+      // The overview mounts into a shadow root, so the target has to be read
+      // from there; the header is up as soon as the panel is.
+      target: () =>
+        tourOverlayQuery(".cards .card") ||
+        tourOverlayQuery(".my-bookings .card") ||
+        tourOverlayQuery(".page-header"),
+      missingMs: 4000,
+    };
+  }
+
+  function tourSettingsStep() {
+    return {
+      id: "settings",
+      title: "Your settings live in the toolbar",
+      body: "These are the six switches with their current state. The extension's toolbar icon opens the popup that changes them, and its tour row replays this tour.",
+      enter: () => {
+        closeMenu();
+        closeSheet();
+      },
+      centered: true,
+      render: (container) => renderTourSettings(container),
+    };
+  }
+
+  function tourStatsStep() {
+    return {
+      id: "statistics",
+      title: "A year of bookings at a glance",
+      body: "The busiest days, the weekday and time-of-day patterns, and every resource ranked by booked hours. Switch between 4 weeks, 3 months and 12 months. Each group's list has a Statistics row that scopes this to that group.",
+      enter: () => {
+        closeMenu();
+        closeSheet();
+        openStatsOverlay({ fromTour: true });
+      },
+      // The tour ends on the calendar it started the detour from, so the screen
+      // it opened closes again — whether by Got it, Back or Skip.
+      leave: () => closeOverlay(),
+      target: () => tourOverlayQuery(".stats-heatmap") || tourOverlayQuery(".stats-tiles"),
+      missingMs: 10000,
+    };
+  }
+
+  /** The settings the popup shows, with the state the portal is running with. */
+  function renderTourSettings(container) {
+    const list = document.createElement("ul");
+    list.className = "onejob-tour-settings";
+
+    for (const row of cfg.onboarding?.settings || []) {
+      const item = document.createElement("li");
+      item.className = "onejob-tour-setting";
+
+      const label = document.createElement("span");
+      label.className = "onejob-tour-setting-label";
+      label.textContent = row.label;
+
+      const on = state.settings[row.key] !== false;
+      const value = document.createElement("span");
+      value.className = `onejob-tour-setting-state ${on ? "is-on" : "is-off"}`;
+      value.textContent = on ? "On" : "Off";
+
+      item.append(label, value);
+      list.appendChild(item);
+    }
+
+    container.appendChild(list);
+  }
+
+  /** A selector inside the open overlay's shadow root, if that screen is up. */
+  function tourOverlayQuery(selector) {
+    return activeOverlay?.root?.querySelector(selector) || null;
   }
 
   /** Whichever of the two entry points the current width actually shows. */
@@ -1108,25 +1349,11 @@
     return isSheetOpen() ? document.getElementById(SHEET_ID) : null;
   }
 
-  function tourGroupToggle(group) {
-    for (const button of tourMenuRoot()?.querySelectorAll(".onejob-group-toggle") || []) {
-      if (button.dataset.group === group.name) return button;
-    }
-    return null;
-  }
-
   function tourResourcePin(group) {
+    const id = String(group.resource.id);
     for (const row of tourMenuRoot()?.querySelectorAll(".onejob-resource-row") || []) {
-      const link = row.querySelector(".onejob-link");
-      if (!link) continue;
-      try {
-        const url = new URL(link.href, location.href);
-        if (U.currentPinnedResource(url.search) === String(group.resource.id)) {
-          return row.querySelector(".onejob-pin-button");
-        }
-      } catch {
-        /* ignore */
-      }
+      if (row.dataset.resourceId !== id) continue;
+      return row.querySelector(".onejob-pin-button");
     }
     return null;
   }
@@ -1136,6 +1363,34 @@
       document.querySelector(`#${PINS_BAR_ID} .onejob-pin-chip.is-active`) ||
       document.querySelector(`#${PINS_BAR_ID} .onejob-pin-chip`)
     );
+  }
+
+  /** The pin the heatmap step opens: the one pinned during the tour first. */
+  function tourPin() {
+    const justPinned = state.tourPinId
+      ? state.pins.find((pin) => pin.id === state.tourPinId)
+      : null;
+    if (justPinned) return justPinned;
+    if (!state.pins.length) return null;
+    const active = currentPinnedId();
+    return state.pins.find((pin) => pin.id === active) || state.pins[0];
+  }
+
+  /** The pin's single-resource calendar, built the way its chip's link is. */
+  function tourPinHref(pin) {
+    const resource = findResource(pin.id);
+    const info = U.parseBookingPath(location.pathname);
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const { start, end } = U.currentRange(location.search);
+    return U.bookingHref({
+      webAddress,
+      type: pin.type || resource?.type || info?.type || "all",
+      view: cfg.defaultView,
+      group: pin.group || resource?.group || "",
+      resource: pin.id,
+      start,
+      end,
+    });
   }
 
   function openTourMenu() {
@@ -1271,7 +1526,14 @@
       link.href = U.bookingHref({ webAddress, type, view, group, resource: pin.id, start, end });
       link.textContent = name;
       link.title = name;
-      link.addEventListener("click", () => rememberPinnedResource({ id: pin.id, name, group, type }));
+      link.addEventListener("click", () => {
+        rememberPinnedResource({ id: pin.id, name, group, type });
+        // Clicking the chip on the pin or heatmap step is the same move as that
+        // step's button, so the tour picks up on the calendar either way.
+        if (state.tour?.id === "pin" || state.tour?.id === "heatmap") {
+          writeTourResume("heatmap");
+        }
+      });
       chip.appendChild(link);
 
       const unpin = document.createElement("button");
@@ -1997,9 +2259,12 @@
     state.signature = "";
     scheduleEnsure();
 
-    // Pinning during the tour's pin step is the success case; move on to the
-    // strip where the new chip is about to appear.
-    if (!exists && state.tour && state.tour.index === 2) state.tour.next();
+    // Pinning during the tour's pin step is the success case; the heatmap step
+    // then follows this machine to its calendar.
+    if (!exists && state.tour?.id === "pin") {
+      state.tourPinId = id;
+      state.tour.next();
+    }
 
     // Unpinning the resource that is currently shown alone should return to
     // its group's calendar instead of leaving a stale single-resource view.

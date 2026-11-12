@@ -20,6 +20,7 @@ test("the tour module loads without a DOM", () => {
   const tour = loadTour();
   assert.equal(typeof tour.start, "function");
   assert.equal(typeof tour.place, "function");
+  assert.equal(typeof tour.center, "function");
 });
 
 test("the card goes below a target with room under it", () => {
@@ -63,6 +64,27 @@ test("a card taller than the space stays inside the viewport", () => {
     { top: 280, left: 100, width: 20, height: 20 },
     { width: 340, height: 400 },
     { width: 400, height: 300 },
+  );
+  assert.equal(position.top, 12);
+  assert.equal(position.left, 12);
+});
+
+test("a step with nothing to point at centres the card", () => {
+  const tour = loadTour();
+  const position = tour.center(
+    { width: 340, height: 260 },
+    { width: 1280, height: 800 },
+  );
+  assert.equal(position.top, 270);
+  assert.equal(position.left, 470);
+  assert.equal(position.placement, "center");
+});
+
+test("a centred card stays inside a viewport smaller than itself", () => {
+  const tour = loadTour();
+  const position = tour.center(
+    { width: 340, height: 260 },
+    { width: 300, height: 200 },
   );
   assert.equal(position.top, 12);
   assert.equal(position.left, 12);

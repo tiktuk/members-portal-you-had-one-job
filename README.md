@@ -25,8 +25,9 @@ It does eight things:
    the chip unpins it. While one resource is shown alone, the strip ends with
    *Show all CNC Machining*, which keeps the category in view instead of jumping
    to the first resource of the whole type. The first time you open the portal, a
-   short tour opens the menu and points at the group arrow and the pin icon;
-   *Replay* in the popup brings it back.
+   short tour pins one machine, follows it to its calendar to show the 4 × 28
+   heatmap, then opens the overview, previews the toolbar settings and finishes
+   on the statistics screen; *Replay* in the popup brings it back.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -312,7 +313,7 @@ Three scripts do the work:
 
 - `src/content.js` (isolated world) rewrites the initial `list` URL to
   `calendar` **before the app boots**, injects the menu, caches groups and
-  resources, stores pins and runs the first-run tour (`src/lib/tour.js`).
+  resources, stores pins and runs the first-run feature tour (`src/lib/tour.js`).
 - `src/page.js` (page world) patches `history.pushState`/`replaceState` so
   client-side navigation also lands on the calendar, and remembers an explicit
   *List* choice from the portal's *View* dropdown. It also hides
@@ -359,7 +360,9 @@ open http://localhost:8765/tests/fixture.html
 ```
 
 Add `?tour=1` to watch the first-run tour; without it the fixture counts the
-tour as already seen.
+tour as already seen. The dev server cannot answer the portal route the heatmap
+step navigates to, so open `?onejob-resource=<id>` to see the step after that
+navigation: the tour resumes on the grid instead of offering the calendar.
 
 ### Troubleshooting
 

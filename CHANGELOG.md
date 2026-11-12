@@ -36,10 +36,18 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.
-- A one-time tour on the first portal visit. It opens the Resources menu,
-  points at the group arrow, at the pin button, and at the chip in the strip, so
-  pinning is shown instead of hidden behind a chevron. Escape, *Skip* or a click
-  outside ends it. *Replay* in the toolbar popup starts it again.
+- A one-time feature tour on the first portal visit. It starts by asking for a
+  pin — the step's *Next* stays disabled until one is made — and then follows
+  that machine to its calendar to show the 4 × 28 heatmap, with the dot, the
+  green bar and the orange bar explained once the grid is on screen. From there
+  it opens the Booking Overview, previews the six toolbar settings with their
+  current state and finishes on the Resource statistics screen, closing it
+  again so the tour ends back on the machine's calendar. The page change
+  is bridged by a `sessionStorage` marker, so the tour continues on the calendar,
+  and quitting early leaves the member on that page. Escape, *Skip* or a click
+  outside ends it, and skipping closes the screen it opened. *Replay* in the
+  toolbar popup starts it again; with a pin already in place that step points
+  at the existing chip instead of asking for another pin.
 
 ### Fixed
 

@@ -80,7 +80,7 @@
 
     tourReplay.addEventListener("click", async () => {
       if (!navToggle.checked) {
-        tourStatus.textContent = `Turn on “${cfg.nav.label} in the main menu” first — the tour walks through it.`;
+        tourStatus.textContent = `Turn on “${cfg.nav.label} in the main menu” first — the tour pins a machine from it.`;
         return;
       }
       // The content script consumes this on its next storage change, or on the

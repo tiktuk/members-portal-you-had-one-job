@@ -89,8 +89,8 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/lib/stats-view.js` — the resource-statistics UI (periods, month fetching,
   cache, heatmap, charts, resource grid) as `OneJobStatsView.mount(root)`; only
   mounted in the in-portal overlay.
-- `src/lib/tour.js` — the first-run pinning tour's card, steps and geometry
-  (`OneJobTour.start` / `OneJobTour.place`); loaded by the content script and the
+- `src/lib/tour.js` — the first-run feature tour's card, steps and geometry
+  (`OneJobTour.start` / `place` / `center`); loaded by the content script and the
   tests, never by the page.
 - `src/content.js` — isolated world: initial list→calendar rewrite, nav menu,
   group/resource fetching and caching, pins (the strip and the menu's pin
@@ -545,46 +545,100 @@ dashboard's notes field and, if they need to live on disk, into
 
 ## First-run onboarding
 
-- Pinning was invisible to a tester: the only ways in were the group chevron and
-  a pin icon that appeared on row hover. `src/lib/tour.js` is a one-time,
-  non-modal tour that opens the menu itself and walks from the group row to
-  the pin button to the chip in the strip. The pin button is now visible at
-  `opacity: 0.55` without hovering.
-- No backdrop. The targets sit inside the portal's navbar and inside our own
-  dropdown, so darkening the page needs z-index surgery on React-rendered
-  ancestors. The card floats next to the target and the target gets
-  `.onejob-tour-target` (outline + pulse, which respects
-  `prefers-reduced-motion`).
+- The tour is a **feature tour**, not a menu tour: intro → pin one machine →
+  the pinned calendar's 4 × 28 heatmap → Booking Overview → the toolbar settings
+  → Resource statistics. `src/lib/tour.js` is the card; `content.js::tourSteps`
+  owns the six steps. The pin step is **blocking**: `step.blocked` disables
+  *Next* (and ArrowRight) until `state.pins` is non-empty, so the heatmap step
+  always has a machine to follow. `togglePin` records the machine pinned during
+  that step in `state.tourPinId` and advances; `tourPin()` prefers it over the
+  active or first pin. The pin step stays in the array even when a pin already
+  exists, so the "n of 6" counter survives the page change, and it then adapts:
+  `tourPin()` makes it point at that chip (never at a menu pin button, which
+  would unpin) and *Next* is enabled. The tour always starts at step 1; only a
+  resumed tour starts further in, and `tour.js` hides Back up to `startedAt` so
+  the steps before it cannot be reached. The pin step is dropped when
+  `tourGroup()` finds nothing to pin, and the heatmap step when *Bookings
+  heatmap* is off.
+- No backdrop. The targets sit inside the portal's navbar, our dropdown and the
+  overlays' shadow roots, so darkening the page needs z-index surgery on
+  React-rendered ancestors. The card floats next to the target and the target
+  gets `.onejob-tour-target` (outline + pulse, which respects
+  `prefers-reduced-motion`). `tour.js` **also sets an inline outline**, because
+  `portal.css` does not reach a target inside the overlay's shadow root; the
+  class is kept for the pulse. Restore the previous inline values on clear.
 - Step targets are **getters**, called on every 250 ms position tick: `fillMenu`
-  rebuilds the rows whenever pins or the route change, so a stored element
-  reference goes stale. `lib/tour.js::place()` is pure and covered by
+  rebuilds the rows whenever pins or the route change, and the overlays
+  re-render, so a stored element reference goes stale.
+  `lib/tour.js::place()` and `center()` are pure and covered by
   `tests/tour.test.mjs`.
-- A step's `enter` runs before its target is looked up. That is how step 2 opens
-  the menu and expands the group (`openTourMenu()`), and how step 4 closes it so
-  the strip is visible. `openTourMenu()` prefers the navbar item only when
-  `isVisible()` — below 1200 px the portal hides the navbar but leaves the DOM
-  in place, and the tour must use the dock's sheet instead. The sheet renders
-  the same `renderMenuContent`, so the selectors carry over.
+- The heatmap step is **one step with two states**. Without `#onejob-day-grid`
+  it points at the active pin chip, says only where the tour is going ("Next
+  stop: <machine>'s calendar…") and its primary button writes
+  `onejob:tour-resume` (`sessionStorage`, `{ version, step, at }`), calls
+  `rememberPinnedResource(pin)` and `location.assign(tourPinHref(pin))`. The
+  full legend (dot, green bar, orange bar) is only shown once the grid is on
+  screen — explaining it before the page change read as if it had already
+  happened. The next page consumes the marker in `maybeStartTour` and starts at
+  the same step index (`startIndex`), so the tour counts "3 of 6" and Back still
+  works. The marker is ignored after 30 s or when the step no longer exists;
+  clicking the chip by hand during the step also writes it. The pin's href is
+  built from `state.pins`, **not** from the chip element, so pinning a machine
+  in step 2 does not race the strip's re-render.
+- `tourPinHref()` mirrors `renderPinsBar`'s link (`U.bookingHref` with the pin's
+  own type/group and the current `start`/`end`). Menu rows carry
+  `data-resource-id` so the pin step can find its row without parsing
+  `onejob-resource` out of the link (the page world patches `URLSearchParams`,
+  and the fixture runs content.js in the page world).
+- A step's `enter` runs before its target is looked up. `openTourMenu()` prefers
+  the navbar item only when `isVisible()` — below 1200 px the portal hides the
+  navbar but leaves the DOM in place, and the tour must use the dock's sheet
+  instead. The sheet renders the same `renderMenuContent`, so the selectors
+  carry over.
+- Overlay steps call `openOverviewOverlay({ fromTour: true })` /
+  `openStatsOverlay({ fromTour: true })`: the `fromTour` flag skips their
+  `state.tour?.end(...)` and sets `aria-modal="false"` on the panel, because the
+  tour card lives outside it and there is no focus trap. `onEnd` restores
+  `aria-modal="true"`. Both overlay steps' `leave` closes their screen on every
+  exit (Got it, Back, Skip), so the tour always ends back on the calendar.
+- `openOverlay` is a promise queue with a generation counter. The tour can ask
+  for the statistics screen while the overview's stylesheet is still loading,
+  and a queued or in-flight open must not resurrect a screen the member closed
+  (`closeOverlay(true)` bumps the generation; the replacement path inside
+  `openOverlayNow` passes `false`).
+- `missingMs` per step: 1 s by default, 4 s for the overview, 10 s for the
+  statistics screen (13 months of fetches). While a target is missing the card
+  stays up, centred, instead of ending the tour; `centered: true` steps (the
+  settings preview) skip target lookup entirely. `step.render(container)` fills
+  `.onejob-tour-figure` — that is how the settings preview shows
+  `config.onboarding.settings` with the live `state.settings` values. Keep that
+  row list in step with `popup.html`; `tests/popup.test.mjs` checks the labels.
 - `settings.onboardingVersion` (`onejob:settings`, default 0) is the seen marker;
   `config.onboarding.version` is the current tour. Bump the config value to show
   the tour again after a rewrite. It is written **when the intro is shown**, not
   when the tour ends: clicking a resource name mid-tour navigates away, and that
   is the exact habit the tour is about, so it must not make the tour restart on
-  every page.
+  every page. A resumed tour bypasses the seen check but still consumes the
+  marker once.
 - There is one way back in: *Replay* in the popup, which writes
   `onejob:tour-request` (`Date.now()`). `content.js` consumes the request on load
   and on `chrome.storage.onChanged` (reset to 0, so it runs once) and forces the
   tour even when it was already seen. The popup refuses with a hint while the
-  Resources menu is switched off, since the tour walks through it.
-- The tour never runs while the Resources menu is switched off, and it defers
-  (without marking itself seen) until groups have loaded and the navigation is
-  on screen. Someone with pins already is marked seen without a tour.
+  Resources menu is switched off, since the pin step opens it.
+- A normal start waits (without marking itself seen) until groups have loaded and
+  the navigation is on screen; a resumed start waits for `#onejob-day-grid`
+  instead, and `start()` schedules it before the group fetch so the calendar page
+  does not wait on the menu. Someone with pins already is marked seen without a
+  tour.
 - Escape, Skip and a click outside the card end it; `onDocumentClick` ignores
   clicks on the card, and the card's `ignore` selector covers the nav item, the
-  menu, the sheet, the dock, the overview items and the strip so clicking the pin
-  does not end the tour. Pinning during step 3 advances to the strip.
+  menu, the sheet, the dock, the overview items, the strip **and
+  `.onejob-overview-overlay`** (shadow-root clicks retarget to the host inside
+  it). Pinning during the pin step advances to the heatmap step.
 - `tests/fixture.html?tour=1` forces the tour; without the parameter the fixture
-  store counts it as seen. `tests/screenshots.html` always marks it seen.
+  store counts it as seen. The dev server cannot answer the portal route the
+  heatmap step navigates to, so `?onejob-resource=<id>` is how the post-resume
+  state is checked. `tests/screenshots.html` always marks it seen.
 
 ## Luma events
 

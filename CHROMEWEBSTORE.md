@@ -35,7 +35,7 @@ FEATURES
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
-• First-run tour — the first time you open the portal, a short tour opens the Resources menu and points at the group arrow, the pin icon and the strip, so pinning is shown instead of hidden behind a chevron. Replay it from the toolbar popup.
+• First-run tour — the first time you open the portal, a short tour pins one machine, follows it to its calendar to show the 4 × 28 heatmap, then opens the Booking Overview, previews the toolbar settings with their current state and finishes on Resource statistics. Replay it from the toolbar popup.
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
@@ -53,7 +53,7 @@ FEATURES
 
 HOW TO USE
 
-1. Install the extension and open your members portal, signed in as usual. The first visit shows a short tour; replay it from the toolbar popup.
+1. Install the extension and open your members portal, signed in as usual. The first visit shows a short feature tour; replay it from the toolbar popup.
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Open that pin. The heatmap under the strip shows the resource's booked share of each six-hour block for the last week and the next three; click a square to jump to that week.
