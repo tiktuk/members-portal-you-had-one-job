@@ -16,6 +16,8 @@
   --success: #198754;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.05);
   --radius: 14px;
+  /** The row's hover buttons; their slot is reserved on rows without them. */
+  --gap-button: 1.15rem;
 
   max-width: 1200px;
   margin: 0 auto;
@@ -408,6 +410,9 @@ h1 {
 .booking-who {
   min-width: 0;
   font-size: 0.875rem;
+  /* Explicit, because Safari's UA stylesheet bolds a <summary>, which would
+     make an event row's title stand out from every booking row's. */
+  font-weight: 400;
   overflow-wrap: anywhere;
 }
 
@@ -431,12 +436,18 @@ h1 {
   min-width: 0;
 }
 
+/* A row with no "book the gap" buttons (a Luma event) keeps their slot, so its
+   title lines up with the rows that have them. */
+.booking-main.is-plain {
+  padding-left: calc(var(--gap-button) + 0.2rem);
+}
+
 .booking-gap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: var(--gap-button);
+  height: var(--gap-button);
   margin: 0 0.1rem;
   padding: 0;
   border: 0;
@@ -503,7 +514,9 @@ h1 {
 .booking-event {
   border-left: 2px solid #fd7e14;
   padding-left: 0.5rem;
-  margin-left: -0.5rem;
+  /* The -0.5rem puts the line in the card's padding; the extra -2px keeps the
+     border from shifting the time and title 2px right of every other row. */
+  margin-left: calc(-0.5rem - 2px);
 }
 
 /* Luma events are space-wide happenings; resource events reserve a machine. */

@@ -891,6 +891,9 @@
   function titleWithGaps(title, booking, resourceName) {
     const main = el("span", "booking-main");
     if (!booking.resourceId) {
+      // A Luma event has no gap buttons; reserve their slot so its title starts
+      // where every other row's title does.
+      main.classList.add("is-plain");
       main.appendChild(title);
       return main;
     }
@@ -1026,7 +1029,7 @@
 
     const details = el("details", "event-details");
     const summary = el("summary", "event-summary");
-    summary.append(el("span", "booking-who", item.coworker), badge("Event", "badge-luma"));
+    summary.append(titleWithGaps(el("span", "booking-who", item.coworker), item), badge("Event", "badge-luma"));
 
     const body = el("div", "event-body");
     const description = el("p", "event-description");

@@ -375,7 +375,13 @@ dashboard's notes field and, if they need to live on disk, into
   bookings that end in the past.
 - The buttons keep their 1.15rem slots at all times and only animate
   `opacity`, so a row does not jump under the pointer. They are `0` until
-  `.booking:hover`/`:focus-within`, `0.45` under `@media (hover: none)`.
+  `.booking:hover`/`:focus-within`, `0.45` under `@media (hover: none)`. The
+  size lives in `--gap-button`, because the slot has to be reproduced elsewhere:
+  a Luma row has no buttons (space-wide events are not bookable around), so
+  `titleWithGaps` gives it `booking-main is-plain`, whose left padding reserves
+  the before-button's slot — otherwise its title starts ~22px left of every
+  other row's. `.booking-event`'s negative margin carries an extra `-2px` for
+  its left border, or the border shifts the time and title 2px right.
 - `lib/overview.js` owns the pure parts: `bookingWindow(booking, side, minutes)`
   (epoch stamps, crosses midnight), `basketBody`, `defaultProfile`,
   `resourceInterval`, `durationLabel`, `bookingError`. The view owns the HTTP.
