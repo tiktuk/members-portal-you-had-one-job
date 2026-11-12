@@ -66,7 +66,7 @@ Only requests to services you already use:
 - **The space's public events calendar** (Luma's public API), to list upcoming
   events in the overview and mark them on the calendar heatmap. Only public
   event data is requested; nothing about you is sent. This can be turned off
-  with the popup's events toggle.
+  with the popup's two Luma event toggles.
 
 Both requests go directly from your browser. No intermediary, proxy or service
 of ours is involved.

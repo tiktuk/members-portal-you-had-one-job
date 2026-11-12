@@ -1484,13 +1484,13 @@
    * `config.luma.source` is the built-in portal's calendar. content.js only
    * runs on that portal (the manifest names one origin), so the gate is the
    * setting rather than the origin; the overview needs the origin check because
-   * its page can run anywhere.
+   * its page can run anywhere. The heatmap has its own switch, independent of
+   * the overview's *Luma events in overview* row.
    */
   function dayGridLumaEnabled() {
     return (
       hasExtensionApis &&
       Boolean(cfg.luma?.source) &&
-      state.settings.lumaEvents !== false &&
       state.settings.dayGridEvents !== false
     );
   }

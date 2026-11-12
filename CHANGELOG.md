@@ -28,11 +28,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   evening and night rows. Each square is coloured by how much of that six-hour
   block is booked; clicking one opens that day's week in the calendar. Workshop
   reservations count as occupied and get an orange bar, the member's own
-  bookings a green one, and a dot marks a Luma event (when *Luma events* is
-  on). Bookings linked to the resource from another resource's booking count
-  too and are marked "(linked)". The tooltip gives the times and names. The
-  popup's *Bookings heatmap* and *Luma event dots* toggles hide the heatmap and
-  the dots respectively.
+  bookings a green one, and a dot marks a Luma event (when *Luma events in
+  heatmap* is on). Bookings linked to the resource from another resource's
+  booking count too and are marked "(linked)". The tooltip gives the times and
+  names. The popup's *Bookings heatmap* toggle hides the heatmap and *Luma
+  events in heatmap* hides the dots.
 - Pins sit in a strip at the top of every portal page, below the navigation, so
   a pinned resource is one click away without opening the menu. Each chip links
   to that resource's calendar and carries its own unpin button.
@@ -68,9 +68,15 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   row instead of two.
 - The Resources menu no longer has *Show me how pinning works*; replay the tour
   from the toolbar popup.
-- The overview's *Events* pill is now a *Show events* checkbox. A pill that only
-  changed colour gave no hint that it was a toggle; the tick says so, and the
-  label reads as the state it switches.
+- The overview's *Events* pill is gone, along with the *Show events* checkbox
+  that briefly replaced it: the toolbar popup's **Luma events in Booking
+  Overview** row is the only switch for merging the space's events into the
+  cards. A pill gave no hint that it toggled anything, and a second control in
+  the header duplicated the popup.
+- The popup's two event rows are named *Luma events in overview* and
+  *Luma events in heatmap*, so it is clear which view each one affects.
+  Both default to on, and each one now controls only its own view: turning the
+  overview's events off no longer removes the heatmap dots.
 - The overview moved out of the Resources menu into its own **Booking Overview**
   item in the portal navigation, right after Resources — with an *Overview*
   button in the bottom dock on narrow windows. It is a separate entry point, so

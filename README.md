@@ -57,23 +57,23 @@ It does eight things:
    and the day-of-month numbers run under the grid. Each square is coloured by
    how much of that six-hour block is booked, so a busy week is visible before
    scrolling the calendar. Click a square to open that day's week; a dot marks a
-   Luma event in that block (when *Luma events* is on) and its tooltip gives the
-   start time and name; a green bar marks your own bookings, and workshop
-   reservations count as occupied with an orange bar. Bookings linked to the
-   resource from another resource's booking count too and say "(linked)" in the
-   tooltip. The popup's *Bookings heatmap* toggle hides the heatmap and *Luma
-   event dots* hides the dots.
+   Luma event in that block (when *Luma events in heatmap* is on) and its
+   tooltip gives the start time and name; a green bar marks your own bookings,
+   and workshop reservations count as occupied with an orange bar. Bookings
+   linked to the resource from another resource's booking count too and say
+   "(linked)" in the tooltip. The popup's *Bookings heatmap* toggle hides the
+   heatmap and *Luma events in heatmap* hides the dots.
 7. **No location prompt.** The portal asks for the browser location on every
    page load. Safari only remembers a denial for a day, so the dialog returns
    each visit; the extension hides `navigator.geolocation` from the page, which
    makes the portal skip the request instead of prompting. The popup's *Block
    location prompt* toggle turns this off.
-8. **Luma events.** With the *Luma events* toggle on, the pinned overview also
-   merges MotionLab.Berlin's upcoming Luma events into every card and the
-   **My bookings** card, with a purple *Event* badge. Expanding a row loads its
-   description and links to the event on Luma, like the Django dashboard. The
-   **Show events** checkbox in the overview header toggles the same setting as
-   the popup.
+8. **Luma events.** With the *Luma events in overview* toggle on, the
+   pinned overview also merges MotionLab.Berlin's upcoming Luma events into
+   every card and the **My bookings** card, with a purple *Event* badge.
+   Expanding a row loads its description and links to the event on Luma, like
+   the Django dashboard. The toolbar popup is the only place this is switched;
+   the overview header has no events toggle of its own.
 
 The six toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page and from the menu's group chevrons. The overview page uses
@@ -191,7 +191,7 @@ the [`runtime-portals`](../../tree/runtime-portals) branch.
 
 Everything tunable lives in `src/lib/config.js`. The popup's toggles are stored
 in `chrome.storage.local`; `geo.blockPrompt` and `luma.enabled` below only seed
-the *Block location prompt* and *Luma events* toggles.
+the *Block location prompt* and *Luma events in overview* toggles.
 
 | Key | Meaning |
 | --- | --- |
@@ -211,12 +211,12 @@ the *Block location prompt* and *Luma events* toggles.
 | `stats.bands` | Booked-hours-per-day thresholds for the resource colour scale (`[0.5, 1.5, 3]`). |
 | `stats.cacheTtlMs` / `stats.pastCacheTtlMs` | How long cached statistics stay fresh: 15 minutes for the current month, 24 hours for past months. |
 | `dayGrid.enabled` | Default for the popup's *Bookings heatmap* toggle (`true`). |
-| `dayGrid.events` | Default for the popup's *Luma event dots* toggle (`true`). |
+| `dayGrid.events` | Default for the popup's *Luma events in heatmap* toggle (`true`). |
 | `dayGrid.daysBack` / `dayGrid.daysAhead` | Window of the heatmap on a single-resource calendar: 7 days before the current week and 21 after its Monday, so 28 columns. |
 | `dayGrid.buckets` | The heatmap's rows: morning 06–12, afternoon 12–18, evening 18–24, night 00–06 by default, top to bottom. |
 | `dayGrid.bands` | Booked share of a block thresholds for the heatmap colours (`[0.1, 0.3, 0.6]`). |
 | `luma.source` | Public Luma user (`usr-…`) or calendar (`cal-…`) API ID, or a luma.com URL containing one (MotionLab.Berlin's user by default). Mirrors the Django app's `Space.luma_source`. |
-| `luma.enabled` | Default for the *Luma events* switch (popup and overview header) (`true`). |
+| `luma.enabled` | Default for the popup's *Luma events in overview* switch (`true`). |
 | `cache.groupsTtlMs` | How long resource groups are cached (6 h). |
 | `portal.origin` / `content_scripts.matches` | The built-in portal. Change both, plus `portal.webAddress` and the manifest's `host_permissions` entry, to retarget the build (see [Using it on another space](#using-it-on-another-space)). |
 
@@ -388,9 +388,9 @@ tour as already seen.
   portal session yet. Open the portal while signed in (the content script
   stores the token), then refresh the overview page. If it says the session
   expired, open the portal once to renew it.
-- **Luma events missing** — check the popup's *Luma events* toggle. If it is
-  on and the overview shows a warning, Luma's public API failed or changed;
-  verify `luma.source` in `config.js`.
+- **Luma events missing** — check the popup's *Luma events in overview*
+  toggle. If it is on and the overview shows a warning, Luma's public API failed
+  or changed; verify `luma.source` in `config.js`.
 - **Changes from the popup** apply on the next page load.
 - If Nexudus changes the markup, `src/content.js` selectors
   (`nav.navbar ul.navbar-nav`, `#resourceViewDropdown`) and `config.js` are the

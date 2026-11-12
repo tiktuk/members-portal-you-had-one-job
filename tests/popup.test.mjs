@@ -22,3 +22,16 @@ test("the popup is only the toggles and the pin list", () => {
   assert.doesNotMatch(html, /portal-form|portal-input/);
   assert.match(html, /<script src="lib\/config\.js"><\/script>\s*<script src="popup\.js"><\/script>/);
 });
+
+test("the two event rows are named by the view they affect", () => {
+  assert.match(html, /id="luma-events"/);
+  assert.match(html, /Luma events in overview/);
+  assert.match(html, /id="day-grid-events"/);
+  assert.match(html, /Luma events in heatmap/);
+});
+
+test("the overview header has no events toggle", () => {
+  const view = readFileSync(join(src, "lib", "overview-view.js"), "utf8");
+  assert.doesNotMatch(view, /button-toggle/);
+  assert.doesNotMatch(view, /lumaToggle|lumaInput/);
+});

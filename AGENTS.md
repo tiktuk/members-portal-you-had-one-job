@@ -136,9 +136,9 @@ dashboard's notes field and, if they need to live on disk, into
   in-portal overlay reads its own `location.origin` instead, which is always the
   portal it is mounted in.
 - Luma is gated to `config.portal.origin`: `config.luma.source` is one space's
-  calendar, so `lumaAvailable()` hides the overview's *Show events* checkbox on
-  any other origin. `.button[hidden]` in `overview.css` exists because
-  `.button`'s `display: inline-flex` outranks the UA `[hidden]` rule.
+  calendar, so `lumaAvailable()` disables the overview's event fetching on any
+  other origin. `.button[hidden]` in `overview.css` stays because `.button`'s
+  `display: inline-flex` outranks the UA `[hidden]` rule.
 
 ## Portal facts this relies on
 
@@ -443,8 +443,9 @@ dashboard's notes field and, if they need to live on disk, into
 - **Setting:** the popup's *Bookings heatmap* toggle writes `settings.dayGrid`
   (default `config.dayGrid.enabled`). `ensureDayGrid()` treats it like having no
   pin and removes the card, so the toggle takes effect on the next ensure pass
-  without a reload. *Luma event dots* writes `settings.dayGridEvents` (default
-  `config.dayGrid.events`); off means no fetch, no dots, heatmap unchanged.
+  without a reload. *Luma events in heatmap* writes
+  `settings.dayGridEvents` (default `config.dayGrid.events`); off means no
+  fetch, no dots, heatmap unchanged.
 - **Window:** `lib/stats.js::dayGridRange` aligns to the Monday of the current
   week, goes `config.dayGrid.daysBack` days back and `daysAhead` days forward
   (7 + 21 = 28 columns). The window is anchored to today, not to the week the
@@ -478,11 +479,11 @@ dashboard's notes field and, if they need to live on disk, into
   dot with a 1 px `--onejob-daygrid-line` ring, the same grey as the weekend
   edge) and the tooltip gives the event's start time and name
   (`eventNames`/`eventStarts` are parallel arrays); they never change the
-  booked share. Gated by `settings.lumaEvents` and
-  `settings.dayGridEvents` (the popup's *Luma event dots*); content.js only runs
-  on the portal, so the origin check the overview needs (`lumaAvailable()`) is
-  not repeated here. The list is space-wide, so it is fetched once per document
-  and cached by the worker for 5 minutes.
+  booked share. Gated by `settings.dayGridEvents` alone (the popup's *Luma
+  events in heatmap*), so turning the overview's events off leaves the dots in
+  place; content.js only runs on the portal, so the origin check the overview
+  needs (`lumaAvailable()`) is not repeated here. The list is space-wide, so it
+  is fetched once per document and cached by the worker for 5 minutes.
 - **Own bookings:** `loadDayGridMine(pin)` fetches `/api/public/bookings/my` for
   the same window (paged; naive local `FromTime`/`ToTime` via
   `O.toQueryTimestamp`), narrows it to the pinned `ResourceId` and passes
@@ -586,13 +587,10 @@ dashboard's notes field and, if they need to live on disk, into
   `config.luma.source` is a public Luma user (`usr-…`) or calendar (`cal-…`)
   API ID, or any luma.com URL containing one; `config.luma.enabled` only seeds
   the popup toggle (`settings.lumaEvents` in `onejob:settings`).
-- The overview header also has a *Show events* checkbox (`ui.lumaToggle` +
-  `ui.lumaInput`, only when `config.luma.source` is set) that writes the same
-  `settings.lumaEvents`. It is a real `<input type="checkbox">` inside the
-  button pill, not a pressed button: the pill alone gave no hint that it toggles
-  anything, and the tick is the affordance people look for. `render()` keeps its
-  `checked`/`is-active` state in sync, so changing the popup updates an open
-  overview through `onStorageChanged`.
+- The popup's *Luma events in overview* row (`settings.lumaEvents`) is
+  the only switch for the overview's event cards; the overview header has no
+  toggle. `onStorageChanged` re-reads the setting, so changing the popup updates
+  an open overview without a reload.
 - `lib/luma.js::parseSource` extracts the ID. The list endpoints are
   `/user/profile/events-hosting?user_api_id=…&period=future` and
   `/calendar/get-items?calendar_api_id=…&period=future`, with

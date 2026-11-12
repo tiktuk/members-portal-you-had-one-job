@@ -157,42 +157,6 @@ h1 {
   background: transparent;
 }
 
-.button-toggle {
-  gap: 0.4rem;
-}
-
-.button-toggle.is-active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-/* Native checkbox, themed with accent-color so it needs no drawing. */
-.button-toggle-input {
-  width: 0.95rem;
-  height: 0.95rem;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* The pill is the control people click, so the ring goes around it — but only
-   where :has() can move it there, or the checkbox would lose its focus ring. */
-@supports selector(:has(*)) {
-  .button-toggle-input:focus-visible {
-    outline: none;
-  }
-
-  .button-toggle:has(.button-toggle-input:focus-visible) {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.button-toggle:focus-within {
-  border-color: var(--accent);
-}
-
 .button-icon {
   justify-content: center;
   width: 2.1rem;

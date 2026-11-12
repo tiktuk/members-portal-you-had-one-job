@@ -86,7 +86,7 @@
     dayGrid: {
       /** Default for the popup's "Bookings heatmap" toggle. */
       enabled: true,
-      /** Default for the popup's "Luma event dots" toggle. */
+      /** Default for the popup's "Luma events in heatmap" toggle. */
       events: true,
       /** Columns: the current week plus one back and three ahead. */
       daysBack: 7,
@@ -116,7 +116,7 @@
      */
     luma: {
       source: "usr-csfrCNKvDVPwE0L",
-      /** Default for the popup's "Luma events" toggle. */
+      /** Default for the popup's "Luma events in overview" toggle. */
       enabled: true,
       /**
        * The public endpoints luma.com itself uses; they need no API key but

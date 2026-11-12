@@ -52,10 +52,18 @@
 
       <label class="row">
         <span class="row-text">
-          <span class="row-title">Luma event dots</span>
-          <span class="row-hint">Marks the space’s Luma events on the calendar heatmap. The overview’s event list is unchanged.</span>
+          <span class="row-title">Luma events in heatmap</span>
+          <span class="row-hint">Marks the space’s Luma events on the 4 × 28 heatmap under the pins on a pinned resource’s calendar.</span>
         </span>
         <input type="checkbox" id="day-grid-events" class="switch" />
+      </label>
+
+      <label class="row" id="luma-row">
+        <span class="row-text">
+          <span class="row-title">Luma events in overview</span>
+          <span id="luma-hint" class="row-hint">Merge this space’s upcoming Luma events into the Booking Overview cards.</span>
+        </span>
+        <input type="checkbox" id="luma-events" class="switch" />
       </label>
 
       <label class="row">
@@ -64,14 +72,6 @@
           <span class="row-hint" id="nav-row-hint">Adds a “Resources” menu with every resource group. Pin resources to keep them at the top of the page.</span>
         </span>
         <input type="checkbox" id="nav-menu" class="switch" />
-      </label>
-
-      <label class="row" id="luma-row">
-        <span class="row-text">
-          <span class="row-title">Luma events</span>
-          <span id="luma-hint" class="row-hint">Merge this space’s upcoming Luma events into the overview cards.</span>
-        </span>
-        <input type="checkbox" id="luma-events" class="switch" />
       </label>
 
       <label class="row">

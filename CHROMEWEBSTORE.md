@@ -43,13 +43,13 @@ FEATURES
 
 • Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
-• Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar; a dot marks the space's Luma events in that block and a green bar marks your own bookings; workshop reservations and bookings linked from another resource count as occupied. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it and "Luma event dots" hides the dots.
+• Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar; a dot marks the space's Luma events in that block and a green bar marks your own bookings; workshop reservations and bookings linked from another resource count as occupied. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it and "Luma events in heatmap" hides the dots.
 
 • Calendar by default — booking links open the calendar view instead of the list. Picking "List" in the portal's own View dropdown still works and is remembered for the tab.
 
 • No location prompt — the portal asks for your browser location on every page load. The extension stops that prompt. It never reads or stores your location, and the toolbar popup has a toggle to bring the prompt back.
 
-• Space events — with the events toggle on, the overview also lists the space's upcoming public events, with an Event badge and the event description on expand.
+• Space events — with the toolbar popup's "Luma events in overview" toggle on, the overview also lists the space's upcoming public events, with an Event badge and the event description on expand.
 
 HOW TO USE
 
@@ -280,8 +280,8 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
 6. The toolbar popup has six toggles: calendar as default view, the bookings
-   heatmap, Luma event dots, the Resources menu, Luma events and the location
-   prompt block.
+   heatmap, Luma events in heatmap, Luma events in overview, the
+   Resources menu and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
 content_scripts.matches and asks for host access to just that site and to the
