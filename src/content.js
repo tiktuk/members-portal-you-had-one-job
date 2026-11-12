@@ -1081,7 +1081,7 @@
       },
       {
         title: "Pinned",
-        body: `Your pin lives here: click it for its calendar, × to unpin it. ${shortcutLabel()} shows every pin with its bookings.`,
+        body: `Your pin lives here: click it for its calendar, × to unpin it. ${shortcutLabel(SHORTCUTS.overview)} shows every pin with its bookings.`,
         // The strip sits under the open menu, so step out of the way for it.
         enter: () => {
           closeMenu();

@@ -43,6 +43,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Fixed
 
+- The tour's last step no longer throws `Cannot read properties of undefined
+  (reading 'ctrl')`, which stopped the tour from starting at all. The step asked
+  for the shortcut label without the shortcut, so it now names the overview
+  shortcut it was meant to mention.
 - The pins strip no longer breaks the personal pages. Their `<main>` is a flex
   row (a 200px activity menu next to the content), so the strip became a column
   of its own; it now sits just above `<main>` wherever that is a flex or grid
