@@ -363,6 +363,95 @@ dashboard's notes field and, if they need to live on disk, into
 - Unpinning from the page writes the same `onejob:pins` array, so the portal
   menu and the popup update through their `chrome.storage.onChanged` listeners.
 
+## Booking from the overview
+
+- Hovering a row in the overview reveals a **+** on each side of its title
+  (`titleWithGaps` / `gapButton` in `overview-view.js`). Left books a slot
+  **ending** at that row's start, right one **starting** at its end. They appear
+  on real bookings, workshop reservations and the **My bookings** rows, but not
+  on Luma events (space-wide, so "before" and "after" would not mean the
+  resource). Rows that already started get only the right one; the left is
+  disabled with "This booking already started" because the portal refuses
+  bookings that end in the past.
+- The buttons keep their 1.15rem slots at all times and only animate
+  `opacity`, so a row does not jump under the pointer. They are `0` until
+  `.booking:hover`/`:focus-within`, `0.45` under `@media (hover: none)`.
+- `lib/overview.js` owns the pure parts: `bookingWindow(booking, side, minutes)`
+  (epoch stamps, crosses midnight), `basketBody`, `defaultProfile`,
+  `resourceInterval`, `durationLabel`, `bookingError`. The view owns the HTTP.
+- **There is no plain create-booking endpoint.** The portal's own booking form
+  posts a basket item, so this is the write path (all on the space host, which
+  the existing host permission covers — no manifest change):
+  - `GET /api/public/coworkers/profiles?f=1` → `{ Profiles: [{ Id,
+    IsDefaultProfile, FullName }] }`; the default (else first) profile's `Id` is
+    the `CoworkerId`. The portal's auth context resolves the same way. Fallback:
+    the first `CoworkerId` in `/api/public/bookings/my`, which
+    `normalizeMyBooking` now keeps.
+  - `GET /api/public/resources/published/<id>` → `IntervalLimit`, the duration
+    field's `min`/`step` (15 when the request fails). `/published/details` is a
+    different URL — match the numeric id, or the groups payload is returned.
+  - `POST /api/public/checkout/basket/preview`, then
+    `POST /api/public/checkout/basket/invoice`, both with
+    `{ Basket: [{ Type: "booking", Booking: { ResourceId, FromTime, ToTime,
+    FloorPlanDeskId: null, CoworkerId, CoworkerFullName, ChargeNow: false,
+    BookingVisitors: [], BookingProducts: [], CustomFields: { Data: [] }, Id: 0
+    } }], agreedTermsAndConditions: true, createZeroValueInvoice: true }`.
+    `FromTime`/`ToTime` are `Date#toISOString()` instants, exactly what the
+    portal's axios sends. Both need `Content-Type: application/json` and the
+    `X-Nexudus-Client-Session` header (8–64 chars; the portal keeps one per tab
+    in `sessionStorage`, we keep `onejob:checkout-session`).
+  - `/api/spaces/bookings` (what `nexuml-py create` uses) is **not** the path:
+    it needs a REST token and the `Booking-Create` role, not the portal session.
+- The preview answers `{ checkout: { Errors, TransactionTotalAmount }, preview:
+  { TotalAmount, Currency: { Code }, Errors, Message } }`. Refusals are
+  **200s with `Errors[0].PropertyName`**, not HTTP failures, so `fetchJson`
+  takes `allowErrorBody` (it returns `{ status, data }` and tolerates an empty
+  or non-JSON body); the codes (`BOOKING_CONFLICT`, `EVENT_CONFLICT`,
+  `INVALID_INTERVAL` with the block size in `AttemptedValue`,
+  `NO_PAST_BOOKINGS`, `TOO_SHORT`, `TOO_LONG`, `INVALID_TARIFF`, `NO_CREDIT`,
+  `CHECKOUT TC MISSING`, …) are translated by `bookingError`, mirroring the
+  portal's own table in `PublicResources-*.js`. Unknown codes show the server's
+  message or the code itself.
+- **The invoice's success body is not a fixed envelope.** The portal only reads
+  `WasSuccessful === false`, `TransactionTotalAmount` and `Id` from it, and the
+  live endpoint answered with something else entirely (the created record),
+  which an earlier `isBasketResponse` check reported as "unexpected response"
+  *after* the booking had been created. Treat any 2xx that does not say
+  `WasSuccessful: false` as created; `basketTotal`/`invoiceId` read the fields
+  tolerantly and default to 0/no payment. Keep the shape guard on the preview
+  only, where a bogus body would otherwise enable Confirm with a fake "Free".
+- A positive `TransactionTotalAmount` is the portal's "Proceed to Payment"
+  case: the dialog closes, the panel closes and the tab goes to
+  `/<webAddress>/checkout/payment?invoice_id=<Id>` (the standalone page opens
+  that in a new tab). That is what the portal does; do not invent a different
+  flow. The dialog shows the price from the preview either way.
+- The dialog is a native `<dialog>` appended to the view root (the standalone
+  page's body or the overlay's shadow root). The top layer beats
+  `.onejob-overview-overlay`'s `z-index: 2000` and `::backdrop` covers the whole
+  window, so do not build a div modal. `mount()` returns `hasOpenModal()`, and
+  `content.js::onOverlayKeydown` returns early while it is true — the document
+  capture handler runs before the shadow root, so this is the only way to let
+  Escape close the dialog first.
+- Durations are validated locally before any request: a positive multiple of
+  the resource interval, at least one interval, at most
+  `config.overview.booking.maxDurationMinutes`. Presets come from
+  `config.overview.booking.presets`; a preset that is not a multiple of the
+  live interval is hidden. Previews are debounced 350 ms and aborted on every
+  change, so typing a duration does not queue requests.
+- After a successful create the dialog closes, `load()` refetches and
+  `showSuccess` renders a **fixed** `.notice.success` toast at the bottom of the
+  window (`SUCCESS_MS`, 8 s). It floats on purpose: the confirmation arrives
+  after a refresh that can leave the member scrolled past the top of the list,
+  where an in-flow notice was invisible. `load()` clears it and its timer, so a
+  refresh removes it early; do not render it in `renderNotice` (that one is for
+  failures).
+- `tests/fixture.html` mocks the four endpoints and appends created bookings to
+  `window.__fixtureBookings`; its invoice answer is the bare `{ Id }` the live
+  endpoint actually returns, not the preview's envelope. `window.__fixtureBasket`
+  holds the last body. The preview there refuses overlaps with
+  `BOOKING_CONFLICT` and slots that start in the past, which is how the error
+  path is exercised without the real portal.
+
 ## Resource statistics
 
 - **Entry point:** the bottom of the Resources menu (`renderMenuContent`), so it

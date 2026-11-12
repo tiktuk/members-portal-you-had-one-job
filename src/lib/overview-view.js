@@ -13,9 +13,14 @@
   const O = OneJobOverview;
 
   const REFRESH_MS = 60 * 1000;
+  /** How long the "Booking created" toast stays up. */
+  const SUCCESS_MS = 8 * 1000;
 
   const PERSON_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/></svg>';
+
+  const PLUS_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>';
 
   function emptyState() {
     return {
@@ -34,6 +39,14 @@
       lumaError: null,
       myBookingsError: null,
       updatedAt: null,
+      /** Member profile bookings are created for: { id, name } | null. */
+      coworker: null,
+      coworkerError: null,
+      coworkerTried: false,
+      /** Resource id -> { interval } once the booking dialog has asked. */
+      resourceInfo: {},
+      /** Transient "booking created" notice. */
+      success: null,
     };
   }
 
@@ -46,13 +59,43 @@
     onClose: null,
     summary: null,
     notice: null,
+    success: null,
     cards: null,
     myBookings: null,
     refreshButton: null,
     portalLink: null,
     timer: null,
+    successTimer: null,
     onStorageChanged: null,
   };
+
+  /**
+   * The one booking dialog, if it is open. Kept outside `ui` because the
+   * dialog outlives a render and needs its own request bookkeeping.
+   */
+  const dialogState = {
+    node: null,
+    parts: null,
+    resourceId: "",
+    resourceName: "",
+    booking: null,
+    side: "after",
+    interval: 15,
+    coworker: null,
+    coworkerError: "",
+    preview: null,
+    previewError: "",
+    previewing: false,
+    submitError: "",
+    busy: false,
+    /** Whether the member has touched the duration field. */
+    edited: false,
+    abort: null,
+    timer: null,
+    token: 0,
+  };
+
+  let checkoutSession = "";
 
   globalThis.OneJobOverviewView = { mount, destroy };
 
@@ -73,11 +116,13 @@
     root.replaceChildren(buildShell());
 
     start();
-    return { refresh: () => load(), destroy };
+    return { refresh: () => load(), destroy, hasOpenModal: () => Boolean(dialogState.node?.open) };
   }
 
   function destroy() {
+    closeBookingDialog();
     if (ui.timer) clearInterval(ui.timer);
+    if (ui.successTimer) clearTimeout(ui.successTimer);
     if (ui.onStorageChanged && typeof chrome?.storage?.onChanged?.removeListener === "function") {
       chrome.storage.onChanged.removeListener(ui.onStorageChanged);
     }
@@ -88,11 +133,13 @@
     ui.onClose = null;
     ui.summary = null;
     ui.notice = null;
+    ui.success = null;
     ui.cards = null;
     ui.myBookings = null;
     ui.refreshButton = null;
     ui.portalLink = null;
     ui.timer = null;
+    ui.successTimer = null;
     ui.onStorageChanged = null;
 
     Object.assign(state, emptyState());
@@ -147,10 +194,13 @@
     ui.notice = el("div", "notice");
     ui.notice.hidden = true;
     ui.notice.setAttribute("role", "status");
+    ui.success = el("div", "notice success");
+    ui.success.hidden = true;
+    ui.success.setAttribute("role", "status");
     ui.myBookings = el("div", "my-bookings");
     ui.cards = el("div", "cards");
     ui.cards.setAttribute("aria-live", "polite");
-    main.append(ui.notice, ui.myBookings, ui.cards);
+    main.append(ui.notice, ui.success, ui.myBookings, ui.cards);
 
     fragment.append(header, main);
 
@@ -209,6 +259,10 @@
       state.session = changes[cfg.storageKeys.session].newValue || null;
       state.webAddress = state.session?.webAddress || cfg.portal.webAddress;
       state.origin = state.session?.origin || cfg.portal.origin;
+      state.coworker = null;
+      state.coworkerError = null;
+      state.coworkerTried = false;
+      state.resourceInfo = {};
       reload = true;
     }
     if (changes[cfg.storageKeys.settings]) {
@@ -269,6 +323,11 @@
 
   async function load(options = {}) {
     if (!ui.root) return;
+    state.success = null;
+    if (ui.successTimer) {
+      clearTimeout(ui.successTimer);
+      ui.successTimer = null;
+    }
 
     const session = currentSession();
     if (session.status !== "ok") {
@@ -421,19 +480,34 @@
     return records;
   }
 
-  async function fetchJson(session, url) {
+  /**
+   * `allowErrorBody` reads the body of a 4xx instead of throwing — the checkout
+   * endpoints report a refused booking as `Errors` — and returns
+   * `{ status, data }` so the caller can tell a refusal from a create. The
+   * invoice endpoint's success body is not a fixed envelope, so the status is
+   * the only thing that can be trusted there.
+   */
+  async function fetchJson(session, url, options = {}) {
     const controller = new AbortController();
+    const abort = () => controller.abort();
+    if (options.signal) {
+      if (options.signal.aborted) abort();
+      else options.signal.addEventListener("abort", abort);
+    }
+
     const timeout = setTimeout(() => controller.abort(), cfg.api.timeoutMs || 15000);
     try {
       const response = await fetch(url, {
-        method: "GET",
+        method: options.method || "GET",
         credentials: "omit",
         signal: controller.signal,
+        body: options.body,
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${session.token}`,
           "x-nx-app-name": "portal",
           "X-Use-Timezone": "true",
+          ...(options.headers || {}),
         },
       });
 
@@ -442,14 +516,35 @@
         error.code = "session-expired";
         throw error;
       }
-      if (!response.ok) throw new Error(`The portal returned HTTP ${response.status}.`);
 
+      if (options.allowErrorBody) {
+        return { status: response.status, data: await readJsonBody(response) };
+      }
+
+      if (!response.ok) throw new Error(`The portal returned HTTP ${response.status}.`);
       return await response.json();
     } catch (error) {
-      if (error.name === "AbortError") throw new Error("The request timed out.");
+      if (error.name === "AbortError") {
+        if (!options.signal?.aborted) throw new Error("The request timed out.");
+        const aborted = new Error("The request was cancelled.");
+        aborted.code = "aborted";
+        throw aborted;
+      }
       throw error;
     } finally {
       clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", abort);
+    }
+  }
+
+  /** A checkout response may be empty or non-JSON; that is not an error. */
+  async function readJsonBody(response) {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
     }
   }
 
@@ -468,6 +563,7 @@
 
     ui.summary.textContent = summaryText(session);
     renderNotice(session);
+    renderSuccess();
     renderMyBookings(session);
     renderCards(session);
   }
@@ -583,6 +679,42 @@
   function hideNotice() {
     ui.notice.hidden = true;
     ui.notice.replaceChildren();
+  }
+
+  function renderSuccess() {
+    ui.success.hidden = !state.success;
+    ui.success.replaceChildren();
+    if (!state.success) return;
+
+    const heading = el("h2", null, state.success.title || "Booking created");
+    const text = el("p", null, state.success.message || "");
+    if (state.success.href) {
+      text.append(" ");
+      const link = el("a", null, state.success.linkLabel || "Open in the portal ↗");
+      link.href = state.success.href;
+      link.target = "_blank";
+      link.rel = "noopener";
+      text.append(link);
+    }
+
+    ui.success.append(heading, text);
+  }
+
+  /**
+   * The toast floats over the content, because the confirmation arrives after
+   * a refresh that can leave the member scrolled past the top of the list.
+   */
+  function showSuccess(success) {
+    state.success = success;
+    render();
+
+    if (ui.successTimer) clearTimeout(ui.successTimer);
+    ui.successTimer = setTimeout(() => {
+      if (!ui.root) return;
+      ui.successTimer = null;
+      state.success = null;
+      render();
+    }, SUCCESS_MS);
   }
 
   function renderMyBookings(session) {
@@ -705,20 +837,24 @@
 
     const list = el("div", "booking-list");
     for (const section of card.sections) {
-      list.appendChild(dayRow(section));
+      list.appendChild(dayRow(section, card.pin.name));
     }
     article.appendChild(list);
     return article;
   }
 
-  function dayRow(section) {
+  function dayRow(section, resourceName) {
     const row = el("div", "day-row");
     const label = el("div", "day-label", section.label);
     const items = el("div", "day-bookings");
 
     for (const booking of section.bookings) {
       items.appendChild(
-        booking.luma ? lumaEntry(booking) : booking.event ? eventEntry(booking) : bookingEntry(booking),
+        booking.luma
+          ? lumaEntry(booking)
+          : booking.event
+            ? eventEntry(booking, resourceName)
+            : bookingEntry(booking, resourceName),
       );
     }
 
@@ -726,7 +862,52 @@
     return row;
   }
 
-  function bookingEntry(booking) {
+  /**
+   * The title with the two "book the gap" buttons around it. A row whose
+   * resource is unknown (Luma events) gets the title alone.
+   */
+  function titleWithGaps(title, booking, resourceName) {
+    const main = el("span", "booking-main");
+    if (!booking.resourceId) {
+      main.appendChild(title);
+      return main;
+    }
+
+    main.append(
+      gapButton(booking, "before", resourceName),
+      title,
+      gapButton(booking, "after", resourceName),
+    );
+    return main;
+  }
+
+  function gapButton(booking, side, resourceName) {
+    const button = el("button", `booking-gap gap-${side}`);
+    button.type = "button";
+    button.innerHTML = PLUS_ICON;
+
+    const name = resourceName || booking.resourceName || "this resource";
+    const edge = side === "before" ? booking.startTime : booking.endTime;
+    const started = side === "before" && booking.stamp <= Date.now();
+
+    button.title = started
+      ? "This booking already started"
+      : side === "before"
+        ? `Book ${name} so it ends at ${edge}`
+        : `Book ${name} so it starts at ${edge}`;
+    button.setAttribute("aria-label", button.title);
+    button.disabled = started;
+
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openBookingDialog({ resourceId: booking.resourceId, resourceName: name, booking, side });
+    });
+
+    return button;
+  }
+
+  function bookingEntry(booking, resourceName) {
     const entry = el("div", "booking");
 
     const href = booking.mine ? bookingHref(booking) : "";
@@ -738,7 +919,7 @@
       who.title = "Open booking in the portal";
     }
 
-    entry.append(timeLabel(booking), who);
+    entry.append(timeLabel(booking), titleWithGaps(who, booking, resourceName));
     if (booking.tentative) entry.appendChild(badge("Tentative"));
     return entry;
   }
@@ -752,20 +933,21 @@
     return `${portalOrigin()}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
   }
 
-  function eventEntry(booking) {
+  function eventEntry(booking, resourceName) {
     const entry = el("div", "booking booking-event");
     entry.appendChild(timeLabel(booking));
 
     const title = el("span", "booking-who", booking.coworker);
+    const main = titleWithGaps(title, booking, resourceName);
 
     if (!booking.description && !booking.url) {
-      entry.append(title, badge("Reserved", "badge-event"));
+      entry.append(main, badge("Reserved", "badge-event"));
       return entry;
     }
 
     const details = el("details", "event-details");
     const summary = el("summary", "event-summary");
-    summary.append(title, badge("Reserved", "badge-event"));
+    summary.append(main, badge("Reserved", "badge-event"));
 
     const body = el("div", "event-body");
     if (booking.description) {
@@ -896,6 +1078,642 @@
 
   function plural(count, label) {
     return `${count} ${label}${count === 1 ? "" : "s"}`;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Booking the gap before or after a row
+   *
+   * The portal has no plain "create booking" call: its own form posts a
+   * basket item to /api/public/checkout/basket/invoice (after a preview
+   * call), so the dialog asks for the one thing that is not derivable — the
+   * duration — and builds that body from the row, the card and the session.
+   * ------------------------------------------------------------------ */
+
+  function bookingCfg() {
+    return cfg.overview?.booking || {};
+  }
+
+  function maxDuration() {
+    return Number(bookingCfg().maxDurationMinutes) || 24 * 60;
+  }
+
+  function openBookingDialog({ resourceId, resourceName, booking, side }) {
+    if (!ui.root || !booking) return;
+
+    const id = String(resourceId || booking.resourceId || "");
+    if (!id) return;
+
+    closeBookingDialog();
+
+    const settings = bookingCfg();
+    const interval = Number(settings.intervalMinutes) || 15;
+
+    dialogState.resourceId = id;
+    dialogState.resourceName = String(resourceName || booking.resourceName || `Resource ${id}`);
+    dialogState.booking = booking;
+    dialogState.side = side === "before" ? "before" : "after";
+    dialogState.interval = interval;
+    dialogState.coworker = state.coworker;
+    dialogState.coworkerError = state.coworkerError || "";
+    dialogState.preview = null;
+    dialogState.previewError = "";
+    dialogState.previewing = false;
+    dialogState.submitError = "";
+    dialogState.busy = false;
+    dialogState.edited = false;
+    dialogState.token += 1;
+    const token = dialogState.token;
+
+    const node = ui.doc.createElement("dialog");
+    node.className = "booking-dialog";
+    node.setAttribute("aria-labelledby", "onejob-booking-title");
+    node.setAttribute("aria-describedby", "onejob-booking-range");
+
+    const form = el("form", "booking-dialog-form");
+    form.noValidate = true;
+
+    const head = el("header", "booking-dialog-head");
+    const titles = el("div", "booking-dialog-titles");
+    const heading = el(
+      "h2",
+      null,
+      dialogState.side === "before" ? `Book before ${booking.startTime}` : `Book after ${booking.endTime}`,
+    );
+    heading.id = "onejob-booking-title";
+    const subtitle = el(
+      "p",
+      "booking-dialog-sub",
+      `${dialogState.resourceName} · ${dayLabelOf(booking.day)}`,
+    );
+    titles.append(heading, subtitle);
+
+    const close = el("button", "button button-icon", "×");
+    close.type = "button";
+    close.title = "Close";
+    close.setAttribute("aria-label", "Close booking dialog");
+    close.addEventListener("click", closeBookingDialog);
+    head.append(titles, close);
+
+    const body = el("div", "booking-dialog-body");
+    const field = el("div", "booking-dialog-field");
+    const label = el("label", null, "Duration");
+    label.htmlFor = "onejob-booking-duration";
+
+    const durationRow = el("div", "booking-duration");
+    const input = ui.doc.createElement("input");
+    input.type = "number";
+    input.id = "onejob-booking-duration";
+    input.inputMode = "numeric";
+    input.min = String(interval);
+    input.max = String(maxDuration());
+    input.step = String(interval);
+    input.value = String(defaultMinutes(interval));
+    input.addEventListener("input", () => {
+      dialogState.edited = true;
+      onDurationChanged();
+    });
+    durationRow.append(input, el("span", "booking-duration-unit", "min"));
+
+    const presets = el("div", "booking-presets");
+    const presetButtons = [];
+    for (const value of settings.presets || []) {
+      if (!(value > 0) || value > maxDuration()) continue;
+      const preset = el("button", "booking-preset", O.durationLabel(value));
+      preset.type = "button";
+      preset.dataset.minutes = String(value);
+      preset.addEventListener("click", () => {
+        dialogState.edited = true;
+        input.value = String(value);
+        onDurationChanged();
+      });
+      presets.appendChild(preset);
+      presetButtons.push(preset);
+    }
+
+    field.append(label, durationRow, presets);
+
+    const range = el("p", "booking-dialog-range");
+    range.id = "onejob-booking-range";
+    const price = el("p", "booking-dialog-price");
+    const error = el("p", "booking-dialog-error");
+    error.setAttribute("role", "alert");
+    error.hidden = true;
+    const fallback = el("p", "booking-dialog-fallback");
+    fallback.hidden = true;
+
+    const terms = el("p", "booking-dialog-terms");
+    terms.append("By confirming you agree to the portal's ");
+    const termsLink = el("a", null, "terms and conditions");
+    termsLink.href = `${portalOrigin()}/${state.webAddress}/?action=terms`;
+    termsLink.target = "_blank";
+    termsLink.rel = "noopener";
+    terms.append(termsLink, ".");
+
+    body.append(field, range, price, error, fallback, terms);
+
+    const actions = el("footer", "booking-dialog-actions");
+    const cancel = el("button", "button button-ghost", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", closeBookingDialog);
+    const confirm = el("button", "button button-primary", "Confirm booking");
+    confirm.type = "submit";
+    actions.append(cancel, confirm);
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitBooking();
+    });
+    form.append(head, body, actions);
+    node.appendChild(form);
+
+    node.addEventListener("close", () => {
+      if (dialogState.node === node) closeBookingDialog();
+    });
+
+    dialogState.node = node;
+    dialogState.parts = { input, range, price, error, fallback, confirm, presets: presetButtons };
+
+    ui.root.appendChild(node);
+    if (typeof node.showModal === "function") node.showModal();
+    else node.setAttribute("open", "");
+
+    renderDialog();
+    input.focus();
+    input.select?.();
+
+    loadBookingContext(token);
+  }
+
+  function closeBookingDialog() {
+    clearTimeout(dialogState.timer);
+    dialogState.timer = null;
+    dialogState.abort?.abort();
+    dialogState.abort = null;
+
+    const node = dialogState.node;
+    dialogState.node = null;
+    dialogState.parts = null;
+    dialogState.token += 1;
+
+    if (!node) return;
+    try {
+      node.close();
+    } catch {
+      /* not open */
+    }
+    node.remove();
+  }
+
+  /** The first duration the dialog offers: an hour, snapped to the interval. */
+  function defaultMinutes(interval) {
+    const max = maxDuration();
+    const step = Number(interval) > 0 ? Number(interval) : 15;
+    const snapped = Math.max(step, Math.round(Math.min(60, max) / step) * step);
+    return Math.min(snapped, max);
+  }
+
+  /** "" when the duration can be sent, otherwise the reason it cannot. */
+  function validateMinutes(minutes) {
+    const value = Math.round(Number(minutes));
+    if (!Number.isFinite(value) || value <= 0) return "Enter a duration in minutes.";
+    if (value % dialogState.interval !== 0) {
+      return `Duration must be in ${O.durationLabel(dialogState.interval)} steps.`;
+    }
+    if (value < dialogState.interval) {
+      return `The shortest booking is ${O.durationLabel(dialogState.interval)}.`;
+    }
+    if (value > maxDuration()) return `The longest booking is ${O.durationLabel(maxDuration())}.`;
+    return "";
+  }
+
+  function onDurationChanged() {
+    clearTimeout(dialogState.timer);
+    dialogState.timer = null;
+    dialogState.abort?.abort();
+    dialogState.abort = null;
+    dialogState.preview = null;
+    dialogState.previewError = "";
+    dialogState.submitError = "";
+    dialogState.previewing = false;
+    renderDialog();
+
+    const minutes = Math.round(Number(dialogState.parts?.input?.value));
+    if (validateMinutes(minutes) || !dialogState.coworker) return;
+
+    dialogState.previewing = true;
+    renderDialog();
+    dialogState.timer = setTimeout(() => previewBooking(dialogState.token), 350);
+  }
+
+  function renderDialog() {
+    if (!dialogState.node || !dialogState.parts) return;
+    const { input, range, price, error, fallback, confirm, presets } = dialogState.parts;
+
+    const minutes = Math.round(Number(input.value));
+    const slot = O.bookingWindow(dialogState.booking, dialogState.side, minutes);
+    range.textContent = slot ? formatWindow(slot.start, slot.end) : "Choose a duration.";
+
+    for (const preset of presets) {
+      const value = Number(preset.dataset.minutes);
+      preset.hidden = value % dialogState.interval !== 0;
+      preset.classList.toggle("is-active", value === minutes);
+    }
+
+    const message =
+      dialogState.submitError ||
+      dialogState.previewError ||
+      validateMinutes(minutes) ||
+      (dialogState.coworker ? "" : dialogState.coworkerError || "Checking your member profile…");
+    error.hidden = !message;
+    error.textContent = message || "";
+
+    const total = dialogState.preview?.total ?? 0;
+    const currency = dialogState.preview?.currency || "";
+    if (dialogState.previewing) price.textContent = "Checking the price…";
+    else if (!dialogState.preview) price.textContent = "";
+    else if (total > 0) price.textContent = `${formatPrice(total, currency)} due after booking`;
+    else price.textContent = "Free.";
+
+    const needsFallback = Boolean(dialogState.submitError || dialogState.coworkerError);
+    fallback.hidden = !needsFallback;
+    fallback.replaceChildren();
+    if (needsFallback && slot) {
+      fallback.append("Or ");
+      const link = el("a", null, "book it in the portal ↗");
+      link.href = portalBookingHref(slot);
+      link.target = "_blank";
+      link.rel = "noopener";
+      fallback.append(link, ".");
+    }
+
+    const ready =
+      Boolean(dialogState.coworker) &&
+      Boolean(dialogState.preview) &&
+      !dialogState.previewing &&
+      !dialogState.busy &&
+      !dialogState.previewError &&
+      !dialogState.submitError &&
+      !validateMinutes(minutes);
+    confirm.disabled = !ready;
+    confirm.textContent = dialogState.busy
+      ? "Booking…"
+      : total > 0
+        ? `Book and pay ${formatPrice(total, currency)}`
+        : "Confirm booking";
+  }
+
+  async function loadBookingContext(token) {
+    const session = currentSession();
+    if (session.status !== "ok") {
+      dialogState.coworkerError = "Your portal session expired.";
+      renderDialog();
+      return;
+    }
+
+    const [interval] = await Promise.all([
+      resolveInterval(session, dialogState.resourceId),
+      resolveCoworker(session),
+    ]);
+    if (token !== dialogState.token || !dialogState.node) return;
+
+    if (interval) {
+      dialogState.interval = interval;
+      const input = dialogState.parts.input;
+      input.min = String(interval);
+      input.step = String(interval);
+      const current = Math.round(Number(input.value));
+      // Only snap the default; never overwrite what the member already typed.
+      if (!dialogState.edited && (!(current > 0) || current % interval !== 0)) {
+        input.value = String(defaultMinutes(interval));
+      }
+    }
+
+    dialogState.coworker = state.coworker;
+    dialogState.coworkerError = state.coworker ? "" : state.coworkerError || "Couldn't find your member profile.";
+    renderDialog();
+    onDurationChanged();
+  }
+
+  /** The member profile a booking is created for; cached for the mount. */
+  async function resolveCoworker(session) {
+    if (state.coworker) return state.coworker;
+
+    if (!state.coworkerTried) {
+      state.coworkerTried = true;
+      try {
+        const url = `${U.apiBaseUrl(session.webAddress)}/api/public/coworkers/profiles?f=1`;
+        state.coworker = O.defaultProfile(await fetchJson(session, url));
+        if (!state.coworker) state.coworkerError = "Couldn't find your member profile.";
+      } catch (error) {
+        state.coworkerError = error.message || "Couldn't load your member profile.";
+      }
+    }
+
+    if (!state.coworker) {
+      const own = (state.myModel?.items || []).find((item) => item.coworkerId);
+      if (own) {
+        state.coworker = { id: Number(own.coworkerId), name: "" };
+        state.coworkerError = "";
+      }
+    }
+    return state.coworker;
+  }
+
+  /** The resource's booking increment, so the duration field steps honestly. */
+  async function resolveInterval(session, resourceId) {
+    if (!resourceId) return null;
+    if (state.resourceInfo[resourceId]) return state.resourceInfo[resourceId].interval || null;
+
+    try {
+      const url = `${U.apiBaseUrl(session.webAddress)}/api/public/resources/published/${encodeURIComponent(resourceId)}`;
+      const interval = O.resourceInterval(await fetchJson(session, url));
+      state.resourceInfo[resourceId] = { interval };
+      return interval;
+    } catch {
+      state.resourceInfo[resourceId] = { interval: null };
+      return null;
+    }
+  }
+
+  async function previewBooking(token) {
+    if (token !== dialogState.token || !dialogState.node) return;
+
+    const session = currentSession();
+    if (session.status !== "ok") {
+      dialogState.previewing = false;
+      dialogState.previewError = "Your portal session expired.";
+      renderDialog();
+      return;
+    }
+
+    const slot = O.bookingWindow(
+      dialogState.booking,
+      dialogState.side,
+      Number(dialogState.parts.input.value),
+    );
+    if (!slot || !dialogState.coworker) return;
+
+    const controller = new AbortController();
+    dialogState.abort = controller;
+
+    try {
+      const { status, data } = await postBasket(session, "preview", basketBodyFor(slot), controller.signal);
+      if (token !== dialogState.token || controller.signal.aborted) return;
+      if (!isBasketResponse(data)) {
+        throw new Error(
+          status >= 400
+            ? `The portal returned HTTP ${status}.`
+            : "The portal returned an unexpected response.",
+        );
+      }
+
+      const failure = basketFailure(data);
+      dialogState.previewing = false;
+      dialogState.previewError = failure;
+      dialogState.preview = failure
+        ? null
+        : {
+            total: basketTotal(data),
+            currency: data?.preview?.Currency?.Code || data?.checkout?.Currency?.Code || "",
+          };
+    } catch (error) {
+      if (token !== dialogState.token || error.code === "aborted") return;
+      dialogState.previewing = false;
+      dialogState.preview = null;
+      dialogState.previewError = error.message || "Couldn't check that slot.";
+    }
+    renderDialog();
+  }
+
+  async function submitBooking() {
+    if (dialogState.busy || !dialogState.node) return;
+
+    const session = currentSession();
+    if (session.status !== "ok") {
+      dialogState.submitError = "Your portal session expired.";
+      renderDialog();
+      return;
+    }
+
+    const minutes = Math.round(Number(dialogState.parts.input.value));
+    const slot = O.bookingWindow(dialogState.booking, dialogState.side, minutes);
+    if (!slot || validateMinutes(minutes) || !dialogState.coworker) return;
+
+    dialogState.busy = true;
+    dialogState.submitError = "";
+    renderDialog();
+
+    try {
+      // The invoice endpoint's success body is not a fixed envelope (it is not
+      // the preview's `checkout`/`preview` shape), so a 2xx that does not say
+      // `WasSuccessful: false` means the booking was created. Do not re-check
+      // the shape here: that reported an error after a successful create.
+      const { status, data } = await postBasket(session, "invoice", basketBodyFor(slot));
+      if (status >= 400) {
+        throw new Error(basketFailure(data) || `The portal returned HTTP ${status}.`);
+      }
+      if (data && data.WasSuccessful === false) {
+        throw new Error(basketFailure(data) || "The portal couldn't create this booking.");
+      }
+
+      const total = basketTotal(data);
+      const currency =
+        data?.preview?.Currency?.Code ||
+        data?.checkout?.Currency?.Code ||
+        data?.Currency?.Code ||
+        data?.CurrencyCode ||
+        "";
+      const invoiceId = data?.Id ?? data?.Invoice?.Id ?? data?.InvoiceId ?? "";
+      const paymentUrl = total > 0 && invoiceId ? paymentHref(invoiceId) : "";
+      const label = formatWindow(slot.start, slot.end);
+
+      closeBookingDialog();
+
+      // `ui.doc` is cleared when the panel closes, so keep it for the redirect.
+      const view = ui.doc?.defaultView || window;
+
+      if (paymentUrl) {
+        if (ui.variant === "panel") {
+          // The portal's own modal closes and navigates to the payment page.
+          ui.onClose?.();
+          view.location.assign(paymentUrl);
+          return;
+        }
+        view.open(paymentUrl, "_blank", "noopener");
+      }
+
+      await load();
+      if (!ui.root) return;
+
+      state.success = paymentUrl
+        ? {
+            title: "Booking created",
+            message: `Booked ${label}. ${formatPrice(total, currency)} is due; pay it in the portal.`,
+            linkLabel: "Pay in the portal ↗",
+            href: paymentUrl,
+          }
+        : { title: "Booking created", message: `Booked ${label}.` };
+      showSuccess(state.success);
+    } catch (error) {
+      if (!ui.root) return;
+      dialogState.busy = false;
+      dialogState.submitError = error.message || "Couldn't create the booking.";
+      renderDialog();
+    }
+  }
+
+  function basketBodyFor(slot) {
+    return O.basketBody({
+      resourceId: dialogState.resourceId,
+      coworkerId: dialogState.coworker.id,
+      coworkerName: dialogState.coworker.name,
+      start: slot.start,
+      end: slot.end,
+    });
+  }
+
+  /**
+   * The checkout endpoints answer with `Errors` (a code plus an attempted
+   * value) rather than an HTTP failure, so 4xx bodies are read too.
+   */
+  function postBasket(session, kind, body, signal) {
+    const url = `${U.apiBaseUrl(session.webAddress)}/api/public/checkout/basket/${kind}`;
+    return fetchJson(session, url, {
+      method: "POST",
+      body: JSON.stringify(body),
+      signal,
+      allowErrorBody: true,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Nexudus-Client-Session": clientSessionId(),
+      },
+    });
+  }
+
+  /** The portal groups basket requests under a per-tab session id. */
+  function clientSessionId() {
+    if (checkoutSession) return checkoutSession;
+    const key = "onejob:checkout-session";
+    try {
+      const stored = sessionStorage.getItem(key);
+      if (stored && /^[A-Za-z0-9_-]{8,64}$/.test(stored)) {
+        checkoutSession = stored;
+        return stored;
+      }
+    } catch {
+      /* storage can be unavailable */
+    }
+
+    checkoutSession = newSessionId();
+    try {
+      sessionStorage.setItem(key, checkoutSession);
+    } catch {
+      /* storage can be unavailable */
+    }
+    return checkoutSession;
+  }
+
+  function newSessionId() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID().replace(/-/g, "");
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function isBasketResponse(data) {
+    return Boolean(
+      data &&
+        typeof data === "object" &&
+        ("preview" in data ||
+          "checkout" in data ||
+          "WasSuccessful" in data ||
+          "TransactionTotalAmount" in data ||
+          "Errors" in data),
+    );
+  }
+
+  function basketTotal(data) {
+    const value = Number(
+      data?.preview?.TotalAmount ??
+        data?.checkout?.TransactionTotalAmount ??
+        data?.TransactionTotalAmount ??
+        data?.Invoice?.TransactionTotalAmount ??
+        0,
+    );
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  /** The first readable reason the checkout refused the slot, or "". */
+  function basketFailure(data) {
+    const entry =
+      data?.checkout?.Errors?.[0] ||
+      data?.preview?.Errors?.[0] ||
+      (Array.isArray(data?.Errors) ? data.Errors[0] : null);
+
+    if (entry) {
+      const message = O.bookingError(entry.PropertyName, entry.AttemptedValue);
+      if (message) return message;
+    }
+
+    const raw = data?.preview?.Message || data?.Message;
+    if (typeof raw === "string" && raw && !/^[A-Z][A-Z_ ]+$/.test(raw)) return raw;
+    if (entry?.PropertyName) return `The portal refused this booking (${entry.PropertyName}).`;
+    return "";
+  }
+
+  function portalBookingHref(slot) {
+    const params = new URLSearchParams({
+      resource_id: dialogState.resourceId,
+      start: new Date(slot.start).toISOString(),
+      end: new Date(slot.end).toISOString(),
+    });
+    return `${portalOrigin()}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
+  }
+
+  function paymentHref(invoiceId) {
+    return `${portalOrigin()}/${state.webAddress}/checkout/payment?invoice_id=${encodeURIComponent(invoiceId)}`;
+  }
+
+  function formatWindow(start, end) {
+    const from = new Date(start);
+    const to = new Date(end);
+    if (from.toDateString() === to.toDateString()) {
+      return `${clockLabel(from)} – ${clockLabel(to)} · ${dateLabel(from)}`;
+    }
+    return `${dateLabel(from)}, ${clockLabel(from)} – ${dateLabel(to)}, ${clockLabel(to)}`;
+  }
+
+  function clockLabel(date) {
+    return new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date);
+  }
+
+  function dateLabel(date) {
+    return new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(date);
+  }
+
+  function dayLabelOf(day) {
+    const [year, month, date] = String(day || "").split("-").map(Number);
+    if (!year || !month || !date) return "";
+    return dateLabel(new Date(year, month - 1, date));
+  }
+
+  function formatPrice(total, currency) {
+    const value = Number(total) || 0;
+    if (value <= 0) return "";
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currency || "EUR",
+      }).format(value);
+    } catch {
+      return `${currency || ""} ${value.toFixed(2)}`.trim();
+    }
   }
 
   async function unpinResource(pin) {

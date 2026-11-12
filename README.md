@@ -34,7 +34,13 @@ It does eight things:
    **My bookings** card above them lists only your own bookings across every
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
-   appear with a *Reserved* badge and can be expanded for details. Open it from
+   appear with a *Reserved* badge and can be expanded for details. Hovering a
+   booking or a reservation shows a **+** before and after its title: the left
+   one books the resource so the new slot ends when that one starts, the right
+   one so it starts when that one ends. The dialog only asks for the duration,
+   shows the times and price the portal quotes, and creates the booking through
+   the portal's own checkout; see [Booking from the overview](#booking-from-the-overview).
+   Open it from
    **Booking Overview** in the portal's main navigation (or the **Overview**
    button in the bottom bar on a narrow window), which shows it in an overlay
    inside the portal (Esc, the × button or a click on the backdrop closes it),
@@ -206,6 +212,9 @@ the *Block location prompt* and *Luma events in overview* toggles.
 | `resourceTypeOrder` | Column order of the menu. |
 | `nav.resourceParam` | Query parameter used for single-resource links (`onejob-resource`). |
 | `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
+| `overview.booking.presets` | Duration choices in the overview's booking dialog, in minutes (`[30, 60, 120]`). |
+| `overview.booking.intervalMinutes` | Step of the duration field until the resource's own `IntervalLimit` is known (`15`). |
+| `overview.booking.maxDurationMinutes` | Longest slot the dialog offers (`1440`, one day). |
 | `stats.label` | Text of the statistics row at the bottom of the Resources menu (default `Resource statistics`). |
 | `stats.shortcut` | Key combo that opens the statistics screen from the portal (`alt+s`). |
 | `stats.defaultPeriod` | Period the screen opens with (`12m`); the buttons offer `4w`, `3m` and `12m`. |
@@ -291,6 +300,44 @@ The overview markup, fetching and styles live in `src/lib/overview-view.js` and
 overlay. The overlay mounts the same module into a shadow root, so its generic
 class names (`.card`, `.notice`, `.button`) cannot collide with the portal's
 Bootstrap styles in either direction.
+
+### Booking from the overview
+
+Every occupied row except a Luma event carries a **+** on each side of its
+title. Clicking one opens a small dialog whose only input is the duration: the
+left button fixes the new slot's end at that row's start, the right button fixes
+its start at that row's end. The dialog shows the resource, the exact times, the
+member it books for and the price, and confirming creates the booking.
+
+The portal has no plain "create booking" call, so this goes through its own
+checkout, the same path the portal's booking form uses:
+
+1. `GET /api/public/coworkers/profiles?f=1` gives the profile to book for (the
+   default profile, or the first one). If that fails, the first `CoworkerId` in
+   `/api/public/bookings/my` is used instead.
+2. `GET /api/public/resources/published/<id>` gives the resource's
+   `IntervalLimit`, which becomes the duration field's step (15 minutes when the
+   request fails).
+3. `POST /api/public/checkout/basket/preview` validates the slot and prices it.
+4. `POST /api/public/checkout/basket/invoice` creates the booking. Both take the
+   portal's basket body — `Basket: [{ Type: "booking", Booking: { ResourceId,
+   FromTime, ToTime, CoworkerId, Id: 0, … } }]` with
+   `agreedTermsAndConditions` and `createZeroValueInvoice` — and the
+   `X-Nexudus-Client-Session` header the portal sends with every basket request.
+
+Failures arrive as an `Errors[0].PropertyName` code (`BOOKING_CONFLICT`,
+`INVALID_INTERVAL`, `NO_PAST_BOOKINGS`, `TOO_SHORT`, `INVALID_TARIFF`, …) rather
+than an HTTP status, and `src/lib/overview.js::bookingError` turns the common
+ones into a sentence. The preview's body has a fixed `checkout`/`preview` shape;
+the invoice's does not — the portal only reads `WasSuccessful === false`,
+`TransactionTotalAmount` and `Id` from it — so any 2xx that does not refuse the
+booking counts as created, with the fields read defensively. A slot with a price
+opens the portal's payment page after the booking is created, exactly as the
+portal's own confirmation modal does. The
+dialog is a native `<dialog>` inside the view's root, so it sits in the top
+layer above the overlay and handles Escape and the focus trap itself; the
+overlay's Escape handler checks `hasOpenModal()` so the first Escape closes the
+dialog and the second the overlay.
 
 The **Resource statistics** screen uses the same booking feed, one request per
 whole calendar month for the selected period (4 weeks, 3 months or 12 months,

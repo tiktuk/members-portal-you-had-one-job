@@ -54,7 +54,20 @@
      * e.g. "alt+o". Matched on the physical key, so it survives Option/Alt
      * layouts that type a different character.
      */
-    overview: { shortcut: "alt+o" },
+    overview: {
+      shortcut: "alt+o",
+      /**
+       * Booking the gap before or after a row in the overview. The dialog only
+       * asks for a duration; `presets` are the quick choices in minutes and
+       * `intervalMinutes` is the step used until the resource reports its own
+       * `IntervalLimit`.
+       */
+      booking: {
+        presets: [30, 60, 120],
+        intervalMinutes: 15,
+        maxDurationMinutes: 24 * 60,
+      },
+    },
 
     /**
      * The resource statistics screen, opened from the Resources menu (and the

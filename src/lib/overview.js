@@ -400,6 +400,8 @@
       luma: false,
       resourceId: record.ResourceId != null ? String(record.ResourceId) : "",
       resourceName,
+      /** Names the member, so a booking can be created even without a profile fetch. */
+      coworkerId: record.CoworkerId != null ? String(record.CoworkerId) : "",
       day: start.day,
       startTime: start.time,
       endTime: end.time,
@@ -464,18 +466,161 @@
     return model;
   }
 
+  /* ------------------------------------------------------------------ *
+   * Booking the gap before or after a row
+   * ------------------------------------------------------------------ */
+
+  /**
+   * The slot that butts up against `booking`: "before" keeps its start as the
+   * new end, "after" keeps its end as the new start. Returns epoch stamps, or
+   * null when there is no usable duration or side.
+   */
+  function bookingWindow(booking, side, minutes) {
+    if (!booking || (side !== "before" && side !== "after")) return null;
+    const value = Number(minutes);
+    if (!Number.isFinite(value) || value <= 0) return null;
+
+    const edge = side === "before" ? booking.stamp : booking.endStamp;
+    if (!Number.isFinite(edge)) return null;
+
+    const delta = value * 60 * 1000;
+    return side === "before"
+      ? { start: edge - delta, end: edge }
+      : { start: edge, end: edge + delta };
+  }
+
+  /**
+   * The portal's checkout basket item, exactly as its own booking form posts
+   * it. `FromTime`/`ToTime` are absolute instants, so the portal's
+   * `X-Use-Timezone` handling puts them in the space timezone.
+   */
+  function basketBody({ resourceId, coworkerId, coworkerName, start, end }) {
+    const booking = {
+      ResourceId: Number(resourceId),
+      FromTime: new Date(start).toISOString(),
+      ToTime: new Date(end).toISOString(),
+      FloorPlanDeskId: null,
+      CoworkerId: Number(coworkerId),
+      ChargeNow: false,
+      BookingVisitors: [],
+      BookingProducts: [],
+      CustomFields: { Data: [] },
+      Id: 0,
+    };
+    if (coworkerName) booking.CoworkerFullName = String(coworkerName);
+
+    return {
+      Basket: [{ Type: "booking", Booking: booking }],
+      agreedTermsAndConditions: true,
+      createZeroValueInvoice: true,
+    };
+  }
+
+  /**
+   * `/api/public/coworkers/profiles` lists every profile the session may book
+   * for; the portal starts on the default one.
+   */
+  function defaultProfile(payload) {
+    const profiles = Array.isArray(payload?.Profiles) ? payload.Profiles : [];
+    const profile = profiles.find((item) => item && item.IsDefaultProfile) || profiles[0];
+    if (!profile || profile.Id == null || Number(profile.Id) <= 0) return null;
+    return { id: Number(profile.Id), name: String(profile.FullName || "").trim() };
+  }
+
+  /** A resource's booking increment (`IntervalLimit`), in minutes. */
+  function resourceInterval(resource) {
+    const value = Number(resource?.IntervalLimit);
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  }
+
+  /** "30 min", "1 h", "1 h 30 min" — the portal's duration wording. */
+  function durationLabel(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    const hours = Math.floor(total / 60);
+    const rest = total % 60;
+    if (!hours) return `${rest} min`;
+    if (!rest) return `${hours} h`;
+    return `${hours} h ${rest} min`;
+  }
+
+  /**
+   * The checkout endpoint reports failures as a `PropertyName` code plus an
+   * optional `AttemptedValue` (the interval or duration limit). Mirrors the
+   * portal's own table; returns null for codes it does not know, so the caller
+   * can show the server's message instead.
+   */
+  function bookingError(code, param) {
+    const limit = Number(param) > 0 ? durationLabel(param) : "";
+    switch (code) {
+      case "INVALID_SHIFT":
+        return "The selected start and end times are invalid for this resource. Pick a valid time slot.";
+      case "INVALID_INTERVAL":
+        return limit
+          ? `Duration must be in blocks of ${limit}.`
+          : "You cannot make a booking of this length.";
+      case "BOOKING_CONFLICT":
+        return "The resource is already booked at that time.";
+      case "EVENT_CONFLICT":
+        return "There is an event already scheduled at that time.";
+      case "RESOURCE_FULL":
+        return "The resource is fully booked. Pick another date or time.";
+      case "AREA_FULL":
+        return "The area this resource is in is fully booked. Pick another date or time.";
+      case "NO_PAST_BOOKINGS":
+        return "Bookings cannot end in the past.";
+      case "HARD_LIMIT_WEEK":
+        return "You have made too many bookings this week.";
+      case "HARD_LIMIT_MONTH":
+        return "You have made too many bookings this month.";
+      case "INVALID_TARIFF":
+        return "You are not on the plan that can book this resource.";
+      case "INVALID_TEAM":
+        return "You are not in the team that can book this resource.";
+      case "FOR_CONTACTS_ONLY":
+        return "Only customers without a plan can book this resource.";
+      case "FOR_MEMBERS_ONLY":
+        return "Only members with an active plan can book this resource.";
+      case "NOT_AVAILABLE":
+        return "This resource is not available at that time.";
+      case "START_TIME_TOO_EARLY":
+        return "You cannot book this resource this far in advance.";
+      case "START_TIME_TOO_LATE":
+        return "You cannot book this resource this late.";
+      case "TOO_LONG":
+        return limit ? `The booking is too long. Maximum duration is ${limit}.` : "The booking is too long.";
+      case "TOO_SHORT":
+        return limit ? `The booking is too short. Minimum duration is ${limit}.` : "The booking is too short.";
+      case "NO_RETURN_POLICY":
+        return "This resource cannot be booked this soon after another booking.";
+      case "NO_CREDIT":
+        return "You do not have enough credit to book this resource.";
+      case "INVALID_DESK":
+        return "That desk is not connected to this resource.";
+      case "CHECKOUT TC MISSING":
+        return "You must agree to the terms and conditions before checking out.";
+      default:
+        return null;
+    }
+  }
+
   globalThis.OneJobOverview = {
     LOOKAHEAD_DAYS,
     MAX_LUMA_EVENTS,
+    basketBody,
+    bookingError,
+    bookingWindow,
     buildModel,
     buildMyBookings,
     dayLabel,
+    defaultProfile,
+    durationLabel,
     markOwnedBookings,
     normalizeLumaEvent,
     normalizePins,
     parseTimestamp,
     rangeFor,
     resourceIcon,
+    resourceInterval,
     toPortalIso,
     toQueryTimestamp,
   };

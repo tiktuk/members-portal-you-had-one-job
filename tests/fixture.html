@@ -296,7 +296,13 @@
         HasNextPage: false,
       };
 
-      const json = (payload) => ({ ok: true, status: 200, json: async () => payload });
+      // A real Response has text() too; the checkout reader uses it.
+      const json = (payload) => ({
+        ok: true,
+        status: 200,
+        json: async () => payload,
+        text: async () => JSON.stringify(payload),
+      });
       const realFetch = window.fetch.bind(window);
       window.fetch = async (url, init) => {
         const target = String(url);
@@ -317,6 +323,58 @@
         }
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
+
+        // The overview's booking dialog: who it books for, the resource's
+        // interval, and the portal's own basket preview/invoice pair.
+        if (target.includes("/api/public/coworkers/profiles")) {
+          return json({ Profiles: [{ Id: 5001, IsDefaultProfile: true, FullName: "Alex Kim" }] });
+        }
+        const resourceMatch = target.match(/\/api\/public\/resources\/published\/(\d+)(?:[?#]|$)/);
+        if (resourceMatch) {
+          return json({ Id: Number(resourceMatch[1]), IntervalLimit: 30 });
+        }
+        if (target.includes("/api/public/checkout/basket/")) {
+          let body = {};
+          try {
+            body = JSON.parse(init?.body || "{}");
+          } catch {
+            body = {};
+          }
+          const booking = body.Basket?.[0]?.Booking || {};
+          const from = new Date(booking.FromTime);
+          const to = new Date(booking.ToTime);
+          window.__fixtureBasket = { target, body };
+
+          if (target.includes("/preview")) {
+            const clash = (window.__fixtureBookings || []).some(
+              (item) =>
+                Number(item.resourceId) === Number(booking.ResourceId) &&
+                new Date(item.start) < to &&
+                new Date(item.end) > from,
+            );
+            if (clash) {
+              return json({ checkout: { Errors: [{ PropertyName: "BOOKING_CONFLICT" }] }, preview: {} });
+            }
+            if (from < new Date()) {
+              return json({ checkout: { Errors: [{ PropertyName: "NO_PAST_BOOKINGS" }] }, preview: {} });
+            }
+            return json({ checkout: {}, preview: { TotalAmount: 0, Currency: { Code: "EUR" } } });
+          }
+
+          const id = 9500 + (window.__fixtureBookings?.length || 0);
+          window.__fixtureBookings.push({
+            id,
+            resourceId: Number(booking.ResourceId),
+            start: booking.FromTime,
+            end: booking.ToTime,
+            coworkerId: Number(booking.CoworkerId),
+            coworkerFullName: booking.CoworkerFullName || "Alex Kim",
+          });
+          // The real invoice endpoint answers with the created record, not the
+          // preview's `checkout`/`preview` envelope; keep the mock just as bare.
+          return json({ Id: 777 });
+        }
+
         return json(window.__fixturePayload);
       };
 

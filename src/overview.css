@@ -13,6 +13,7 @@
   --danger: #b42318;
   --warning: #b54708;
   --warning-soft: #fef0c7;
+  --success: #198754;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.05);
   --radius: 14px;
 
@@ -36,6 +37,7 @@
     --danger: #f97066;
     --warning: #fdb022;
     --warning-soft: rgba(253, 176, 34, 0.14);
+    --success: #63e6be;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 }
@@ -155,6 +157,27 @@ h1 {
 
 .button-ghost {
   background: transparent;
+}
+
+.button-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.button-primary:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  filter: brightness(1.08);
+}
+
+/* The dark accent is a light blue, so white text on it loses contrast. */
+@media (prefers-color-scheme: dark) {
+  .button-primary,
+  .button-primary:hover {
+    color: #10131a;
+  }
 }
 
 .button-icon {
@@ -384,6 +407,67 @@ h1 {
   text-decoration: underline;
 }
 
+/* The title with its two "book the gap" buttons. They keep their space at all
+   times (opacity, not display) so a row does not jump when the pointer lands
+   on it; on touch screens, where there is no hover, they stay faint. */
+.booking-main {
+  /* Shrinks with a long title but never grows, so the badge stays next to it. */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.booking-gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0 0.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+  vertical-align: -0.15em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.booking:hover .booking-gap,
+.booking:focus-within .booking-gap {
+  opacity: 1;
+}
+
+.booking-gap:hover,
+.booking-gap:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.booking-gap:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.booking-gap:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
+@media (hover: none) {
+  .booking-gap {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-gap {
+    transition: none;
+  }
+}
+
 .badge {
   padding: 0.05rem 0.45rem;
   border-radius: 999px;
@@ -426,6 +510,8 @@ h1 {
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.4rem;
+  /* Room for the ▸ marker, so the "book after" button never sits under it. */
+  padding-right: 0.9rem;
   cursor: pointer;
   list-style: none;
 }
@@ -507,6 +593,28 @@ h1 {
   background: var(--warning-soft);
 }
 
+/* The confirmation arrives after a refresh, which can leave the member
+   scrolled past the top of the list, so it floats above the content instead of
+   sitting in the flow at the top of the page. */
+.notice.success {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: max-content;
+  max-width: min(36rem, calc(100vw - 2rem));
+  margin: 0;
+  border-color: var(--success);
+  background: var(--surface);
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  box-shadow: var(--shadow);
+}
+
+.notice.success h2 {
+  color: var(--success);
+}
+
 .notice h2 {
   margin: 0 0 0.25rem;
   font-size: 1rem;
@@ -548,6 +656,186 @@ h1 {
   text-align: center;
 }
 
+/* ------------------------------------------------------------------ *
+ * Booking dialog
+ *
+ * A native <dialog> so the top layer beats the portal's overlay z-index,
+ * Escape and the focus trap come for free, and the backdrop covers the
+ * whole window in both the page and the in-portal panel.
+ * ------------------------------------------------------------------ */
+
+.booking-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+
+.booking-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.booking-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+}
+
+.booking-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.booking-dialog-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-dialog-titles h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.booking-dialog-sub {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.booking-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.booking-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.booking-dialog-field label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.booking-duration {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.booking-duration input {
+  width: 5.5rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.booking-duration input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.booking-duration-unit {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.booking-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.booking-preset {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.booking-preset[hidden] {
+  display: none;
+}
+
+.booking-preset:hover,
+.booking-preset:focus-visible,
+.booking-preset.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.booking-dialog-range {
+  margin: 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.booking-dialog-price {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.booking-dialog-price:empty {
+  display: none;
+}
+
+.booking-dialog-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.booking-dialog-fallback {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.booking-dialog-fallback a,
+.booking-dialog-terms a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.booking-dialog-terms {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.booking-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 @media (max-width: 480px) {
   .overview.is-page {
     padding: 1.25rem 0.9rem 2rem;
@@ -559,5 +847,9 @@ h1 {
 
   .page-header {
     align-items: flex-start;
+  }
+
+  .booking-dialog {
+    width: calc(100vw - 1.5rem);
   }
 }

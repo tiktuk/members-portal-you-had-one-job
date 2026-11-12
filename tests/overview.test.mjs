@@ -508,3 +508,124 @@ test("toPortalIso writes a local ISO timestamp with offset", () => {
   const iso = O.toPortalIso(new Date(2026, 9, 27, 0, 0, 0, 0));
   assert.match(iso, /^2026-10-27T00:00:00\.000[+-]\d{2}:\d{2}$/);
 });
+
+test("bookingWindow butts the new slot against the row's fixed edge", () => {
+  const O = loadOverview();
+  const booking = { stamp: new Date(2026, 10, 3, 9, 0).getTime(), endStamp: new Date(2026, 10, 3, 13, 0).getTime() };
+
+  assert.deepEqual(plain(O.bookingWindow(booking, "before", 60)), {
+    start: new Date(2026, 10, 3, 8, 0).getTime(),
+    end: booking.stamp,
+  });
+  assert.deepEqual(plain(O.bookingWindow(booking, "after", 30)), {
+    start: booking.endStamp,
+    end: new Date(2026, 10, 3, 13, 30).getTime(),
+  });
+});
+
+test("bookingWindow crosses midnight without clamping", () => {
+  const O = loadOverview();
+  const booking = { stamp: new Date(2026, 10, 3, 0, 30).getTime(), endStamp: new Date(2026, 10, 3, 2, 0).getTime() };
+
+  assert.deepEqual(plain(O.bookingWindow(booking, "before", 90)), {
+    start: new Date(2026, 10, 2, 23, 0).getTime(),
+    end: booking.stamp,
+  });
+});
+
+test("bookingWindow rejects a bad side or duration", () => {
+  const O = loadOverview();
+  const booking = { stamp: 1000, endStamp: 2000 };
+  assert.equal(O.bookingWindow(booking, "before", 0), null);
+  assert.equal(O.bookingWindow(booking, "after", -30), null);
+  assert.equal(O.bookingWindow(booking, "around", 30), null);
+  assert.equal(O.bookingWindow(null, "after", 30), null);
+});
+
+test("basketBody mirrors the portal's booking form payload", () => {
+  const O = loadOverview();
+  const body = plain(
+    O.basketBody({
+      resourceId: "1415309596",
+      coworkerId: "5001",
+      coworkerName: "Alex Kim",
+      start: new Date(Date.UTC(2026, 10, 3, 8, 0)),
+      end: new Date(Date.UTC(2026, 10, 3, 9, 0)),
+    }),
+  );
+
+  assert.deepEqual(body, {
+    Basket: [
+      {
+        Type: "booking",
+        Booking: {
+          ResourceId: 1415309596,
+          FromTime: "2026-11-03T08:00:00.000Z",
+          ToTime: "2026-11-03T09:00:00.000Z",
+          FloorPlanDeskId: null,
+          CoworkerId: 5001,
+          CoworkerFullName: "Alex Kim",
+          ChargeNow: false,
+          BookingVisitors: [],
+          BookingProducts: [],
+          CustomFields: { Data: [] },
+          Id: 0,
+        },
+      },
+    ],
+    agreedTermsAndConditions: true,
+    createZeroValueInvoice: true,
+  });
+});
+
+test("basketBody leaves the name out when it is unknown", () => {
+  const O = loadOverview();
+  const body = plain(O.basketBody({ resourceId: 1, coworkerId: 2, start: 0, end: 3600000 }));
+  assert.equal("CoworkerFullName" in body.Basket[0].Booking, false);
+});
+
+test("defaultProfile prefers the default profile, then the first", () => {
+  const O = loadOverview();
+  assert.deepEqual(
+    plain(
+      O.defaultProfile({
+        Profiles: [
+          { Id: 7, FullName: "Team Profile" },
+          { Id: 5001, IsDefaultProfile: true, FullName: "Alex Kim" },
+        ],
+      }),
+    ),
+    { id: 5001, name: "Alex Kim" },
+  );
+  assert.deepEqual(plain(O.defaultProfile({ Profiles: [{ Id: 7, FullName: "Team" }] })), {
+    id: 7,
+    name: "Team",
+  });
+  assert.equal(O.defaultProfile({ Profiles: [] }), null);
+  assert.equal(O.defaultProfile(null), null);
+});
+
+test("resourceInterval reads IntervalLimit and falls back to null", () => {
+  const O = loadOverview();
+  assert.equal(O.resourceInterval({ IntervalLimit: 30 }), 30);
+  assert.equal(O.resourceInterval({ IntervalLimit: "15" }), 15);
+  assert.equal(O.resourceInterval({ IntervalLimit: 0 }), null);
+  assert.equal(O.resourceInterval({}), null);
+});
+
+test("durationLabel writes the portal's duration wording", () => {
+  const O = loadOverview();
+  assert.equal(O.durationLabel(30), "30 min");
+  assert.equal(O.durationLabel(60), "1 h");
+  assert.equal(O.durationLabel(90), "1 h 30 min");
+});
+
+test("bookingError translates the checkout codes it knows", () => {
+  const O = loadOverview();
+  assert.match(O.bookingError("BOOKING_CONFLICT"), /already booked/);
+  assert.match(O.bookingError("INVALID_INTERVAL", 30), /blocks of 30 min/);
+  assert.match(O.bookingError("TOO_LONG", 120), /Maximum duration is 2 h/);
+  assert.match(O.bookingError("CHECKOUT TC MISSING"), /terms and conditions/);
+  assert.equal(O.bookingError("SOMETHING_NEW"), null);
+  assert.equal(O.bookingError(undefined), null);
+});

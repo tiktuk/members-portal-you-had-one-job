@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Members portal, you had one job
 
-> Last Updated: 2026-11-11
+> Last Updated: 2026-11-12
 
 Everything below is meant to be copy-pasted into the Chrome Developer Dashboard.
 Source of truth for the store presence: update it whenever the manifest, the
@@ -39,6 +39,8 @@ FEATURES
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
+• Book the gap — hover a booking or a workshop reservation in the overview and a small + appears before and after its title. The left one books the resource for a slot that ends when that booking starts, the right one for a slot that starts when it ends; the dialog only asks for the duration and shows the exact times, the member it books for and the price before you confirm. A paid slot opens the portal's payment page, and a slot the portal refuses says why and offers its booking form instead.
+
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
 • Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
@@ -57,7 +59,7 @@ HOW TO USE
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Open that pin. The heatmap under the strip shows the resource's booked share of each six-hour block for the last week and the next three; click a square to jump to that week.
-5. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings.
+5. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings. Hover a booking there to book the slot just before or after it.
 6. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
 7. The toolbar icon opens the overview as a full page, lists your pins, and holds the six toggles.
 
@@ -65,11 +67,11 @@ This build is for the MotionLab.Berlin members portal. Nexudus gives every space
 
 PRIVACY
 
-Nothing is sent to us. The extension has no servers, no analytics and no accounts. It reads your bookings from your own members portal using the session you are already signed in with, and keeps your pins and settings on your device. The only other service it talks to is the space's public events calendar, for the optional event list. Full details: https://tiktuk.github.io/members-portal-you-had-one-job/privacy.html
+Nothing is sent to us. The extension has no servers, no analytics and no accounts. It reads your bookings from your own members portal using the session you are already signed in with, and keeps your pins and settings on your device. It creates a booking only when you confirm one in the overview's dialog, and that request goes to your own portal. The only other service it talks to is the space's public events calendar, for the optional event list. Full details: https://tiktuk.github.io/members-portal-you-had-one-job/privacy.html
 
 PERMISSIONS
 
-• Read and change your data on the MotionLab.Berlin members portal and its booking API — needed to add the Resources menu, open the calendar view by default, and show bookings in the overview. The extension runs on no other site.
+• Read and change your data on the MotionLab.Berlin members portal and its booking API — needed to add the Resources menu, open the calendar view by default, show bookings in the overview, and create the booking you confirm there. The extension runs on no other site.
 • Read your data on api.luma.com — needed to show the space's upcoming public events. Only public event data is read.
 
 SUPPORT
@@ -143,11 +145,11 @@ rejection reason.
      and it renders plain text: a markdown table pastes as pipes, a fenced block
      as backticks. Paste the block below verbatim. -->
 
-**Permissions justification** — 770 of 1,000 characters
+**Permissions justification** — 838 of 1,000 characters
 
 ```
 storage: keeps pins, the six popup toggles, a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
-https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics. JSON only, no HTML.
+https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics, and creates the booking the member confirms in the overview. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
 web_accessible_resources https://members.motionlab.berlin/*: the page script, overview page and statistics stylesheet must load into that portal page.
@@ -169,12 +171,12 @@ to the member's own portal and the space's public event calendar.
 |-----------|-----------|------------------------|---------|---------------------------|
 | Personally identifiable info | Yes | No | Names of coworkers already visible on the portal's own calendar are shown on bookings in the overview. Fetched from the member's portal, displayed, not stored; the statistics cache stores no names. | No |
 | Health info | No | No | — | No |
-| Financial info | No | No | — | No |
+| Financial info | No | No | The overview shows the price the portal quotes for a booking and then opens the portal's own payment page; no card, bank or invoice data is read or stored. | No |
 | Authentication info | Yes | To the member's own portal only | The portal session token is kept on the device so the overview page can read the member's bookings without reopening the portal. It is sent only in requests to the member's own Nexudus space, and never to the developer or any other party. | No |
 | Personal communications | No | No | — | No |
 | Location | No | No | The extension never reads the location. It suppresses the portal's own location prompt; the toggle in the popup restores it. | No |
 | Web history | No | No | No history API is used. The extension runs on one portal and reads nothing else. | No |
-| User activity | Yes | To the member's own portal only | The member's own bookings are read to fill the My bookings card, and booking times for published resources are read to build the statistics screen. Those times are cached locally (resource id, start and end; no member names). Not transmitted anywhere else. | No |
+| User activity | Yes | To the member's own portal only | The member's own bookings are read to fill the My bookings card, and booking times for published resources are read to build the statistics screen. Those times are cached locally (resource id, start and end; no member names). A booking is created only when the member confirms one in the overview. Not transmitted anywhere else. | No |
 | Website content | Yes | No | The portal's own navigation labels and URL are read to build the Resources menu and keep the calendar view. Stays on the device. | No |
 
 ### Data Use Certification
@@ -273,13 +275,18 @@ After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings
 4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
-5. Open the bottom of the Resources menu and choose "Resource statistics" (or
+5. In that overview, hover a booking or a workshop reservation: a small + appears
+   before and after its title. Clicking one opens a dialog that asks only for a
+   duration and shows the exact times, the member it books for and the price.
+   Confirming creates a real booking on the portal, so only confirm one if you
+   want it in the test account.
+6. Open the bottom of the Resources menu and choose "Resource statistics" (or
    press Alt+S). It loads the last 12 months from the portal's booking feed and
    shows the heatmap, the charts and every published resource colour-coded by
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
-6. The toolbar popup has six toggles: calendar as default view, the bookings
+7. The toolbar popup has six toggles: calendar as default view, the bookings
    heatmap, Luma events in heatmap, Luma events in overview, the
    Resources menu and the location prompt block.
 
@@ -310,6 +317,11 @@ space's own booking API subdomain.
 - **"Nexudus" in the description.** The name avoids the trademark, and the
   description uses the platform name only to say what the extension works with.
   Do not put it in the extension name.
+- **The overview can create a booking.** It is the extension's only write
+  action: confirming the duration dialog creates a real booking on the portal
+  (through the portal's own checkout, with the member's own session), and there
+  is no undo inside the extension — cancel it in the portal. Everything else
+  stays read-only.
 - **`chrome.storage.local`, never `.sync`.** Nothing is uploaded to Google, so
   the disclosure says "on the device".
 

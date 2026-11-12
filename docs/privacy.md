@@ -1,6 +1,6 @@
 # Privacy Policy — Members portal, you had one job
 
-Last updated: 11 November 2026
+Last updated: 12 November 2026
 
 **Members portal, you had one job** is a browser extension that adds resource
 filters, pinned single-resource calendars, a pinned-resources overview and a
@@ -9,7 +9,9 @@ exactly what it handles.
 
 The short version: the extension has no servers, no analytics and no accounts.
 It reads your bookings from your own members portal, using the session you are
-already signed in with, and keeps your settings on your device.
+already signed in with, and keeps your settings on your device. It creates a
+booking only when you confirm one in the overview, and that request goes to your
+own portal.
 
 ## What the extension handles
 
@@ -31,6 +33,11 @@ already signed in with, and keeps your settings on your device.
 - **Your portal page.** The extension reads the portal's own navigation labels
   and address to build the Resources menu and to keep the calendar view when you
   navigate.
+- **A booking you confirm.** The overview can book the slot just before or after
+  a booking or workshop reservation. The dialog shows the resource, the times,
+  the member it books for and the price the portal quotes; nothing is sent until
+  you press *Confirm booking*. That one request goes to your own portal, through
+  the same checkout its booking form uses.
 
 ## What the extension does not do
 
@@ -62,7 +69,8 @@ extension deletes it.
 Only requests to services you already use:
 
 - **Your members portal** (your space's Nexudus address), with your own session,
-  to read the resource list and your bookings.
+  to read the resource list and your bookings and, when you confirm one in the
+  overview, to create that booking.
 - **The space's public events calendar** (Luma's public API), to list upcoming
   events in the overview and mark them on the calendar heatmap. Only public
   event data is requested; nothing about you is sent. This can be turned off
@@ -83,6 +91,8 @@ anyone else.
 
 - Unpin a resource from the menu or from its card in the overview.
 - Turn any of the four features off in the toolbar popup.
+- Cancel a booking you created from the overview in the portal; the extension
+  does not cancel bookings itself.
 - Uninstall the extension to delete everything it stored.
 
 ## Changes to this policy

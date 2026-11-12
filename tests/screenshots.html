@@ -345,7 +345,13 @@
         HasNextPage: false,
       };
 
-      const json = (payload) => ({ ok: true, status: 200, json: async () => payload });
+      // A real Response has text() too; the checkout reader uses it.
+      const json = (payload) => ({
+        ok: true,
+        status: 200,
+        json: async () => payload,
+        text: async () => JSON.stringify(payload),
+      });
       const realFetch = window.fetch.bind(window);
 
       // A year of invented bookings for the statistics screenshot. Deterministic

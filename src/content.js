@@ -973,6 +973,9 @@
 
   function onOverlayKeydown(event) {
     if (event.key !== "Escape") return;
+    // The overview's booking dialog is its own modal: the first Escape closes
+    // it, the next one closes the overlay.
+    if (activeOverlay?.view?.hasOpenModal?.()) return;
     event.stopPropagation();
     closeOverlay();
   }
