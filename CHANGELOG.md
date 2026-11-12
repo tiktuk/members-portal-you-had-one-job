@@ -50,6 +50,12 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- The 4 × 28 heatmap is quieter about its frame: no ring on today, none on the
+  weekend columns, and no hairline between the four weeks. Those edges competed
+  with the level colour, which is the point of the grid. Empty weekend squares
+  now fade back into the card instead, the way Apple Calendar keeps its weekend
+  columns quiet, so the weekend still reads without a line; the bold weekday
+  and date labels keep marking today and the weekend.
 - Clicking a group name in the Resources menu opens that group's machines
   instead of jumping to its calendar; the whole row is the toggle now, and the
   arrow is only its affordance. The group's own calendar is a *Show all* row at

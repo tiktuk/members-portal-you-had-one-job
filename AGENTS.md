@@ -476,8 +476,8 @@ dashboard's notes field and, if they need to live on disk, into
   `onejob:luma-events` (the same message the overview uses), normalises the
   entries with `O.normalizeLumaEvent` and passes `{ start, end, name }` into
   `S.dayGrid({ events })`. A cell they overlap gets `has-event` (a 4 px black
-  dot with a 1 px `--onejob-daygrid-line` ring, the same grey as the weekend
-  edge) and the tooltip gives the event's start time and name
+  dot with a 1 px `--onejob-daygrid-line` ring) and the tooltip gives the
+  event's start time and name
   (`eventNames`/`eventStarts` are parallel arrays); they never change the
   booked share. Gated by `settings.dayGridEvents` alone (the popup's *Luma
   events in heatmap*), so turning the overview's events off leaves the dots in
@@ -512,14 +512,19 @@ dashboard's notes field and, if they need to live on disk, into
   under the night row. 18px is the narrowest column that still fits a
   three-letter weekday (the labels are `0.55rem`, the numbers `0.6rem`). The
   weekday and date spans share `headerCell()` in `renderDayGrid()` (so
-  `is-today`, `is-weekend`, `is-week-start` and the full-date `title` stay in
-  step) and the same `.onejob-daygrid-weekday` / `.onejob-daygrid-daynum`
-  styles. Cells before today get `is-past` (`opacity: 0.35`), so last week and
-  the elapsed part of this week read as history. Saturday and Sunday get
-  `is-weekend`, a 1 px
-  solid outline inside the square at 35% of `--bs-secondary-color` (their
-  weekday labels and day numbers are bold); today gets a 2 px `--bs-primary`
-  inset ring.
+  `is-today`, `is-weekend` and the full-date `title` stay in step) and the same
+  `.onejob-daygrid-weekday` / `.onejob-daygrid-daynum` styles. Cells before
+  today get `is-past` (`opacity: 0.35`), so last week and the elapsed part of
+  this week read as history. Saturday and Sunday get `is-weekend` and today
+  gets `is-today`, but only their weekday labels and day numbers change: the
+  weekend ones are bold and today's are bold and `--bs-primary`. The squares
+  carry no outline and there is no rule between weeks — rings on the weekend
+  columns, on today and a hairline on every Monday all competed with the level
+  colour, which is what the grid is for; the only edge a cell has is the
+  hover/focus ring. Empty weekend squares keep only 55% of their level-0 fill
+  and mix the rest back into `--bs-body-bg` (Apple Calendar's quieter weekend
+  columns), so the weekend recedes without a line; a booked weekend block keeps
+  its level colour.
   `pointerover`/`pointerleave`
   toggle `is-hover` on the four cells of a day with a 1 px
   `--bs-primary-border-subtle` ring; only `:focus-visible` uses the full 2 px

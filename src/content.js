@@ -1707,7 +1707,6 @@
         className,
         day.key === today ? "is-today" : "",
         weekday === 0 || weekday === 6 ? "is-weekend" : "",
-        day.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
       ].filter(Boolean).join(" ");
       node.title = dayLabel(day.date);
       return node;
@@ -1738,7 +1737,6 @@
           cell.key === today ? "is-today" : "",
           cell.date.getTime() < todayStart ? "is-past" : "",
           weekday === 0 || weekday === 6 ? "is-weekend" : "",
-          cell.weekIndex > 0 && weekday === 1 ? "is-week-start" : "",
           cell.eventCount ? "has-event" : "",
           cell.reservedCount ? "has-reserved" : "",
           cell.mine ? "is-mine" : "",
