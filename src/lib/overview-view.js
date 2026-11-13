@@ -782,7 +782,9 @@
       article.appendChild(cardMessage("No bookings in the next 14 days."));
     } else {
       const list = el("div", "booking-list");
-      for (const section of state.myModel.sections) list.appendChild(dayRow(section));
+      for (const section of state.myModel.sections) {
+        list.appendChild(dayRow(section, "", state.myModel.items));
+      }
       article.appendChild(list);
     }
 
@@ -858,53 +860,74 @@
 
     const list = el("div", "booking-list");
     for (const section of card.sections) {
-      list.appendChild(dayRow(section, card.pin.name));
+      list.appendChild(dayRow(section, card.pin.name, card.bookings));
     }
     article.appendChild(list);
     return article;
   }
 
-  function dayRow(section, resourceName) {
+  function dayRow(section, resourceName, items) {
     const row = el("div", "day-row");
     const label = el("div", "day-label", section.label);
-    const items = el("div", "day-bookings");
+    const list = el("div", "day-bookings");
 
     for (const booking of section.bookings) {
-      items.appendChild(
+      list.appendChild(
         booking.luma
           ? lumaEntry(booking)
           : booking.event
-            ? eventEntry(booking, resourceName)
-            : bookingEntry(booking, resourceName),
+            ? eventEntry(booking, resourceName, items)
+            : bookingEntry(booking, resourceName, items),
       );
     }
 
-    row.append(label, items);
+    row.append(label, list);
     return row;
   }
 
   /**
    * The title with the "book the gap" buttons around it, plus the cancel
-   * button on the member's own rows. A row whose resource is unknown (Luma
-   * events) gets the title alone.
+   * button on the member's own rows. A button only appears when the resource is
+   * actually free on that side; the empty slot is kept so every title starts at
+   * the same x.
    */
-  function titleWithGaps(title, booking, resourceName) {
+  function titleWithGaps(title, booking, resourceName, items) {
     const main = el("span", "booking-main");
+
     if (!booking.resourceId) {
-      // A Luma event has no gap buttons; reserve their slot so its title starts
-      // where every other row's title does.
-      main.classList.add("is-plain");
+      // A Luma event has no gap buttons at all; reserve the leading slot.
+      main.classList.add("no-before");
       main.appendChild(title);
       return main;
     }
 
-    main.append(
-      gapButton(booking, "before", resourceName),
-      title,
-      gapButton(booking, "after", resourceName),
-    );
+    // A booking that already started has no usable slot before it.
+    const rows = gapItemsFor(booking, items);
+    const before = booking.stamp > Date.now() && O.rowGap(rows, booking, "before") > 0;
+    const after = O.rowGap(rows, booking, "after") > 0;
+
+    if (before) main.appendChild(gapButton(booking, "before", resourceName));
+    else main.classList.add("no-before");
+
+    main.appendChild(title);
+
+    if (after) main.appendChild(gapButton(booking, "after", resourceName));
+
     if (booking.mine && cancelId(booking)) main.appendChild(cancelButton(booking, resourceName));
     return main;
+  }
+
+  /**
+   * The rows that can occupy this booking's resource. A pinned card already has
+   * every row of its resource (including other members'), so a **My bookings**
+   * row borrows its card's list rather than judging the gap from the member's
+   * own bookings alone. Duplicates are harmless: `rowGap` only looks at the
+   * frontier of the intervals.
+   */
+  function gapItemsFor(booking, items) {
+    const card = state.model?.cards?.find((entry) => entry.pin.id === booking.resourceId);
+    if (!card) return items;
+    return [...(Array.isArray(items) ? items : []), ...card.bookings];
   }
 
   /** The numeric booking id a cancellation needs, or "" when it has none. */
@@ -940,15 +963,9 @@
 
     const name = resourceName || booking.resourceName || "this resource";
     const edge = side === "before" ? booking.startTime : booking.endTime;
-    const started = side === "before" && booking.stamp <= Date.now();
-
-    button.title = started
-      ? "This booking already started"
-      : side === "before"
-        ? `Book ${name} so it ends at ${edge}`
-        : `Book ${name} so it starts at ${edge}`;
+    button.title =
+      side === "before" ? `Book ${name} so it ends at ${edge}` : `Book ${name} so it starts at ${edge}`;
     button.setAttribute("aria-label", button.title);
-    button.disabled = started;
 
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -959,7 +976,7 @@
     return button;
   }
 
-  function bookingEntry(booking, resourceName) {
+  function bookingEntry(booking, resourceName, items) {
     const entry = el("div", "booking");
 
     const href = booking.mine ? bookingHref(booking) : "";
@@ -971,7 +988,7 @@
       who.title = "Open booking in the portal";
     }
 
-    entry.append(timeLabel(booking), titleWithGaps(who, booking, resourceName));
+    entry.append(timeLabel(booking), titleWithGaps(who, booking, resourceName, items));
     if (booking.tentative) entry.appendChild(badge("Tentative"));
     return entry;
   }
@@ -985,12 +1002,12 @@
     return `${portalOrigin()}/${state.webAddress}/public/bookings/edit?${params.toString()}`;
   }
 
-  function eventEntry(booking, resourceName) {
+  function eventEntry(booking, resourceName, items) {
     const entry = el("div", "booking booking-event");
     entry.appendChild(timeLabel(booking));
 
     const title = el("span", "booking-who", booking.coworker);
-    const main = titleWithGaps(title, booking, resourceName);
+    const main = titleWithGaps(title, booking, resourceName, items);
 
     if (!booking.description && !booking.url) {
       entry.append(main, badge("Reserved", "badge-event"));

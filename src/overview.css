@@ -436,9 +436,11 @@ h1 {
   min-width: 0;
 }
 
-/* A row with no "book the gap" buttons (a Luma event) keeps their slot, so its
-   title lines up with the rows that have them. */
-.booking-main.is-plain {
+/* A row with no "book before" button — a Luma event, or a slot the resource is
+   already busy in — keeps the button's slot, so every title starts at the same
+   x. The trailing slot is not reserved: a badge follows the title, not a
+   column. */
+.booking-main.no-before {
   padding-left: calc(var(--gap-button) + 0.2rem);
 }
 

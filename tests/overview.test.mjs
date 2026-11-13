@@ -662,3 +662,65 @@ test("CANCEL_REASONS carries the portal's values and labels", () => {
   );
   assert.equal(O.CANCEL_REASONS.find((reason) => reason.value === "Other").label, "Other");
 });
+
+/** A row of the model, from/to being hours on 3 Nov 2026. */
+function slot(id, from, to, extra = {}) {
+  return {
+    id: String(id),
+    resourceId: "1415309596",
+    kind: "booking",
+    stamp: new Date(2026, 10, 3, from, 0).getTime(),
+    endStamp: new Date(2026, 10, 3, to, 0).getTime(),
+    ...extra,
+  };
+}
+
+test("rowGap measures the free time before and after a booking", () => {
+  const O = loadOverview();
+  const row = slot(2, 10, 12);
+  const items = [slot(1, 8, 9), row, slot(3, 13, 14)];
+
+  assert.equal(O.rowGap(items, row, "before"), 60 * 60 * 1000);
+  assert.equal(O.rowGap(items, row, "after"), 60 * 60 * 1000);
+});
+
+test("rowGap is zero for back-to-back rows and negative for overlaps", () => {
+  const O = loadOverview();
+  const row = slot(2, 10, 12);
+
+  assert.equal(O.rowGap([slot(1, 9, 10), row], row, "before"), 0);
+  assert.equal(O.rowGap([row, slot(3, 12, 13)], row, "after"), 0);
+  assert.ok(O.rowGap([slot(1, 9, 11), row], row, "before") < 0);
+  assert.ok(O.rowGap([row, slot(3, 11, 13)], row, "after") < 0);
+});
+
+test("rowGap looks past the neighbouring row for a longer overlap", () => {
+  const O = loadOverview();
+  const long = slot(1, 8, 13);
+  const row = slot(2, 9, 10);
+  const next = slot(3, 11, 12);
+
+  // `next` starts after the row ends, but `long` is still using the resource.
+  assert.ok(O.rowGap([long, row, next], row, "after") <= 0);
+  // ...and it is the frontier before `next`, not `row`'s end.
+  assert.equal(O.rowGap([long, row, next], next, "before"), -2 * 60 * 60 * 1000);
+});
+
+test("rowGap ignores Luma events and rows of another resource", () => {
+  const O = loadOverview();
+  const row = slot(2, 10, 12);
+  const luma = slot(3, 12, 13, { resourceId: "", kind: "luma" });
+  const other = slot(4, 12, 13, { resourceId: "99" });
+
+  assert.equal(O.rowGap([row, luma, other], row, "after"), Infinity);
+});
+
+test("rowGap is Infinity with no neighbours and 0 for a bad side", () => {
+  const O = loadOverview();
+  const row = slot(2, 10, 12);
+
+  assert.equal(O.rowGap([row], row, "before"), Infinity);
+  assert.equal(O.rowGap([], row, "after"), Infinity);
+  assert.equal(O.rowGap([row], row, "around"), 0);
+  assert.equal(O.rowGap([row], null, "after"), 0);
+});

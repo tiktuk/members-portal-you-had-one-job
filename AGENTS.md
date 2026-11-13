@@ -370,20 +370,28 @@ dashboard's notes field and, if they need to live on disk, into
   **ending** at that row's start, right one **starting** at its end. They appear
   on real bookings, workshop reservations and the **My bookings** rows, but not
   on Luma events (space-wide, so "before" and "after" would not mean the
-  resource). Rows that already started get only the right one; the left is
-  disabled with "This booking already started" because the portal refuses
-  bookings that end in the past.
+  resource).
+- **A `+` is only rendered where the resource is free.** `lib/overview.js::rowGap`
+  returns the free time to that edge (Infinity when nothing is in the way) and
+  the view drops the button at `<= 0`. The frontier is taken over every row that
+  starts earlier (before) or ends later (after), not the neighbouring row in the
+  list: a longer booking that overlaps this one and runs past it removes the
+  button too. Rows of another resource and Luma events are ignored, and a
+  started booking never gets the left button, since the portal refuses bookings
+  that end in the past. The dialog's preview is still the authority — the model
+  only covers the lookahead window and the card's own resource.
 - The buttons keep their 1.15rem slots at all times and only animate
   `opacity`, so a row does not jump under the pointer. They are `0` until
   `.booking:hover`/`:focus-within`, `0.45` under `@media (hover: none)`. The
-  size lives in `--gap-button`, because the slot has to be reproduced elsewhere:
-  a Luma row has no buttons (space-wide events are not bookable around), so
-  `titleWithGaps` gives it `booking-main is-plain`, whose left padding reserves
-  the before-button's slot — otherwise its title starts ~22px left of every
-  other row's. `.booking-event`'s negative margin carries an extra `-2px` for
-  its left border, or the border shifts the time and title 2px right.
+  size lives in `--gap-button`, because the slot has to be reproduced: a row
+  with no before-button (a Luma event, no gap, or already started) gets
+  `booking-main no-before`, whose left padding reserves it — otherwise its title
+  starts ~22px left of every other row's. The trailing slot is not reserved,
+  because a badge follows the title rather than a column.
+  `.booking-event`'s negative margin carries an extra `-2px` for its left
+  border, or the border shifts the time and title 2px right.
 - `lib/overview.js` owns the pure parts: `bookingWindow(booking, side, minutes)`
-  (epoch stamps, crosses midnight), `basketBody`, `defaultProfile`,
+  (epoch stamps, crosses midnight), `rowGap`, `basketBody`, `defaultProfile`,
   `resourceInterval`, `durationLabel`, `bookingError`. The view owns the HTTP.
 - **There is no plain create-booking endpoint.** The portal's own booking form
   posts a basket item, so this is the write path (all on the space host, which

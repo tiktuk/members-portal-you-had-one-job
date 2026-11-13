@@ -12,17 +12,19 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 ### Added
 
 - Hovering a booking or a workshop reservation in the overview shows a small
-  **+** before and after its title. The left one books the resource for a slot
-  that ends when that row starts, the right one for a slot that starts when it
-  ends, so a 30-minute gap next to your own session is one click instead of a
-  trip through the portal's booking form. The dialog asks only for the duration
-  (30 min / 1 h / 2 h, or any multiple of the resource's own booking interval)
-  and shows the exact times, the member it books for and the price the portal
-  quotes; confirming creates the booking through the portal's own checkout, and
-  a paid slot opens the portal's payment page as the portal itself does. A row
-  that already started only offers the slot after it, and a refused slot says
-  why — already booked, outside the opening hours, not on the right plan — with
-  a link to the portal's prefilled booking form.
+  **+** before and after its title, and only where the resource is actually
+  free: nothing on a side where another booking starts exactly when this one
+  ends (or overlaps it), and nothing before a booking that already started. The
+  left one books the resource for a slot that ends when that row starts, the
+  right one for a slot that starts when it ends, so a 30-minute gap next to your
+  own session is one click instead of a trip through the portal's booking form.
+  The dialog asks only for the duration (30 min / 1 h / 2 h, or any multiple of
+  the resource's own booking interval) and shows the exact times, the member it
+  books for and the price the portal quotes; confirming creates the booking
+  through the portal's own checkout, and a paid slot opens the portal's payment
+  page as the portal itself does. A refused slot says why — already booked,
+  outside the opening hours, not on the right plan — with a link to the
+  portal's prefilled booking form.
 - Your own bookings in the overview can be cancelled from the row itself: a
   small **×** next to the title asks for the portal's cancellation reason (with
   the free-text field its *Other* option needs), warns when the portal quotes a

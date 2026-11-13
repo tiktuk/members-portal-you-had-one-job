@@ -653,6 +653,43 @@
     }
   }
 
+  /**
+   * Milliseconds of free time immediately before/after `booking` on its
+   * resource; Infinity when no row is in the way, and <= 0 when the resource is
+   * busy up to that edge (back-to-back or overlapping rows).
+   *
+   * Overlapping rows count as busy, so this looks at the frontier of every row
+   * that starts earlier (or ends later), not just the neighbouring row in the
+   * list. Luma events are space-wide and occupy nothing, so they are ignored.
+   */
+  function rowGap(items, booking, side) {
+    if (!booking || (side !== "before" && side !== "after")) return 0;
+    if (!Number.isFinite(booking.stamp) || !Number.isFinite(booking.endStamp)) return 0;
+
+    const rows = (Array.isArray(items) ? items : []).filter(
+      (item) =>
+        item &&
+        item !== booking &&
+        item.resourceId &&
+        item.resourceId === booking.resourceId &&
+        item.kind !== "luma",
+    );
+
+    if (side === "before") {
+      let frontier = -Infinity;
+      for (const item of rows) {
+        if (item.stamp < booking.stamp) frontier = Math.max(frontier, item.endStamp);
+      }
+      return frontier === -Infinity ? Infinity : booking.stamp - frontier;
+    }
+
+    let frontier = Infinity;
+    for (const item of rows) {
+      if (item.endStamp > booking.endStamp) frontier = Math.min(frontier, item.stamp);
+    }
+    return frontier === Infinity ? Infinity : frontier - booking.endStamp;
+  }
+
   globalThis.OneJobOverview = {
     CANCEL_REASONS,
     LOOKAHEAD_DAYS,
@@ -674,6 +711,7 @@
     rangeFor,
     resourceIcon,
     resourceInterval,
+    rowGap,
     toPortalIso,
     toQueryTimestamp,
   };

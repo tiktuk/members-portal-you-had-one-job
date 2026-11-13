@@ -39,7 +39,7 @@ FEATURES
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
 
-• Book the gap — hover a booking or a workshop reservation in the overview and a small + appears before and after its title. The left one books the resource for a slot that ends when that booking starts, the right one for a slot that starts when it ends; the dialog only asks for the duration and shows the exact times, the member it books for and the price before you confirm. A paid slot opens the portal's payment page, and a slot the portal refuses says why and offers its booking form instead.
+• Book the gap — hover a booking or a workshop reservation in the overview and a small + appears before and after its title, only where the resource is actually free. The left one books the resource for a slot that ends when that booking starts, the right one for a slot that starts when it ends; the dialog only asks for the duration and shows the exact times, the member it books for and the price before you confirm. A paid slot opens the portal's payment page, and a slot the portal refuses says why and offers its booking form instead.
 
 • Cancel from the overview — your own bookings carry a small × next to the title. It asks for one of the portal's cancellation reasons, warns if the portal charges a cancellation fee, and reports a refusal (already invoiced, inside the cancellation window, already started) without leaving the page.
 

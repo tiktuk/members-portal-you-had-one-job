@@ -35,13 +35,14 @@ It does eight things:
    resource. Your booking titles link to their portal booking page, and the
    **My bookings** title links to the portal's My Bookings page. Workshops
    appear with a *Reserved* badge and can be expanded for details. Hovering a
-   booking or a reservation shows a **+** before and after its title: the left
-   one books the resource so the new slot ends when that one starts, the right
-   one so it starts when that one ends. The dialog only asks for the duration,
-   shows the times and price the portal quotes, and creates the booking through
-   the portal's own checkout. Your own rows also carry a **×** that cancels the
-   booking with one of the portal's cancellation reasons; see
-   [Booking from the overview](#booking-from-the-overview).
+   booking or a reservation shows a **+** before and after its title, only where
+   the resource is free — not when the next row starts exactly when this one
+   ends: the left one books the resource so the new slot ends when that one
+   starts, the right one so it starts when that one ends. The dialog only asks
+   for the duration, shows the times and price the portal quotes, and creates
+   the booking through the portal's own checkout. Your own rows also carry a
+   **×** that cancels the booking with one of the portal's cancellation reasons;
+   see [Booking from the overview](#booking-from-the-overview).
    Open it from
    **Booking Overview** in the portal's main navigation (or the **Overview**
    button in the bottom bar on a narrow window), which shows it in an overlay
@@ -306,10 +307,13 @@ Bootstrap styles in either direction.
 ### Booking from the overview
 
 Every occupied row except a Luma event carries a **+** on each side of its
-title. Clicking one opens a small dialog whose only input is the duration: the
-left button fixes the new slot's end at that row's start, the right button fixes
-its start at that row's end. The dialog shows the resource, the exact times, the
-member it books for and the price, and confirming creates the booking.
+title, but only where the resource is actually free: `lib/overview.js::rowGap`
+returns the free time to the edge, so a back-to-back or overlapping row removes
+that button, as does a booking that already started. Clicking one opens a small
+dialog whose only input is the duration: the left button fixes the new slot's
+end at that row's start, the right button fixes its start at that row's end. The
+dialog shows the resource, the exact times, the member it books for and the
+price, and confirming creates the booking.
 
 The portal has no plain "create booking" call, so this goes through its own
 checkout, the same path the portal's booking form uses:
