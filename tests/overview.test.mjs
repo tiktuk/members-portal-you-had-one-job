@@ -620,6 +620,27 @@ test("durationLabel writes the portal's duration wording", () => {
   assert.equal(O.durationLabel(90), "1 h 30 min");
 });
 
+test("gapDuration caps the preferred hour by the gap and the interval", () => {
+  const O = loadOverview();
+
+  assert.equal(O.gapDuration(Infinity, 15), 60);
+  assert.equal(O.gapDuration(120, 15), 60);
+  assert.equal(O.gapDuration(30, 15), 30);
+  assert.equal(O.gapDuration(45, 15), 45);
+  assert.equal(O.gapDuration(45, 30), 30);
+  assert.equal(O.gapDuration(90, 15), 60);
+  assert.equal(O.gapDuration(20, 30), 30);
+  assert.equal(O.gapDuration(0, 15), 15);
+});
+
+test("gapDuration honours a different preference and the global cap", () => {
+  const O = loadOverview();
+
+  assert.equal(O.gapDuration(Infinity, 15, 45), 45);
+  assert.equal(O.gapDuration(Infinity, 15, 120, 30), 30);
+  assert.equal(O.gapDuration(90, 15, 120), 90);
+});
+
 test("bookingError translates the checkout codes it knows", () => {
   const O = loadOverview();
   assert.match(O.bookingError("BOOKING_CONFLICT"), /already booked/);

@@ -446,12 +446,21 @@ dashboard's notes field and, if they need to live on disk, into
   `content.js::onOverlayKeydown` returns early while it is true — the document
   capture handler runs before the shadow root, so this is the only way to let
   Escape close the dialog first.
+- The dialog opens on `lib/overview.js::gapDuration`: the configured
+  `config.overview.booking.defaultMinutes` (60), capped by the clicked side's
+  free minutes and snapped **down** to the resource interval — a 30-minute gap
+  opens on 30 min, not an hour the checkout would refuse. `gapButton` passes the
+  `rowGap` value through; `dialogState.gapMinutes` (null when unbounded) also
+  caps `input.max`, hides presets longer than the gap and turns a longer value
+  into "Only 30 min is free on that side" instead of a request. Do not re-derive
+  the gap in the dialog: the model may have moved on.
 - Durations are validated locally before any request: a positive multiple of
-  the resource interval, at least one interval, at most
-  `config.overview.booking.maxDurationMinutes`. Presets come from
-  `config.overview.booking.presets`; a preset that is not a multiple of the
-  live interval is hidden. Previews are debounced 350 ms and aborted on every
-  change, so typing a duration does not queue requests.
+  the resource interval, at least one interval, at most the gap (or
+  `config.overview.booking.maxDurationMinutes` when unbounded). Presets come
+  from `config.overview.booking.presets`; a preset that is not a multiple of the
+  live interval, or longer than the gap, is hidden. Previews are debounced
+  350 ms and aborted on every change, so typing a duration does not queue
+  requests.
 - After a successful create the dialog closes, `load()` refetches and
   `showSuccess` renders a **fixed** `.notice.success` toast at the bottom of the
   window (`SUCCESS_MS`, 8 s). It floats on purpose: the confirmation arrives

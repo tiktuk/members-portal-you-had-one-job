@@ -66,6 +66,8 @@
         presets: [30, 60, 120],
         intervalMinutes: 15,
         maxDurationMinutes: 24 * 60,
+        /** The dialog's first duration, capped by the gap and the interval. */
+        defaultMinutes: 60,
       },
     },
 

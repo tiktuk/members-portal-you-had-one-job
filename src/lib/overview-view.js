@@ -84,6 +84,8 @@
     booking: null,
     side: "after",
     interval: 15,
+    /** Whole minutes free on the clicked side, or null when unbounded. */
+    gapMinutes: null,
     coworker: null,
     coworkerError: "",
     preview: null,
@@ -903,15 +905,16 @@
 
     // A booking that already started has no usable slot before it.
     const rows = gapItemsFor(booking, items);
-    const before = booking.stamp > Date.now() && O.rowGap(rows, booking, "before") > 0;
-    const after = O.rowGap(rows, booking, "after") > 0;
+    const beforeGap = O.rowGap(rows, booking, "before");
+    const afterGap = O.rowGap(rows, booking, "after");
+    const before = booking.stamp > Date.now() && beforeGap > 0;
 
-    if (before) main.appendChild(gapButton(booking, "before", resourceName));
+    if (before) main.appendChild(gapButton(booking, "before", resourceName, beforeGap));
     else main.classList.add("no-before");
 
     main.appendChild(title);
 
-    if (after) main.appendChild(gapButton(booking, "after", resourceName));
+    if (afterGap > 0) main.appendChild(gapButton(booking, "after", resourceName, afterGap));
 
     if (booking.mine && cancelId(booking)) main.appendChild(cancelButton(booking, resourceName));
     return main;
@@ -956,7 +959,7 @@
     return button;
   }
 
-  function gapButton(booking, side, resourceName) {
+  function gapButton(booking, side, resourceName, gapMs) {
     const button = el("button", `booking-gap gap-${side}`);
     button.type = "button";
     button.innerHTML = PLUS_ICON;
@@ -970,7 +973,7 @@
     button.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      openBookingDialog({ resourceId: booking.resourceId, resourceName: name, booking, side });
+      openBookingDialog({ resourceId: booking.resourceId, resourceName: name, booking, side, gapMs });
     });
 
     return button;
@@ -1166,7 +1169,7 @@
     return Number(bookingCfg().maxDurationMinutes) || 24 * 60;
   }
 
-  function openBookingDialog({ resourceId, resourceName, booking, side }) {
+  function openBookingDialog({ resourceId, resourceName, booking, side, gapMs }) {
     if (!ui.root || !booking) return;
 
     const id = String(resourceId || booking.resourceId || "");
@@ -1182,6 +1185,7 @@
     dialogState.booking = booking;
     dialogState.side = side === "before" ? "before" : "after";
     dialogState.interval = interval;
+    dialogState.gapMinutes = Number.isFinite(gapMs) ? Math.max(0, Math.floor(gapMs / 60000)) : null;
     dialogState.coworker = state.coworker;
     dialogState.coworkerError = state.coworkerError || "";
     dialogState.preview = null;
@@ -1210,7 +1214,7 @@
     input.id = "onejob-booking-duration";
     input.inputMode = "numeric";
     input.min = String(interval);
-    input.max = String(maxDuration());
+    input.max = String(gapCap());
     input.step = String(interval);
     input.value = String(defaultMinutes(interval));
     input.addEventListener("input", () => {
@@ -1347,12 +1351,19 @@
     return { node, form, body, actions };
   }
 
-  /** The first duration the dialog offers: an hour, snapped to the interval. */
+  /** How many minutes the duration field may reach: the gap, or the global cap. */
+  function gapCap() {
+    return dialogState.gapMinutes == null ? maxDuration() : Math.max(0, dialogState.gapMinutes);
+  }
+
+  /**
+   * The first duration the dialog offers: the configured preference (an hour),
+   * capped by the gap and snapped to the interval, so a 30-minute gap opens on
+   * 30 min instead of a value the portal would refuse.
+   */
   function defaultMinutes(interval) {
-    const max = maxDuration();
-    const step = Number(interval) > 0 ? Number(interval) : 15;
-    const snapped = Math.max(step, Math.round(Math.min(60, max) / step) * step);
-    return Math.min(snapped, max);
+    const preferred = Number(bookingCfg().defaultMinutes) || 60;
+    return O.gapDuration(dialogState.gapMinutes, interval, preferred, maxDuration());
   }
 
   /** "" when the duration can be sent, otherwise the reason it cannot. */
@@ -1364,6 +1375,11 @@
     }
     if (value < dialogState.interval) {
       return `The shortest booking is ${O.durationLabel(dialogState.interval)}.`;
+    }
+    if (dialogState.gapMinutes != null && value > dialogState.gapMinutes) {
+      return dialogState.gapMinutes > 0
+        ? `Only ${O.durationLabel(dialogState.gapMinutes)} is free on that side.`
+        : "There is no room on that side.";
     }
     if (value > maxDuration()) return `The longest booking is ${O.durationLabel(maxDuration())}.`;
     return "";
@@ -1398,7 +1414,9 @@
 
     for (const preset of presets) {
       const value = Number(preset.dataset.minutes);
-      preset.hidden = value % dialogState.interval !== 0;
+      preset.hidden =
+        value % dialogState.interval !== 0 ||
+        (dialogState.gapMinutes != null && value > dialogState.gapMinutes);
       preset.classList.toggle("is-active", value === minutes);
     }
 

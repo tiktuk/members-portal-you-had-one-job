@@ -544,6 +544,21 @@
   }
 
   /**
+   * The duration the dialog offers for a gap: the preferred length (an hour by
+   * default), capped by the free time and snapped down to the resource's
+   * interval. A gap too short for one interval still offers one, so the dialog
+   * can say why nothing fits rather than opening on a valid-looking value.
+   */
+  function gapDuration(gapMinutes, intervalMinutes, preferredMinutes = 60, maxMinutes = 24 * 60) {
+    const step = Number(intervalMinutes) > 0 ? Number(intervalMinutes) : 15;
+    const max = Number(maxMinutes) > 0 ? Number(maxMinutes) : 24 * 60;
+    const cap = Number.isFinite(gapMinutes) ? Math.min(max, gapMinutes) : max;
+    const preferred = Number(preferredMinutes) > 0 ? Number(preferredMinutes) : 60;
+    const snapped = Math.floor(Math.min(preferred, cap) / step) * step;
+    return snapped >= step ? snapped : step;
+  }
+
+  /**
    * The checkout endpoint reports failures as a `PropertyName` code plus an
    * optional `AttemptedValue` (the interval or duration limit). Mirrors the
    * portal's own table; returns null for codes it does not know, so the caller
@@ -704,6 +719,7 @@
     dayLabel,
     defaultProfile,
     durationLabel,
+    gapDuration,
     markOwnedBookings,
     normalizeLumaEvent,
     normalizePins,

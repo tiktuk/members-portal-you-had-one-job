@@ -217,6 +217,7 @@ the *Block location prompt* and *Luma events in overview* toggles.
 | `overview.shortcut` | Key combo that opens the overview overlay from the portal (`alt+o`). Matched on the physical key, so it works with Option layouts that type `ø`. |
 | `overview.booking.presets` | Duration choices in the overview's booking dialog, in minutes (`[30, 60, 120]`). |
 | `overview.booking.intervalMinutes` | Step of the duration field until the resource's own `IntervalLimit` is known (`15`). |
+| `overview.booking.defaultMinutes` | Duration the dialog opens on, capped by the free gap and snapped to the interval (`60`). |
 | `overview.booking.maxDurationMinutes` | Longest slot the dialog offers (`1440`, one day). |
 | `stats.label` | Text of the statistics row at the bottom of the Resources menu (default `Resource statistics`). |
 | `stats.shortcut` | Key combo that opens the statistics screen from the portal (`alt+s`). |
@@ -311,9 +312,12 @@ title, but only where the resource is actually free: `lib/overview.js::rowGap`
 returns the free time to the edge, so a back-to-back or overlapping row removes
 that button, as does a booking that already started. Clicking one opens a small
 dialog whose only input is the duration: the left button fixes the new slot's
-end at that row's start, the right button fixes its start at that row's end. The
-dialog shows the resource, the exact times, the member it books for and the
-price, and confirming creates the booking.
+end at that row's start, the right button fixes its start at that row's end. It
+opens on the free time itself — the configured hour, capped by the gap and
+snapped to the resource's interval, so a 30-minute gap opens on 30 min — and a
+longer value says how much is free instead of being sent. It shows the
+resource, the exact times, the member it books for and the price, and
+confirming creates the booking.
 
 The portal has no plain "create booking" call, so this goes through its own
 checkout, the same path the portal's booking form uses:
