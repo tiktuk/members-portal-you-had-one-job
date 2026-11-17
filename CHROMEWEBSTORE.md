@@ -244,7 +244,8 @@ https://github.com/tiktuk/members-portal-you-had-one-job
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.2 | 2026-11-06 | First store submission. Narrow permissions: `storage` plus the one portal and the space's events API; the "add another portal" field is gone. | Draft |
+| 1.1.0 | 2026-11-17 | Book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. No new permissions. | Draft |
+| 1.0.2 | 2026-11-06 | First store submission. Narrow permissions: `storage` plus the one portal and the space's events API; the "add another portal" field is gone. | Published |
 | 1.0.1 | 2026-11-06 | GitHub release only. Expand chevron on workshop and event rows no longer wraps onto its own line. | Not submitted |
 | 1.0.0 | 2026-11-05 | First release, GitHub only (unpacked installs). | Not submitted |
 

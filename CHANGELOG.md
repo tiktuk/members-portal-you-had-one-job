@@ -9,6 +9,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-17
+
 ### Added
 
 - Hovering a booking or a workshop reservation in the overview shows a small
