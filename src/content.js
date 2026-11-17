@@ -1174,7 +1174,14 @@
     if (group) steps.push(tourPinStep(group));
 
     if (state.settings.dayGrid !== false) steps.push(tourHeatmapStep());
-    steps.push(tourOverviewStep(), tourSettingsStep(), tourStatsStep());
+    steps.push(
+      tourOverviewEntryStep(),
+      tourOverviewStep(),
+      tourGapStep(),
+      tourSettingsStep(),
+      tourStatsEntryStep(),
+      tourStatsStep(),
+    );
     return steps;
   }
 
@@ -1255,6 +1262,30 @@
     return Boolean(document.getElementById(DAY_GRID_ID));
   }
 
+  /**
+   * The next step opens an overlay that covers the window, so the member first
+   * sees the button that opens it — otherwise the screen takeover is a
+   * surprise. The primary action names what it will do.
+   */
+  function tourOverviewEntryStep() {
+    return {
+      id: "overview-entry",
+      title: "Booking Overview is a nav item",
+      body: "This new item in the navigation opens the overview — a screen that covers the window the way the portal's own dialogs do, and closes with Escape or its ×. Next opens it so you can look around.",
+      enter: () => {
+        closeMenu();
+        closeSheet();
+      },
+      target: () => {
+        const nav = document.getElementById(OVERVIEW_NAV_ID);
+        if (isVisible(nav)) return nav;
+        const dock = document.getElementById(OVERVIEW_DOCK_ID);
+        return isVisible(dock) ? dock : nav || dock || tourNavTarget();
+      },
+      primaryLabel: "Open it",
+    };
+  }
+
   function tourOverviewStep() {
     return {
       id: "overview",
@@ -1265,7 +1296,11 @@
         closeSheet();
         openOverviewOverlay({ fromTour: true });
       },
-      leave: () => closeOverlay(),
+      // The next step points at a row inside this same overlay, so advancing
+      // keeps it open; Skip, Escape and Back still close it.
+      leave: (reason) => {
+        if (reason !== "next") closeOverlay();
+      },
       // The overview mounts into a shadow root, so the target has to be read
       // from there; the header is up as soon as the panel is.
       target: () =>
@@ -1273,6 +1308,32 @@
         tourOverlayQuery(".my-bookings .card") ||
         tourOverlayQuery(".page-header"),
       missingMs: 4000,
+    };
+  }
+
+  /**
+   * The book-a-gap buttons only exist where a free slot does, and they stay
+   * invisible until the row is hovered. The step rings a real one when the
+   * member's pins have one (overview.css reveals the button that carries the
+   * tour ring), and falls back to a booking row when nothing is free.
+   */
+  function tourGapStep() {
+    return {
+      id: "gap",
+      title: "Book the gap beside a booking",
+      body: "Hover a row and a + appears on each side the machine is free: the left one books a slot that ends when this booking starts, the right one a slot that starts when it ends. Pick a duration, confirm, done. Your own rows carry a × that cancels instead.",
+      enter: () => {
+        closeMenu();
+        closeSheet();
+        openOverviewOverlay({ fromTour: true });
+      },
+      leave: () => closeOverlay(),
+      target: () =>
+        tourOverlayQuery(".booking-gap.gap-after:not(:disabled)") ||
+        tourOverlayQuery(".booking-gap.gap-before:not(:disabled)") ||
+        tourOverlayQuery(".cards .booking") ||
+        tourOverlayQuery(".page-header"),
+      missingMs: 10000,
     };
   }
 
@@ -1287,6 +1348,29 @@
       },
       centered: true,
       render: (container) => renderTourSettings(container),
+    };
+  }
+
+  /**
+   * Same heads-up as the overview: the statistics screen covers the window, so
+   * the tour points at the menu row that opens it before the next step does.
+   */
+  function tourStatsEntryStep() {
+    return {
+      id: "stats-entry",
+      title: "Resource statistics lives in the menu",
+      body: `The Resources menu ends in ${cfg.stats?.label || "Resource statistics"} — ${shortcutLabel(SHORTCUTS.stats)} opens it from anywhere. It covers the window like the overview did. Next opens it so you can look around.`,
+      enter: () => {
+        closeMenu();
+        closeSheet();
+        openTourMenu();
+      },
+      leave: () => {
+        closeMenu();
+        closeSheet();
+      },
+      target: () => tourMenuRoot()?.querySelector(".onejob-menu-stats-button") || null,
+      primaryLabel: "Open it",
     };
   }
 

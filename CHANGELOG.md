@@ -62,14 +62,20 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   pin — the step's *Next* stays disabled until one is made — and then follows
   that machine to its calendar to show the 4 × 28 heatmap, with the dot, the
   green bar and the orange bar explained once the grid is on screen. From there
-  it opens the Booking Overview, previews the six toolbar settings with their
+  it points at the Booking Overview nav item before opening the screen it
+  leads to — and at the menu's *Resource statistics* row before that one — so
+  an overlay never takes over the window unannounced, previews the six toolbar
+  settings with their
   current state and finishes on the Resource statistics screen, closing it
   again so the tour ends back on the machine's calendar. The page change
   is bridged by a `sessionStorage` marker, so the tour continues on the calendar,
-  and quitting early leaves the member on that page. Escape, *Skip* or a click
-  outside ends it, and skipping closes the screen it opened. *Replay* in the
-  toolbar popup starts it again; with a pin already in place that step points
-  at the existing chip instead of asking for another pin.
+  and quitting early leaves the member on that page. From the overview it rings
+  a real **+** gap button where one of the member's pins has a free slot —
+  falling back to a booking row when nothing is free — to show the one-click
+  booking it makes. Escape, *Skip* or a click outside ends it, and skipping
+  closes the screen it opened. *Replay* in the toolbar popup starts it again;
+  with a pin already in place that step points at the existing chip instead of
+  asking for another pin.
 
 ### Fixed
 

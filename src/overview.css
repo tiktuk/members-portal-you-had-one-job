@@ -468,6 +468,11 @@ h1 {
   opacity: 1;
 }
 
+/* The tour's ring marks the button it is about, hover or not. */
+.booking-gap.onejob-tour-target {
+  opacity: 1;
+}
+
 .booking-gap:hover,
 .booking-gap:focus-visible {
   background: var(--accent-soft);

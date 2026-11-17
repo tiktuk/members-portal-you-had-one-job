@@ -200,8 +200,11 @@
 
     function go(to) {
       if (ended || to < 0 || to >= steps.length) return;
-      // Leaving a step may own something on the page (an open overlay).
-      if (to !== index && typeof steps[index]?.leave === "function") steps[index].leave("next");
+      // Leaving a step may own something on the page (an open overlay). The
+      // direction is part of the reason: a step can keep its overlay open when
+      // the next step points inside it, but Back always closes it.
+      if (to !== index && typeof steps[index]?.leave === "function")
+        steps[index].leave(to > index ? "next" : "back");
       index = to;
       const step = steps[index];
 
