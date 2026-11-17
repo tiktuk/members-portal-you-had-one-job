@@ -57,7 +57,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           name="$(node -p "require('./src/manifest.json').name")"
+          version="$(node -p "require('./src/manifest.json').version")"
           gh release create "$GITHUB_REF_NAME" \
-            dist/members-portal-you-had-one-job.zip \
+            "dist/members-portal-you-had-one-job-$version.zip" \
             --title "$name $GITHUB_REF_NAME" \
             --notes-file "$RUNNER_TEMP/release-notes.md"

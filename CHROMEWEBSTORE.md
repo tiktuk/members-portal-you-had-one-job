@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Members portal, you had one job
 
-> Last Updated: 2026-11-12
+> Last Updated: 2026-11-17
 
 Everything below is meant to be copy-pasted into the Chrome Developer Dashboard.
 Source of truth for the store presence: update it whenever the manifest, the
@@ -19,15 +19,15 @@ Members portal, you had one job
 **Short Description** [REQUIRED]
 
 ```
-Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin portal, so booking a machine takes one click.
+Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin portal, so you reach the right machine fast.
 ```
 
-<!-- 128 characters (limit 132). Identical to manifest.json "description". -->
+<!-- 127 characters (limit 132). Identical to manifest.json "description". -->
 
 **Detailed Description** [REQUIRED]
 
 ```
-Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin members portal, so booking a machine, lab or meeting room takes one click instead of four.
+Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin members portal, so you get to the right machine, lab or meeting room without digging through its menus.
 
 FEATURES
 
@@ -80,12 +80,8 @@ SUPPORT
 
 Found a bug or have a suggestion? Open an issue at https://github.com/tiktuk/members-portal-you-had-one-job/issues or email tukodeb@gmail.com.
 
-Version 1.0.2 — first release in the Chrome Web Store. Asks only for the one portal and the space's public events calendar.
+Version 1.1.1 — book the free slot beside a booking and cancel your own bookings from the overview, resource statistics, the 4 × 28 calendar heatmap, pins on every page and a first-run tour. No new permissions.
 ```
-
-<!-- Unreleased: resource statistics (the next submission). Bump package.json
-     and src/manifest.json to 1.1.0, add a version-history row and update the
-     version line above when this is submitted. -->
 
 **Category** [REQUIRED]
 
@@ -244,7 +240,8 @@ https://github.com/tiktuk/members-portal-you-had-one-job
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.1.0 | 2026-11-17 | Book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. No new permissions. | Draft |
+| 1.1.1 | 2026-11-17 | Next store submission after 1.0.2 (1.1.0 was never submitted): book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. The descriptions no longer promise a number of clicks and the release zip carries the version in its name. No new permissions. | Draft |
+| 1.1.0 | 2026-11-17 | Book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. No new permissions. | Not submitted (GitHub release only) |
 | 1.0.2 | 2026-11-06 | First store submission. Narrow permissions: `storage` plus the one portal and the space's events API; the "add another portal" field is gone. | Published |
 | 1.0.1 | 2026-11-06 | GitHub release only. Expand chevron on workshop and event rows no longer wraps onto its own line. | Not submitted |
 | 1.0.0 | 2026-11-05 | First release, GitHub only (unpacked installs). | Not submitted |
@@ -270,6 +267,10 @@ This extension only does anything on the MotionLab.Berlin members portal
 credentials are at the end of this field.
 
 After signing in, open https://members.motionlab.berlin/motionlabberlin/bookings/machines/calendar
+
+The first visit starts a short feature tour (Skip or Escape closes it; the
+toolbar popup's Replay button starts it again). It points at the same things
+listed below.
 
 1. Click "Resources" in the top navigation (or the Resources button in the bottom
    bar on a narrow window). The menu lists every resource type and group.
@@ -343,19 +344,19 @@ space's own booking API subdomain.
 ## Pre-Submission Checklist
 
 - [x] `manifest_version: 3`
-- [x] Version bumped to 1.0.2 and `package.json`, `src/manifest.json` and
+- [x] Version bumped to 1.1.1 and `package.json`, `src/manifest.json` and
       `CHANGELOG.md` agree (`npm test`)
 - [x] Manifest name and description match this document, description ≤ 132 chars
 - [x] ZIP is built from `src/` only — no `.git/`, `node_modules/`, tests,
-      screenshots, README, CHANGELOG or this file (24 files, ~55 KB)
+      screenshots, README, CHANGELOG or this file (27 files, ~105 KB)
 - [x] No remote code, no `eval`, no obfuscation; every file is in the package
 - [x] Every permission and host permission justified above
 - [x] Privacy policy published and the URL loads
 - [ ] Reviewer test account appended to the dashboard's notes field (never
       written in this file — the repo is public)
-- [ ] Screenshots 1–3 uploaded in the order listed
+- [ ] Screenshots 1–5 uploaded in the order listed
 - [ ] Data use disclosure in the dashboard matches the table above
-- [ ] ZIP uploaded from the `v1.0.2` GitHub release (not a local `dist/` build)
+- [ ] ZIP uploaded from the `v1.1.1` GitHub release (not a local `dist/` build)
 
-<!-- Release asset: https://github.com/tiktuk/members-portal-you-had-one-job/releases/download/v1.0.2/members-portal-you-had-one-job.zip
-     sha256 ae0adf346f03dd2ac3b80a69f2120c800590e5e686f95d084315ac8c1a6f7c1d (51,525 bytes, 23 files) -->
+<!-- Release asset: https://github.com/tiktuk/members-portal-you-had-one-job/releases/download/v1.1.1/members-portal-you-had-one-job-1.1.1.zip
+     sha256 (fill in after the v1.1.1 release is built) -->

@@ -157,7 +157,7 @@ tour replay:
 ### Chrome / Edge / Brave
 
 ```bash
-npm run build          # produces dist/chrome and dist/members-portal-you-had-one-job.zip
+npm run build          # produces dist/chrome and dist/members-portal-you-had-one-job-<version>.zip
 ```
 
 Then open `chrome://extensions`, enable *Developer mode*, choose

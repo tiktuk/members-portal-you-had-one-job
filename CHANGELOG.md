@@ -9,6 +9,18 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-17
+
+### Changed
+
+- The store description no longer promises "one click": the manifest's
+  description now says "so you reach the right machine fast", and the detailed
+  description opens without a click count. How many clicks a booking takes
+  depends on how you count.
+- The release zip is named with its version, `members-portal-you-had-one-job-<version>.zip`,
+  in `scripts/build.sh` and on the GitHub release, so downloads from different
+  releases no longer look alike.
+
 ## [1.1.0] - 2026-11-17
 
 ### Added
