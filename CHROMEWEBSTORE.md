@@ -111,16 +111,18 @@ English
 |-------|-----------|--------|----------|
 | Store Icon [REQUIRED] | 128×128 PNG | ✅ Ready | `src/icons/icon-128.png` (picked up from the manifest) |
 | Screenshot 1 [REQUIRED] | 1280×800 | ✅ Ready | `docs/screenshots/filters-menu.png` |
-| Screenshot 2 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview.png` |
-| Screenshot 3 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview-events.png` |
-| Screenshot 4 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics.png` |
-| Screenshot 5 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics-resources.png` |
+| Screenshot 2 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/calendar-heatmap.png` |
+| Screenshot 3 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview.png` |
+| Screenshot 4 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview-book-gap.png` |
+| Screenshot 5 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics.png` |
 | Small Promo Tile [RECOMMENDED] | 440×280 | ⬜ Not created | |
 | Marquee Promo Tile | 1400×560 | ⬜ Not created | |
 
 <!-- Status options: ⬜ Not created | 🟡 Needs update | ✅ Ready -->
 
-`docs/screenshots/popup.png` is 640×1181 and is README-only — the store rejects it.
+`docs/screenshots/popup.png` is 640×1676 and is README-only — the store rejects
+it. So are `overview-events.png` and `statistics-resources.png`: the store takes
+at most five screenshots.
 
 ### Screenshot Notes
 
@@ -130,12 +132,14 @@ member data appears in a public listing. Order them:
 
 1. `filters-menu.png` — the Resources menu open over the portal, showing types
    and groups. This is the feature that sells the extension.
-2. `overview.png` — the pinned overview with My bookings and resource cards.
-3. `overview-events.png` — the same view with the space's events merged in.
-4. `statistics.png` — the statistics header, summary tiles, year heatmap and
+2. `calendar-heatmap.png` — the 4 × 28 heatmap under the pins on a pinned
+   machine's calendar.
+3. `overview.png` — the pinned overview with My bookings and resource cards,
+   with the **+** and **×** of a hovered row.
+4. `overview-book-gap.png` — the book-a-gap dialog with the exact times and the
+   quoted price.
+5. `statistics.png` — the statistics header, summary tiles, year heatmap and
    weekday/time-of-day charts.
-5. `statistics-resources.png` — every resource colour-coded by booked hours per
-   day, from grey (unbooked) to the busiest.
 
 Regenerate with `python3 -m http.server 8765` and the capture steps in
 `tests/screenshots.html` if the UI changes; outdated screenshots are a

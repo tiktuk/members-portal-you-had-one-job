@@ -413,6 +413,15 @@
         }
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
+        // The book-a-gap and cancel dialogs: an invented member, a quoted price
+        // and a cancellation without a fee.
+        if (target.includes("/api/public/coworkers/profiles")) {
+          return json({ Profiles: [{ Id: 5001, FullName: "Alex Example", IsDefaultProfile: true }] });
+        }
+        if (target.includes("/api/public/checkout/basket/")) {
+          return json({ preview: { TotalAmount: 12, Currency: { Code: "EUR" } } });
+        }
+        if (target.includes("/cancellationFee")) return json({ hasCancellationFee: false });
         return json(window.__fixturePayload);
       };
 

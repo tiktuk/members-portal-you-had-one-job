@@ -117,10 +117,21 @@ the images can be regenerated without signing in.
 
 ![The Resources menu in the portal navigation](docs/screenshots/filters-menu.png)
 
+**The 4 × 28 heatmap** — on a pinned machine's calendar, four times of day over
+the last week and the next three, with your own bookings marked in green:
+
+![The heatmap under the pins on a single-resource calendar](docs/screenshots/calendar-heatmap.png)
+
 **The pinned resources overview** — your own bookings, then one card per pinned
-resource:
+resource. Hover a row for the **+** that books the free time beside it and the
+**×** that cancels your own booking:
 
 ![The pinned resources overview](docs/screenshots/overview.png)
+
+**Book the gap** — pick a duration, see the exact times and the portal's price,
+and confirm:
+
+![The book-a-gap dialog](docs/screenshots/overview-book-gap.png)
 
 **With Luma events merged in** — the space's public events carry an *Event*
 badge:
@@ -136,7 +147,8 @@ and every resource colour-coded by booked hours per day:
 
 ![Resource tiles colour-coded by booked hours](docs/screenshots/statistics-resources.png)
 
-**The toolbar popup** — six toggles, the pin count and the overview link:
+**The toolbar popup** — the toggles, the pin count, the overview link and the
+tour replay:
 
 <img src="docs/screenshots/popup.png" alt="The toolbar popup" width="320">
 
