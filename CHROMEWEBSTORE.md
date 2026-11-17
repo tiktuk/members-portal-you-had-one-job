@@ -359,4 +359,4 @@ space's own booking API subdomain.
 - [ ] ZIP uploaded from the `v1.1.1` GitHub release (not a local `dist/` build)
 
 <!-- Release asset: https://github.com/tiktuk/members-portal-you-had-one-job/releases/download/v1.1.1/members-portal-you-had-one-job-1.1.1.zip
-     sha256 (fill in after the v1.1.1 release is built) -->
+     sha256 4c0bfced2ae0ce6cfb47ac5ffb59a2bf777df461a5732031016254606a905e96 (107822 bytes, 27 files) -->
