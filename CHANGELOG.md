@@ -53,6 +53,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The category week view uses Nexudus resource `Allocation` to show concurrent
   capacity lanes. Remaining lanes stay bookable even while another unit is
   reserved; the portal feed does not identify the numbered physical machine.
+- The week view lightly distinguishes weekends, hides elapsed days in the
+  current week, and gives each day header its own shade and divider. Related
+  machines share a hue with a different shade per machine; machine colours are
+  on by default and can be turned off in the toolbar popup.
 
 ## [1.1.1] - 2026-11-17
 

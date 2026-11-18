@@ -46,6 +46,80 @@
     return { start, end: addDays(start, 7) };
   }
 
+  /**
+   * Hide elapsed days only for the week containing today. Historical weeks
+   * remain browseable in full, and future weeks keep their seven days.
+   */
+  function visibleDays(days) {
+    const entries = Array.isArray(days) ? days : [];
+    return entries.some((day) => day?.isToday)
+      ? entries.filter((day) => !day?.isPast)
+      : entries;
+  }
+
+  function machineColorMap(resources) {
+    const families = new Map();
+    for (const resource of Array.isArray(resources) ? resources : []) {
+      if (!resource || resource.id == null) continue;
+      const family = machineFamily(resource.name, resource.id);
+      if (!families.has(family)) families.set(family, []);
+      families.get(family).push(resource);
+    }
+
+    const paletteSize = 16;
+    const paletteIndices = new Map();
+    const usedIndices = new Set();
+    for (const family of [...families.keys()].sort()) {
+      const preferred = stableHash(family) % paletteSize;
+      let index = preferred;
+      while (usedIndices.has(index) && usedIndices.size < paletteSize) {
+        index = (index + 1) % paletteSize;
+      }
+      paletteIndices.set(family, index);
+      usedIndices.add(index);
+    }
+
+    const colors = new Map();
+    for (const [family, members] of families) {
+      members.sort((a, b) =>
+        String(a.name || "").localeCompare(String(b.name || ""), "en", { numeric: true, sensitivity: "base" }) ||
+        String(a.id).localeCompare(String(b.id)),
+      );
+      members.forEach((resource, index) => {
+        const shade = members.length === 1
+          ? 14
+          : 8 + Math.round((index / (members.length - 1)) * 16);
+        colors.set(String(resource.id), {
+          family,
+          paletteIndex: paletteIndices.get(family),
+          shade,
+        });
+      });
+    }
+    return colors;
+  }
+
+  function machineFamily(name, id) {
+    const normalized = String(name || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("en")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+    if (/\bhammer\b/.test(normalized)) return "hammer";
+    if (/^meeting room\b/.test(normalized)) return "meeting-room";
+    return normalized.split(/\s+/)[0] || `resource-${id}`;
+  }
+
+  function stableHash(value) {
+    let hash = 2166136261;
+    for (const character of String(value)) {
+      hash ^= character.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
   function hourLabel(hour) {
     return `${pad(hour)}:00`;
   }
@@ -424,8 +498,10 @@
   }
 
   globalThis.OneJobWeekGrid = {
+    machineColorMap,
     ownedResourceIds,
     slotAt,
+    visibleDays,
     weekGrid,
     weekRange,
     weekTitle,

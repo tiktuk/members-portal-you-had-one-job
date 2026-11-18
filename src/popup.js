@@ -9,6 +9,7 @@
     dayGrid: cfg.dayGrid?.enabled !== false,
     dayGridEvents: cfg.dayGrid?.events !== false,
     weekGrid: cfg.weekGrid?.enabled !== false,
+    machineColors: cfg.weekGrid?.machineColors !== false,
     lumaEvents: cfg.luma?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
   };
@@ -17,6 +18,7 @@
   const dayGridToggle = document.getElementById("day-grid");
   const dayGridEventsToggle = document.getElementById("day-grid-events");
   const weekGridToggle = document.getElementById("week-grid");
+  const machineColorsToggle = document.getElementById("machine-colors");
   const navToggle = document.getElementById("nav-menu");
   const navRowTitle = document.getElementById("nav-row-title");
   const navRowHint = document.getElementById("nav-row-hint");
@@ -39,6 +41,7 @@
     dayGridToggle.checked = settings.dayGrid !== false;
     dayGridEventsToggle.checked = settings.dayGridEvents !== false;
     weekGridToggle.checked = settings.weekGrid !== false;
+    machineColorsToggle.checked = settings.machineColors !== false;
     navToggle.checked = settings.navMenu !== false;
     lumaToggle.checked = settings.lumaEvents !== false;
     geoToggle.checked = settings.geoBlockPrompt !== false;
@@ -54,6 +57,9 @@
     );
     weekGridToggle.addEventListener("change", () =>
       saveSettings({ weekGrid: weekGridToggle.checked }),
+    );
+    machineColorsToggle.addEventListener("change", () =>
+      saveSettings({ machineColors: machineColorsToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
     lumaToggle.addEventListener("change", () =>

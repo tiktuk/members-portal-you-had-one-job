@@ -271,13 +271,17 @@
       load();
     }
     if (changes[cfg.storageKeys.settings]) {
+      const hadMachineColors = state.settings?.machineColors !== false;
       state.settings = changes[cfg.storageKeys.settings].newValue || null;
+      const hasMachineColors = state.settings?.machineColors !== false;
+      let shouldRender = hadMachineColors !== hasMachineColors;
       if (!eventsEnabled() && state.events.length) {
         state.events = [];
         state.eventsStatus = "idle";
         buildModel();
-        render();
+        shouldRender = true;
       }
+      if (shouldRender) render();
     }
   }
 
@@ -815,8 +819,12 @@
 
     const model = state.model;
     const count = model.resources.length;
+    const days = W.visibleDays(model.days);
+    const colorsEnabled = state.settings?.machineColors !== false;
+    const colors = colorsEnabled ? W.machineColorMap(state.allResources) : null;
     const scroll = el("div", "wg-scroll");
     scroll.style.setProperty("--wg-count", String(count));
+    scroll.style.setProperty("--wg-days", String(days.length));
     scroll.style.setProperty(
       "--wg-units",
       String(model.resources.reduce((sum, resource) => sum + Math.max(1, Number(resource.allocation) || 1), 0)),
@@ -827,6 +835,7 @@
     scroll.style.setProperty("--wg-names", `${Math.min(14, Math.max(6.5, 1 + longest * 0.42)).toFixed(1)}rem`);
     if (count === 1) scroll.classList.add("is-single");
     if (count <= 2) scroll.classList.add("is-wide");
+    if (colorsEnabled) scroll.classList.add("has-machine-colors");
     scroll.style.setProperty("--wg-hours", String(model.hourTo - model.hourFrom));
     if (state.loading) scroll.classList.add("is-loading");
 
@@ -834,11 +843,11 @@
 
     const head = el("div", "wg-head");
     head.appendChild(el("div", "wg-corner"));
-    for (const day of model.days) head.appendChild(dayHeader(day, model));
+    for (const day of days) head.appendChild(dayHeader(day, model, colors));
 
     const body = el("div", "wg-cols");
     body.appendChild(axis(model));
-    for (const day of model.days) body.appendChild(dayColumns(day, model));
+    for (const day of days) body.appendChild(dayColumns(day, model, colors));
 
     grid.append(head, body);
     scroll.appendChild(grid);
@@ -864,7 +873,7 @@
       .join(" ");
   }
 
-  function dayHeader(day, model) {
+  function dayHeader(day, model, colors) {
     const node = el("div", `wg-dayhead ${dayClasses(day)}`.trim());
     const label = el("div", "wg-daylabel");
     label.append(el("span", "wg-weekday", WEEKDAY.format(day.date)), el("span", "wg-date", DAY_NUMBER.format(day.date)));
@@ -877,6 +886,7 @@
       const capacity = Number(resource.allocation) > 1 ? Math.floor(Number(resource.allocation)) : 1;
       name.title = capacity > 1 ? `${resource.name} · ${capacity} bookable units` : resource.name;
       name.append(el("span", null, capacity > 1 ? `${resource.name} · ${capacity} units` : resource.name));
+      applyMachineColor(name, resource.id, colors);
       names.appendChild(name);
     }
     node.appendChild(names);
@@ -892,7 +902,7 @@
     return node;
   }
 
-  function dayColumns(day, model) {
+  function dayColumns(day, model, colors) {
     const node = el("div", `wg-day ${dayClasses(day)}`.trim());
     node.style.gridTemplateColumns = resourceTracks(day.columns);
 
@@ -910,7 +920,13 @@
       if (column.capacity > 1) {
         cell.classList.add("has-capacity");
         cell.style.setProperty("--wg-capacity", column.capacity);
+        for (let lane = 1; lane < column.capacity; lane += 1) {
+          const divider = el("span", "wg-capacity-divider");
+          divider.style.left = `${(lane / column.capacity) * 100}%`;
+          cell.appendChild(divider);
+        }
       }
+      applyMachineColor(cell, column.resourceId, colors);
       ui.cells.set(cell, { day, column });
 
       for (const block of column.blocks) cell.appendChild(blockNode(block, column));
@@ -942,6 +958,14 @@
     return resources
       .map((resource) => `${Math.max(1, Number(resource.capacity ?? resource.allocation) || 1)}fr`)
       .join(" ");
+  }
+
+  function applyMachineColor(node, resourceId, colors) {
+    const color = colors?.get(String(resourceId));
+    if (!color) return;
+    node.classList.add("is-machine-colored");
+    node.style.setProperty("--wg-machine-color", `var(--wg-family-${color.paletteIndex})`);
+    node.style.setProperty("--wg-machine-shade", `${color.shade}%`);
   }
 
   function range(block) {

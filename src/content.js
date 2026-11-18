@@ -34,6 +34,7 @@
     dayGrid: cfg.dayGrid?.enabled !== false,
     dayGridEvents: cfg.dayGrid?.events !== false,
     weekGrid: cfg.weekGrid?.enabled !== false,
+    machineColors: cfg.weekGrid?.machineColors !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
     /** `cfg.onboarding.version` once the pinning tour has been shown. */
     onboardingVersion: 0,

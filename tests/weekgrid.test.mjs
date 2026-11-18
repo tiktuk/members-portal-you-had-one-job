@@ -52,6 +52,43 @@ test("weekRange aligns to Monday and steps by weeks", () => {
   assert.equal(W.weekRange(new Date(2026, 0, 7), -1).start.getTime(), new Date(2025, 11, 29).getTime());
 });
 
+test("visibleDays hides elapsed days only in the current week", () => {
+  const current = grid([]);
+  assert.deepEqual(
+    plain(W.visibleDays(current.days).map((day) => day.key)),
+    ["2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11"],
+  );
+
+  const previous = W.weekGrid([], RESOURCES, {
+    weekStart: new Date(2025, 11, 31),
+    now: NOW,
+  });
+  assert.equal(W.visibleDays(previous.days).length, 7);
+});
+
+test("machineColorMap gives related models one hue and different shades", () => {
+  const colors = W.machineColorMap([
+    { id: "w1", name: "WASP 3MT Industrial" },
+    { id: "w2", name: "WASP 2040 Turbo2" },
+    { id: "w3", name: "WASP 4070 Industrial" },
+    { id: "p1", name: "Prusa - MK4" },
+    { id: "p2", name: "Prusa - XL" },
+    { id: "h1", name: "Band saw - Hammer N4400" },
+    { id: "h2", name: "Table saw / Router table - Hammer B3 winner" },
+  ]);
+  const wasps = ["w1", "w2", "w3"].map((id) => colors.get(id));
+  const prusas = ["p1", "p2"].map((id) => colors.get(id));
+  const hammers = ["h1", "h2"].map((id) => colors.get(id));
+
+  assert.equal(new Set(wasps.map((entry) => entry.family)).size, 1);
+  assert.equal(new Set(wasps.map((entry) => entry.paletteIndex)).size, 1);
+  assert.equal(new Set(wasps.map((entry) => entry.shade)).size, 3);
+  assert.notEqual(wasps[0].paletteIndex, prusas[0].paletteIndex);
+  assert.equal(hammers[0].family, hammers[1].family);
+  assert.equal(hammers[0].paletteIndex, hammers[1].paletteIndex);
+  assert.notEqual(hammers[0].shade, hammers[1].shade);
+});
+
 test("the grid has seven days with one column per resource in order", () => {
   const model = grid([]);
   assert.equal(model.days.length, 7);

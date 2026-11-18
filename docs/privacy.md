@@ -1,6 +1,6 @@
 # Privacy Policy — Members portal, you had one job
 
-Last updated: 12 November 2026
+Last updated: 18 November 2026
 
 **Members portal, you had one job** is a browser extension that adds resource
 filters, pinned single-resource calendars, a pinned-resources overview and a
@@ -19,8 +19,9 @@ goes to your own portal.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned and the seven toggles in
-  the toolbar popup.
+- **Your pins and settings.** Which resources you pinned and the eight toggles
+  in the toolbar popup, including whether related machines are coloured in the
+  week view.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to
   fill the overview cards and the category week view. Booking records include the name of the member who
@@ -55,7 +56,7 @@ goes to your own portal.
 
 Everything stays on your device, in the extension's own local storage:
 
-- Pins and settings.
+- Pins and settings, including the week-view machine-colours preference.
 - A cached copy of the resource groups, so the Resources menu opens instantly.
 - The portal session, so the overview page works without reopening the portal.
 - A cached copy of the booking times used by the statistics screen (resource id,

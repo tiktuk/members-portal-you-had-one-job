@@ -116,7 +116,7 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/stats.css` — the statistics screen's own styles, loaded after
   `overview.css` in the same shadow root so it can reuse the palette, header,
   buttons, notices and footer.
-- `src/popup.*` — toolbar settings UI (seven toggles, the tour replay row, group
+- `src/popup.*` — toolbar settings UI (eight toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
@@ -648,6 +648,13 @@ dashboard's notes field and, if they need to live on disk, into
   (`config.weekGrid.hourFrom`/`hourTo`, 06–22) grows to include any booking
   outside it, so nothing is hidden. Blocks keep `rawStart`/`rawEnd` for the real
   times of a booking that crosses midnight.
+- **Day visibility and colours:** `W.visibleDays()` omits elapsed days only
+  when the selected week contains today; navigating to a historical week keeps
+  all seven days. Weekends have a subtle surface tint; each day header has a
+  distinct tint and divider. The popup's `settings.machineColors` preference
+  (default true) controls related-machine colours; `W.machineColorMap()` groups
+  related names (for example WASP, Prusa, Formlabs, GS, OLSK, ewm and Hammer)
+  by hue and gives each resource a stable shade.
 - **Booking:** a pointer position becomes a time via the column's bounding box;
   `slotAt` snaps it down to `config.overview.booking.intervalMinutes`, says
   whether the resource has capacity for the snapped interval and how long it

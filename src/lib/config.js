@@ -126,6 +126,8 @@
     weekGrid: {
       /** Default for the popup's "Category week view" toggle. */
       enabled: true,
+      /** Default for the popup's related-machine colours setting. */
+      machineColors: true,
       label: "Week view",
       /** Label of the group's row in the Resources menu. */
       menuLabel: "Week view",
@@ -158,6 +160,7 @@
         { key: "calendarDefault", label: "Calendar as default view" },
         { key: "dayGrid", label: "Bookings heatmap" },
         { key: "dayGridEvents", label: "Luma events in heatmap" },
+        { key: "machineColors", label: "Machine colours in week view" },
         { key: "lumaEvents", label: "Luma events in overview" },
         { key: "navMenu", label: "Resources in the main menu" },
         { key: "geoBlockPrompt", label: "Block location prompt" },

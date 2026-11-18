@@ -14,6 +14,23 @@
   --wg-block-fg: var(--fg);
   --wg-mine: var(--accent);
   --wg-mine-fg: #fff;
+  --wg-day-divider: color-mix(in oklab, var(--line) 70%, var(--fg));
+  --wg-family-0: #176b87;
+  --wg-family-1: #b85c2b;
+  --wg-family-2: #5e7d3d;
+  --wg-family-3: #a34c43;
+  --wg-family-4: #247d77;
+  --wg-family-5: #94741c;
+  --wg-family-6: #53739a;
+  --wg-family-7: #865f43;
+  --wg-family-8: #657d3e;
+  --wg-family-9: #b25f78;
+  --wg-family-10: #3c7d9c;
+  --wg-family-11: #9c6c35;
+  --wg-family-12: #586e48;
+  --wg-family-13: #a95538;
+  --wg-family-14: #3e7772;
+  --wg-family-15: #81762b;
 
   max-width: none;
   min-width: 0;
@@ -115,13 +132,19 @@
 }
 
 .wg {
-  min-width: calc(var(--wg-axis) + 7 * max(var(--wg-units) * var(--wg-col-min), var(--wg-day-min)));
+  min-width: calc(
+    var(--wg-axis) +
+    var(--wg-days) * max(var(--wg-units) * var(--wg-col-min), var(--wg-day-min))
+  );
 }
 
 .wg-head,
 .wg-cols {
   display: grid;
-  grid-template-columns: var(--wg-axis) repeat(7, minmax(max(calc(var(--wg-units) * var(--wg-col-min)), var(--wg-day-min)), 1fr));
+  grid-template-columns: var(--wg-axis) repeat(
+    var(--wg-days),
+    minmax(max(calc(var(--wg-units) * var(--wg-col-min)), var(--wg-day-min)), 1fr)
+  );
 }
 
 .wg-head {
@@ -141,7 +164,31 @@
 
 .wg-dayhead {
   min-width: 0;
-  border-left: 1px solid var(--line);
+  --wg-day-header-base: color-mix(in oklab, var(--surface), var(--muted) var(--wg-header-tint, 0%));
+  --wg-day-surface: var(--wg-day-header-base);
+  border-inline-start: 2px solid var(--wg-day-divider);
+  background-color: var(--wg-day-surface);
+}
+
+.wg-dayhead:nth-child(2) { --wg-header-tint: 2%; }
+.wg-dayhead:nth-child(3) { --wg-header-tint: 3%; }
+.wg-dayhead:nth-child(4) { --wg-header-tint: 4%; }
+.wg-dayhead:nth-child(5) { --wg-header-tint: 5%; }
+.wg-dayhead:nth-child(6) { --wg-header-tint: 6%; }
+.wg-dayhead:nth-child(7) { --wg-header-tint: 7%; }
+.wg-dayhead:nth-child(8) { --wg-header-tint: 8%; }
+
+.wg-dayhead.is-weekend {
+  --wg-day-surface: color-mix(in oklab, var(--wg-day-header-base) 92%, var(--muted));
+}
+
+.wg-dayhead.is-today {
+  --wg-day-surface: color-mix(in oklab, var(--wg-day-header-base) 94%, var(--accent));
+}
+
+.wg-dayhead:last-child,
+.wg-day:last-child {
+  border-inline-end: 1px solid var(--wg-day-divider);
 }
 
 .wg-daylabel {
@@ -236,7 +283,7 @@
   grid-template-columns: repeat(var(--wg-count), minmax(0, 1fr));
   min-width: 0;
   height: calc(var(--wg-hours) * var(--wg-hour));
-  border-left: 1px solid var(--line);
+  border-inline-start: 2px solid var(--wg-day-divider);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
@@ -244,14 +291,15 @@
     var(--line) calc(var(--wg-hour) - 1px),
     var(--line) var(--wg-hour)
   );
+  background-color: var(--wg-day-surface, var(--surface));
 }
 
 .wg-day.is-weekend {
-  background-color: color-mix(in srgb, var(--muted) 5%, transparent);
+  --wg-day-surface: color-mix(in oklab, var(--surface) 94%, var(--muted));
 }
 
 .wg-day.is-today {
-  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+  --wg-day-surface: color-mix(in oklab, var(--wg-day-surface, var(--surface)) 94%, var(--accent));
 }
 
 .wg-col {
@@ -261,14 +309,12 @@
   cursor: pointer;
 }
 
-.wg-col.has-capacity {
-  background-image: repeating-linear-gradient(
-    to right,
-    transparent 0,
-    transparent calc(100% / var(--wg-capacity) - 1px),
-    var(--line) calc(100% / var(--wg-capacity) - 1px),
-    var(--line) calc(100% / var(--wg-capacity))
-  );
+.wg-capacity-divider {
+  position: absolute;
+  z-index: 0;
+  inset-block: 0;
+  border-inline-start: 1px dotted var(--line);
+  pointer-events: none;
 }
 
 .wg-col + .wg-col {
@@ -285,6 +331,38 @@
 
 .wg-day.is-past .wg-col:hover {
   background-color: transparent;
+}
+
+.wg-scroll.has-machine-colors .wg-name.is-machine-colored,
+.wg-scroll.has-machine-colors .wg-col.is-machine-colored {
+  --wg-machine-surface: color-mix(
+    in oklab,
+    var(--wg-machine-color) var(--wg-machine-shade),
+    var(--wg-day-surface, var(--surface))
+  );
+  background-color: var(--wg-machine-surface);
+}
+
+.wg-scroll.has-machine-colors .wg-col.is-machine-colored:hover {
+  background-color: color-mix(in oklab, var(--accent) 10%, var(--wg-machine-surface));
+}
+
+@media (forced-colors: active) {
+  .wg-dayhead,
+  .wg-day {
+    background-color: Canvas;
+    border-color: CanvasText;
+  }
+
+  .wg-scroll.has-machine-colors .wg-name.is-machine-colored,
+  .wg-scroll.has-machine-colors .wg-col.is-machine-colored {
+    background-color: Canvas;
+  }
+
+  .wg-capacity-divider {
+    border-color: CanvasText;
+  }
+
 }
 
 /* ------------------------------------------------------------------ *

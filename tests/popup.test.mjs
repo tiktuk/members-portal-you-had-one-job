@@ -39,6 +39,14 @@ test("the two event rows are named by the view they affect", () => {
   assert.match(html, /Luma events in heatmap/);
 });
 
+test("week-view machine colours are a default-on popup setting", () => {
+  const config = loadConfig();
+  assert.equal(config.weekGrid.machineColors, true);
+  assert.ok(config.onboarding.settings.some((row) => row.key === "machineColors"));
+  assert.match(html, /id="machine-colors"/);
+  assert.match(script, /machineColors: machineColorsToggle\.checked/);
+});
+
 test("the overview header has no events toggle", () => {
   const view = readFileSync(join(src, "lib", "overview-view.js"), "utf8");
   assert.doesNotMatch(view, /button-toggle/);

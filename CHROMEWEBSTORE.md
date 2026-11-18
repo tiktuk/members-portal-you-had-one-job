@@ -47,7 +47,7 @@ FEATURES
 
 • Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
-• Category week view — open it from the "Week view" link at the right end of the strip above a category calendar, or from the Week view row under each group in the Resources menu. All machines of the category appear side by side: seven days across, one narrow column per machine inside each day, one shared hour axis, so you can see which machine is free at the same hour. For resources that represent multiple physical units, the grid shows separate capacity lanes and leaves remaining units bookable; it cannot identify which numbered physical machine a booking uses. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Category week view" toggle hides the button and the menu rows.
+• Category week view — open it from the "Week view" link at the right end of the strip above a category calendar, or from the Week view row under each group in the Resources menu. Machines appear side by side by day on a shared hour axis; weekends are lightly shaded, elapsed days are hidden in the current week, and day headers have distinct shades and separators. Related machines share a hue with a different shade per machine; colours are on by default and can be turned off in the toolbar popup. For resources that represent multiple physical units, the grid shows separate capacity lanes and leaves remaining units bookable; it cannot identify which numbered physical machine a booking uses. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Category week view" toggle hides the button and the menu rows.
 
 • Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar; a dot marks the space's Luma events in that block and a green bar marks your own bookings; workshop reservations and bookings linked from another resource count as occupied. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it and "Luma events in heatmap" hides the dots.
 
@@ -65,7 +65,7 @@ HOW TO USE
 4. Open that pin. The heatmap under the strip shows the resource's booked share of each six-hour block for the last week and the next three; click a square to jump to that week.
 5. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings. Hover a booking there to book the slot just before or after it, and use the × on your own rows to cancel one.
 6. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
-7. The toolbar icon opens the overview as a full page, lists your pins, and holds the seven toggles.
+7. The toolbar icon opens the overview as a full page, lists your pins, and holds the eight toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
 
@@ -152,7 +152,7 @@ rejection reason.
 **Permissions justification** — 842 of 1,000 characters
 
 ```
-storage: keeps pins, the seven popup toggles, a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
+storage: keeps pins, the eight popup toggles (including the machine-colours preference), a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
 https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics, and to create or cancel the booking the member confirms in the overview or the category week view. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
@@ -297,9 +297,9 @@ listed below.
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
-7. The toolbar popup has seven toggles: calendar as default view, the bookings
-   heatmap, the category week view, Luma events in heatmap, Luma events in overview, the
-   Resources menu and the location prompt block.
+7. The toolbar popup has eight toggles: calendar as default view, the bookings
+  heatmap, the category week view, Luma events in heatmap, Luma events in overview, the
+  machine colours in week view, the Resources menu and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
 content_scripts.matches and asks for host access to just that site and to the
