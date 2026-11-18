@@ -19,6 +19,12 @@
   const SUCCESS_MS = 8 * 1000;
   const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
   const DAY_NUMBER = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+  const DAY_TITLE = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   const CLOCK = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   function weekCfg() {
@@ -38,7 +44,9 @@
       mode: "category",
       /** { type, group, label } of the menu group the view was opened from. */
       scope: null,
+      viewMode: "week",
       weekOffset: 0,
+      dayOffset: 0,
       /** weekStart ms -> { fetchedAt, records, reserved, mine, me }. */
       weeks: {},
       events: [],
@@ -63,6 +71,11 @@
     onClose: null,
     summary: null,
     modes: null,
+    viewModes: null,
+    heading: null,
+    nav: null,
+    previousButton: null,
+    nextButton: null,
     title: null,
     notice: null,
     success: null,
@@ -138,6 +151,11 @@
     ui.onClose = null;
     ui.summary = null;
     ui.modes = null;
+    ui.viewModes = null;
+    ui.heading = null;
+    ui.nav = null;
+    ui.previousButton = null;
+    ui.nextButton = null;
     ui.title = null;
     ui.notice = null;
     ui.success = null;
@@ -178,7 +196,8 @@
 
     const header = el("header", "page-header");
     const heading = el("div", "page-heading");
-    heading.appendChild(el("h1", null, weekCfg().label || "Week view"));
+    ui.heading = el("h1", null, weekCfg().label || "Week view");
+    heading.appendChild(ui.heading);
     ui.modes = el("div", "wg-modes");
     ui.modes.setAttribute("role", "group");
     ui.modes.setAttribute("aria-label", "Show");
@@ -189,20 +208,37 @@
 
     const actions = el("div", "actions");
 
+    ui.viewModes = el("div", "wg-modes");
+    ui.viewModes.setAttribute("role", "group");
+    ui.viewModes.setAttribute("aria-label", "Calendar view");
+    for (const mode of ["week", "day"]) {
+      const button = el("button", "wg-mode", mode === "week" ? "Week" : "Day");
+      button.type = "button";
+      button.dataset.viewMode = mode;
+      button.setAttribute("aria-pressed", String(state.viewMode === mode));
+      button.addEventListener("click", () => setViewMode(mode));
+      ui.viewModes.appendChild(button);
+    }
+
     const nav = el("div", "wg-nav");
-    nav.setAttribute("role", "group");
-    nav.setAttribute("aria-label", "Week");
+    ui.nav = nav;
     const today = el("button", "button", "Today");
     today.type = "button";
-    today.addEventListener("click", () => goToWeek(0, true));
+    today.addEventListener("click", () => {
+      if (state.viewMode === "day") goToDay(0, true);
+      else goToWeek(0, true);
+    });
     ui.title = el("span", "wg-title");
     ui.title.setAttribute("aria-live", "polite");
+    ui.previousButton = iconButton("Previous period", "‹", () => moveDate(-1));
+    ui.nextButton = iconButton("Next period", "›", () => moveDate(1));
     nav.append(
-      iconButton("Previous week", "‹", () => goToWeek(state.weekOffset - 1)),
+      ui.previousButton,
       ui.title,
-      iconButton("Next week", "›", () => goToWeek(state.weekOffset + 1)),
+      ui.nextButton,
       today,
     );
+    actions.appendChild(ui.viewModes);
     actions.appendChild(nav);
 
     ui.refreshButton = el("button", "button", "Refresh");
@@ -393,8 +429,62 @@
     return state.origin || cfg.portal.origin;
   }
 
-  function weekStart(offset = state.weekOffset) {
+  function weekStart() {
+    const offset = state.viewMode === "day"
+      ? Math.floor((weekdayIndex() + state.dayOffset) / 7)
+      : state.weekOffset;
     return W.weekRange(new Date(), offset).start;
+  }
+
+  function weekdayIndex(date = new Date()) {
+    return (date.getDay() + 6) % 7;
+  }
+
+  function selectedDay() {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + state.dayOffset);
+    return date;
+  }
+
+  function dayKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function setViewMode(mode) {
+    if (mode === state.viewMode) return;
+    const scroll = ui.body?.querySelector(".wg-scroll");
+    if (scroll) scroll.scrollLeft = 0;
+    const weekday = weekdayIndex();
+    if (mode === "day") {
+      state.dayOffset = state.weekOffset === 0 ? 0 : state.weekOffset * 7 - weekday;
+    } else {
+      state.weekOffset = Math.floor((weekday + state.dayOffset) / 7);
+    }
+    state.viewMode = mode === "day" ? "day" : "week";
+    state.notice = "";
+    buildModel();
+    render();
+    load();
+  }
+
+  function moveDate(delta) {
+    if (state.viewMode === "day") goToDay(state.dayOffset + delta);
+    else goToWeek(state.weekOffset + delta);
+  }
+
+  function goToDay(offset, reload = false) {
+    if (state.viewMode === "day" && offset === state.dayOffset && !reload) return;
+    state.viewMode = "day";
+    state.dayOffset = offset;
+    state.notice = "";
+    buildModel();
+    render();
+    load();
   }
 
   function currentWeek() {
@@ -402,7 +492,8 @@
   }
 
   function goToWeek(offset, reload = false) {
-    if (offset === state.weekOffset && !reload) return;
+    if (state.viewMode === "week" && offset === state.weekOffset && !reload) return;
+    state.viewMode = "week";
     state.weekOffset = offset;
     state.notice = "";
     buildModel();
@@ -702,10 +793,20 @@
     if (!ui.root) return;
     const session = currentSession();
     const start = weekStart();
+    const dayView = state.viewMode === "day";
 
     ui.refreshButton.disabled = state.loading;
     ui.refreshButton.textContent = state.loading ? "Refreshing…" : "Refresh";
-    ui.title.textContent = W.weekTitle(start);
+    ui.heading.textContent = dayView ? "Day view" : weekCfg().label || "Week view";
+    ui.nav.setAttribute("aria-label", dayView ? "Day" : "Week");
+    ui.previousButton.title = dayView ? "Previous day" : "Previous week";
+    ui.previousButton.setAttribute("aria-label", ui.previousButton.title);
+    ui.nextButton.title = dayView ? "Next day" : "Next week";
+    ui.nextButton.setAttribute("aria-label", ui.nextButton.title);
+    ui.title.textContent = dayView ? DAY_TITLE.format(selectedDay()) : W.weekTitle(start);
+    for (const button of ui.viewModes.children) {
+      button.setAttribute("aria-pressed", String(button.dataset.viewMode === state.viewMode));
+    }
     renderModes();
     ui.summary.textContent = summaryText(session);
 
@@ -819,7 +920,10 @@
 
     const model = state.model;
     const count = model.resources.length;
-    const days = W.visibleDays(model.days);
+    const selectedDate = selectedDay();
+    const days = state.viewMode === "day"
+      ? model.days.filter((day) => day.key === dayKey(selectedDate))
+      : W.visibleDays(model.days);
     const colorsEnabled = state.settings?.machineColors !== false;
     const colors = colorsEnabled ? W.machineColorMap(state.allResources) : null;
     const scroll = el("div", "wg-scroll");

@@ -47,6 +47,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- The category week view can switch between a full week and a single-day view;
+  day navigation moves one date at a time.
 - Booking durations can be entered as hours and minutes. Durations use
   one-minute precision unless Nexudus provides a resource `IntervalLimit`.
 - The booking and cancel dialogs moved out of the overview into

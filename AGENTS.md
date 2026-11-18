@@ -578,8 +578,9 @@ dashboard's notes field and, if they need to live on disk, into
 ## Category week view
 
 - **What it is:** `OneJobWeekGridView` shows every resource of one menu group
-  (or of the calendar on screen) in a single week grid: seven day groups across,
-  one narrow column per resource inside each day, one shared hour axis. The
+  (or of the calendar on screen) in a shared-hour grid. Week mode shows seven
+  day groups; day mode shows one selected date, with one narrow column per
+  resource and the same hour axis. The
   portal's own week view cannot do this (`resourceTimeGrid/7` nests days inside
   resources), and reaching into FullCalendar was rejected for the same reason as
   the two-week idea above, so this is our own overlay (`kind: "week"`,
@@ -603,6 +604,11 @@ dashboard's notes field and, if they need to live on disk, into
   single-resource calendar the scope carries `resourceId` (from `dayGridPin()`),
   the view filters the list to that one resource, hides the rotated names
   (`.is-single`) and each day gets `--wg-day-min` (7rem) instead of 30px.
+  A separate Week/Day toggle controls the date layout, not the resource scope.
+  Day mode opens today from the current week, or Monday from a browsed week;
+  its arrows move by one day and Today returns to the current date. Switching
+  back to Week selects the week containing the chosen day. `dayOffset` is
+  relative to today; cached booking data remains keyed by week start.
   The header's `.wg-modes` switch picks what the grid shows
   (`state.mode`, `resourcesFor()`): `single` (only with `resourceId`), `pinned`
   (the pins of the scope's type, offered when there is more than the one machine),
