@@ -247,6 +247,7 @@ test("capacity lanes leave remaining units bookable beside a partial booking", (
   assert.equal(block.lane, 0);
   assert.equal(block.unitCount, 2);
   assert.equal(block.lanes, 3);
+  assert.equal(column.visibleLanes, 3);
 
   const free = W.slotAt(column, at(7, 13, 30), { now: NOW });
   assert.equal(free.occupied, null);
@@ -277,6 +278,46 @@ test("capacity lanes leave remaining units bookable beside a partial booking", (
   assert.equal(fullColumn.blocks[1].lanes, 3);
 });
 
+test("visible capacity lanes are compact per day and preserve over-capacity bookings", () => {
+  const resources = [{ id: "10", name: "MK4S", allocation: 4 }];
+  const records = [
+    record("1", "10", at(7, 9), at(7, 12)),
+    record("2", "10", at(7, 10), at(7, 11)),
+    record("3", "10", at(8, 9), at(8, 12), { coworkerId: "77", coworkerName: "Florian" }),
+    record("4", "10", at(8, 9), at(8, 12), { coworkerId: "77", coworkerName: "Florian" }),
+    record("5", "10", at(8, 10), at(8, 11)),
+    record("6", "10", at(10, 9), at(10, 12)),
+    record("7", "10", at(10, 9), at(10, 12)),
+    record("8", "10", at(10, 9), at(10, 12)),
+    record("9", "10", at(10, 9), at(10, 12)),
+    record("10", "10", at(11, 9), at(11, 12)),
+    record("11", "10", at(11, 9), at(11, 12)),
+    record("12", "10", at(11, 9), at(11, 12)),
+    record("13", "10", at(11, 9), at(11, 12)),
+    record("14", "10", at(11, 9), at(11, 12)),
+  ];
+  const model = W.weekGrid(records, resources, {
+    weekStart: WEEK,
+    now: NOW,
+    reserved: [{ resourceId: "10", start: at(9, 9), end: at(9, 12), name: "Workshop" }],
+  });
+  const columns = model.days.map((day) => day.columns[0]);
+
+  assert.deepEqual(plain(columns.map((column) => column.visibleLanes)), [1, 1, 3, 4, 2, 4, 5]);
+  assert.equal(columns[2].blocks.every((block) => block.lanes === 3), true);
+  assert.equal(columns[3].blocks.every((block) => block.lanes === 4), true);
+  assert.equal(columns[4].blocks[0].reserved, true);
+
+  const partlyAvailable = W.slotAt(columns[2], at(7, 10, 15), { now: NOW });
+  assert.equal(partlyAvailable.capacity, 4);
+  assert.equal(partlyAvailable.availableUnits, 2);
+  assert.equal(partlyAvailable.occupied, null);
+  const full = W.slotAt(columns[5], at(10, 10, 15), { now: NOW });
+  assert.equal(full.capacity, 4);
+  assert.equal(full.availableUnits, 0);
+  assert.ok(full.occupied);
+});
+
 test("workshop reservations block their machine and are flagged", () => {
   const model = grid([], {
     reserved: [
@@ -299,7 +340,7 @@ test("overlapping blocks in one column get side-by-side lanes", () => {
     record("c", "10", at(7, 13), at(7, 14)),
   ]);
   const blocks = model.days[2].columns[0].blocks;
-  assert.deepEqual(plain(blocks.map((block) => [block.lane, block.lanes])), [[0, 2], [1, 2], [0, 1]]);
+  assert.deepEqual(plain(blocks.map((block) => [block.lane, block.lanes])), [[0, 2], [1, 2], [0, 2]]);
 });
 
 test("ownedResourceIds lists the machines the member has booked", () => {

@@ -178,12 +178,15 @@
    * Bookings take their `count` of adjacent capacity lanes. Over-capacity
    * overlaps extend the lane count so no booking is hidden.
    */
-  function assignLanes(blocks, capacity = 1) {
+  function assignLanes(blocks) {
     let cluster = [];
     let clusterEnd = -Infinity;
+    let peak = 0;
     const close = () => {
-      const lanes = cluster.reduce((max, block) => Math.max(max, block.lane + block.unitCount), capacity);
-      for (const block of cluster) block.lanes = lanes;
+      peak = Math.max(
+        peak,
+        cluster.reduce((max, block) => Math.max(max, block.lane + block.unitCount), 0),
+      );
       cluster = [];
     };
     const laneEnds = [];
@@ -216,6 +219,7 @@
       clusterEnd = Math.max(clusterEnd, block.end);
     }
     close();
+    return peak;
   }
 
   /**
@@ -275,6 +279,7 @@
           resourceId: column.id,
           name: column.name,
           capacity: column.capacity,
+          visibleLanes: 1,
           blocks: [],
         })),
         events: [],
@@ -399,7 +404,11 @@
     for (const day of days) {
       for (const column of day.columns) {
         column.blocks.sort((a, b) => a.start - b.start);
-        assignLanes(column.blocks, column.capacity);
+        const peak = assignLanes(column.blocks);
+        // Keep one spare visual lane where capacity permits; availability still
+        // uses the full Allocation in slotAt.
+        column.visibleLanes = peak >= column.capacity ? peak : Math.max(1, peak + 1);
+        for (const block of column.blocks) block.lanes = column.visibleLanes;
       }
     }
 

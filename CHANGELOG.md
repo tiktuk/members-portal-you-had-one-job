@@ -50,6 +50,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The booking and cancel dialogs moved out of the overview into
   `lib/booking-dialog.js` so the overview and the week view share them. No
   change in behaviour.
+- The week view shows each resource's peak concurrent usage per day plus one
+  spare lane for new bookings, up to its Nexudus `Allocation`. The lane count
+  grows after a booking when capacity permits, while lanes remain shared
+  capacity rather than numbered physical units. The dashed booking preview is
+  confined to the free lane under the pointer.
 - The category week view uses Nexudus resource `Allocation` to show concurrent
   capacity lanes. Remaining lanes stay bookable even while another unit is
   reserved; the portal feed does not identify the numbered physical machine.

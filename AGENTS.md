@@ -622,10 +622,13 @@ dashboard's notes field and, if they need to live on disk, into
   and end (different ids; the resource has `AllowMultipleBookings`) become one
   visual block with `count` ("×2"), because the portal's calendar draws them
   once; the count still consumes that many units of the resource's `Allocation`.
-  Multi-unit resources get proportionally wider capacity lanes, and a blank lane
-  stays bookable until capacity is full. The feed does not map a booking to a
-  particular physical unit. A record that names nobody is never merged. Checked
-  against the live feed: one
+  Multi-unit resources show each day's peak concurrent usage plus one spare
+  visual lane, up to `Allocation`; when the day is empty, one lane remains.
+  If the feed exceeds `Allocation`, all used lanes stay visible. Bookings after
+  a successful create are refetched so another spare appears when capacity
+  remains. The full `Allocation` still controls availability, and the feed does
+  not map a booking to a particular physical unit. A record that names nobody
+  is never merged. Checked against the live feed: one
   member's 13:00–23:45 booking arrived as two records on the Enclosure 0,4mm, two
   on the MK4S and four linked copies on the "3D Printing Lab", which is not in the
   machines category. Overlapping blocks in a column get `lane`/`lanes` from `assignLanes` and sit
@@ -656,6 +659,8 @@ dashboard's notes field and, if they need to live on disk, into
   related names (for example WASP, Prusa, Formlabs, GS, OLSK, ewm and Hammer)
   by hue and gives each resource a stable shade.
 - **Booking:** a pointer position becomes a time via the column's bounding box;
+  its x position selects the visible lane for the dashed booking preview, while
+  the create request still targets the resource/time (not a physical unit);
   `slotAt` snaps it down to `config.overview.booking.intervalMinutes`, says
   whether the resource has capacity for the snapped interval and how long it
   stays available before reaching full capacity (capped at midnight). Clicking
@@ -670,10 +675,11 @@ dashboard's notes field and, if they need to live on disk, into
   gap buttons) or `startStamp` (a free slot). Call `reset()` when the session
   changes. Load it before the view that uses it, including in `overview.html`.
 - **Layout:** `.wg-head` (sticky) and `.wg-cols` are grids with the same
-  `var(--wg-axis) repeat(7, minmax(sum of allocation * 30px, 1fr))` template
-  inside one scroll box, so they stay aligned and the grid scrolls sideways
-  instead of squeezing capacity lanes below 30px. Resource tracks are weighted
-  by allocation, and each multi-unit column is split into visible lanes.
+  `var(--wg-axis) repeat(7, minmax(max visible daily lane count * 30px, 1fr))`
+  template inside one scroll box, so they stay aligned and the grid scrolls
+  sideways instead of squeezing lanes below 30px. Each day's resource tracks
+  are weighted by that resource's peak concurrent usage plus one spare (up to
+  `Allocation`); all blocks in a resource/day use the same lane denominator.
   Machine names are vertical text (`writing-mode: vertical-rl`, reading top to bottom, anchored at the top, as are the names inside blocks) with
   an absolute `max-height` (a percentage did not truncate reliably after a
   re-render). The body re-renders on every state change, so `renderBody` restores

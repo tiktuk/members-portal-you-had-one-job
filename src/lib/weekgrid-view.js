@@ -827,7 +827,10 @@
     scroll.style.setProperty("--wg-days", String(days.length));
     scroll.style.setProperty(
       "--wg-units",
-      String(model.resources.reduce((sum, resource) => sum + Math.max(1, Number(resource.allocation) || 1), 0)),
+      String(Math.max(
+        1,
+        ...days.map((day) => day.columns.reduce((sum, column) => sum + column.visibleLanes, 0)),
+      )),
     );
     // Tall enough for the longest name, so "Prusa - MK4 Enclosure 1" and "… 2"
     // do not both end up as "Prusa - MK4 Enc…".
@@ -860,7 +863,7 @@
       "wg-hint",
       `Click free space to book, or one of your own bookings to cancel it.${
         model.resources.some((resource) => resource.allocation > 1)
-          ? " On multi-unit machines, each lane is one unit of shared capacity; the feed does not identify the numbered physical machine."
+          ? " Each day shows peak concurrent usage plus one spare lane where capacity permits; lanes are shared capacity, not numbered physical machines."
           : ""
       }`,
     );
@@ -880,11 +883,16 @@
     node.appendChild(label);
 
     const names = el("div", "wg-names");
-    names.style.gridTemplateColumns = resourceTracks(model.resources);
-    for (const resource of model.resources) {
+    names.style.gridTemplateColumns = resourceTracks(day.columns);
+    for (const [index, resource] of model.resources.entries()) {
+      const column = day.columns[index];
+      const visibleLanes = column?.visibleLanes || 1;
       const name = el("span", "wg-name");
       const capacity = Number(resource.allocation) > 1 ? Math.floor(Number(resource.allocation)) : 1;
-      name.title = capacity > 1 ? `${resource.name} · ${capacity} bookable units` : resource.name;
+      const laneLabel = visibleLanes === 1 ? "lane" : "lanes";
+      name.title = capacity > 1
+        ? `${resource.name} · ${capacity} bookable units · showing ${visibleLanes} ${laneLabel} (peak usage plus spare where capacity permits)`
+        : resource.name;
       name.append(el("span", null, capacity > 1 ? `${resource.name} · ${capacity} units` : resource.name));
       applyMachineColor(name, resource.id, colors);
       names.appendChild(name);
@@ -917,12 +925,12 @@
     for (const column of day.columns) {
       const cell = el("div", "wg-col");
       cell.dataset.resourceId = column.resourceId;
-      if (column.capacity > 1) {
+      if (column.visibleLanes > 1) {
         cell.classList.add("has-capacity");
-        cell.style.setProperty("--wg-capacity", column.capacity);
-        for (let lane = 1; lane < column.capacity; lane += 1) {
+        cell.style.setProperty("--wg-capacity", column.visibleLanes);
+        for (let lane = 1; lane < column.visibleLanes; lane += 1) {
           const divider = el("span", "wg-capacity-divider");
-          divider.style.left = `${(lane / column.capacity) * 100}%`;
+          divider.style.left = `${(lane / column.visibleLanes) * 100}%`;
           cell.appendChild(divider);
         }
       }
@@ -956,7 +964,7 @@
 
   function resourceTracks(resources) {
     return resources
-      .map((resource) => `${Math.max(1, Number(resource.capacity ?? resource.allocation) || 1)}fr`)
+      .map((resource) => `${Math.max(1, Number(resource.visibleLanes ?? resource.capacity ?? resource.allocation) || 1)}fr`)
       .join(" ");
   }
 
@@ -1026,7 +1034,19 @@
     if (!entry || !state.model) return null;
     const stamp = stampAt(cell, event, entry);
     if (stamp == null) return null;
-    return { entry, slot: W.slotAt(entry.column, stamp, { snapMinutes: snapMinutes() }) };
+    const rect = cell.getBoundingClientRect();
+    const laneCount = Math.max(1, Number(entry.column.visibleLanes) || 1);
+    // The preview follows the visible capacity lane under the pointer.
+    const fraction = rect.width
+      ? Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+      : 0;
+    const laneIndex = Math.min(laneCount - 1, Math.floor(fraction * laneCount));
+    return {
+      entry,
+      laneIndex,
+      laneCount,
+      slot: W.slotAt(entry.column, stamp, { snapMinutes: snapMinutes() }),
+    };
   }
 
   function onCellPointerMove(event) {
@@ -1047,6 +1067,8 @@
     const length = Math.min(hit.slot.gapMinutes, snapMinutes()) * 60000;
     if (!ui.ghost) ui.ghost = el("div", "wg-ghost");
     if (ui.ghost.parentNode !== cell) cell.appendChild(ui.ghost);
+    ui.ghost.style.left = `calc(${(hit.laneIndex / hit.laneCount) * 100}% + 1px)`;
+    ui.ghost.style.right = `calc(${((hit.laneCount - hit.laneIndex - 1) / hit.laneCount) * 100}% + 1px)`;
     ui.ghost.style.top = `${((hit.slot.start - base) / windowMs) * 100}%`;
     ui.ghost.style.height = `${(length / windowMs) * 100}%`;
     ui.ghost.title = `Book from ${CLOCK.format(new Date(hit.slot.start))}${
