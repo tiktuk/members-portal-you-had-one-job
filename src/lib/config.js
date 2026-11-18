@@ -58,15 +58,14 @@
       shortcut: "alt+o",
       /**
        * Booking the gap before or after a row in the overview. The dialog only
-       * asks for a duration; `presets` are the quick choices in minutes and
-       * `intervalMinutes` is the step used until the resource reports its own
-       * `IntervalLimit`.
+       * asks for a duration; `presets` are the quick choices in minutes.
+       * `slotSnapMinutes` controls Week view start-time snapping only.
        */
       booking: {
         presets: [30, 60, 120],
-        intervalMinutes: 15,
+        slotSnapMinutes: 15,
         maxDurationMinutes: 24 * 60,
-        /** The dialog's first duration, capped by the gap and the interval. */
+        /** The dialog's first duration, capped by the gap and platform interval. */
         defaultMinutes: 60,
       },
     },

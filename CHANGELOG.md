@@ -47,6 +47,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- Booking durations can be entered as hours and minutes. Durations use
+  one-minute precision unless Nexudus provides a resource `IntervalLimit`.
 - The booking and cancel dialogs moved out of the overview into
   `lib/booking-dialog.js` so the overview and the week view share them. No
   change in behaviour.

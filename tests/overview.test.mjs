@@ -620,6 +620,15 @@ test("durationLabel writes the portal's duration wording", () => {
   assert.equal(O.durationLabel(90), "1 h 30 min");
 });
 
+test("duration fields combine whole hours and minutes", () => {
+  const O = loadOverview();
+  assert.equal(O.durationFromParts("2", "15"), 135);
+  assert.equal(O.durationFromParts("0", "0"), 0);
+  assert.equal(O.durationFromParts("1.5", "0"), null);
+  assert.equal(O.durationFromParts("1", "60"), null);
+  assert.deepEqual(plain(O.durationParts(135)), { hours: 2, minutes: 15 });
+});
+
 test("gapDuration caps the preferred hour by the gap and the interval", () => {
   const O = loadOverview();
 
@@ -631,6 +640,8 @@ test("gapDuration caps the preferred hour by the gap and the interval", () => {
   assert.equal(O.gapDuration(90, 15), 60);
   assert.equal(O.gapDuration(20, 30), 30);
   assert.equal(O.gapDuration(0, 15), 15);
+  assert.equal(O.gapDuration(14, null), 14);
+  assert.equal(O.gapDuration(0, null), 1);
 });
 
 test("gapDuration honours a different preference and the global cap", () => {

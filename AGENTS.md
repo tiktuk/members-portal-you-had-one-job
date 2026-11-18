@@ -410,7 +410,8 @@ dashboard's notes field and, if they need to live on disk, into
     the first `CoworkerId` in `/api/public/bookings/my`, which
     `normalizeMyBooking` now keeps.
   - `GET /api/public/resources/published/<id>` → `IntervalLimit`, the duration
-    field's `min`/`step` (15 when the request fails). `/published/details` is a
+    increment when present; without it, the dialog allows whole minutes.
+    `/published/details` is a
     different URL — match the numeric id, or the groups payload is returned.
   - `POST /api/public/checkout/basket/preview`, then
     `POST /api/public/checkout/basket/invoice`, both with
@@ -456,17 +457,20 @@ dashboard's notes field and, if they need to live on disk, into
   Escape close the dialog first.
 - The dialog opens on `lib/overview.js::gapDuration`: the configured
   `config.overview.booking.defaultMinutes` (60), capped by the clicked side's
-  free minutes and snapped **down** to the resource interval — a 30-minute gap
-  opens on 30 min, not an hour the checkout would refuse. `gapButton` passes the
-  `rowGap` value through; `dialogState.gapMinutes` (null when unbounded) also
-  caps `input.max`, hides presets longer than the gap and turns a longer value
-  into "Only 30 min is free on that side" instead of a request. Do not re-derive
+  free minutes and snapped **down** to the platform interval when present. A
+  30-minute gap opens on 30 min, not an hour the checkout would refuse.
+  `gapButton` passes the
+  `rowGap` value through; `dialogState.gapMinutes` (null when unbounded) caps
+  the hours field, hides presets longer than the gap and rejects a longer
+  combined duration instead of sending it. Do not re-derive
   the gap in the dialog: the model may have moved on.
-- Durations are validated locally before any request: a positive multiple of
-  the resource interval, at least one interval, at most the gap (or
-  `config.overview.booking.maxDurationMinutes` when unbounded). Presets come
-  from `config.overview.booking.presets`; a preset that is not a multiple of the
-  live interval, or longer than the gap, is hidden. Previews are debounced
+- Durations are entered as separate whole-hour and 0–59 minute fields, then
+  validated locally before any request: a positive multiple of the platform
+  interval when reported (otherwise any positive whole-minute duration), at
+  most the gap (or `config.overview.booking.maxDurationMinutes` when unbounded).
+  Presets come from `config.overview.booking.presets`; a preset that is not a
+  multiple of a reported platform interval, or longer than the gap, is hidden.
+  Previews are debounced
   350 ms and aborted on every change, so typing a duration does not queue
   requests.
 - After a successful create the dialog closes, `load()` refetches and
@@ -661,7 +665,7 @@ dashboard's notes field and, if they need to live on disk, into
 - **Booking:** a pointer position becomes a time via the column's bounding box;
   its x position selects the visible lane for the dashed booking preview, while
   the create request still targets the resource/time (not a physical unit);
-  `slotAt` snaps it down to `config.overview.booking.intervalMinutes`, says
+  `slotAt` snaps it down to `config.overview.booking.slotSnapMinutes`, says
   whether the resource has capacity for the snapped interval and how long it
   stays available before reaching full capacity (capped at midnight). Clicking
   an own booking opens the cancel dialog; clicking a free capacity lane opens

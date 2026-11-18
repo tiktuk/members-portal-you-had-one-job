@@ -1026,7 +1026,7 @@
   }
 
   function snapMinutes() {
-    return Number(cfg.overview?.booking?.intervalMinutes) || 15;
+    return Number(cfg.overview?.booking?.slotSnapMinutes) || 15;
   }
 
   function slotFor(cell, event) {

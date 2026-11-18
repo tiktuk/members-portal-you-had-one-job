@@ -31,7 +31,7 @@
       /** Epoch start of a free slot picked directly (no neighbouring booking). */
       startStamp: null,
       side: "after",
-      interval: 15,
+      interval: null,
       /** Whole minutes free on the clicked side, or null when unbounded. */
       gapMinutes: null,
       coworker: null,
@@ -120,14 +120,12 @@
       closeDialog();
 
       const settings = bookingCfg();
-      const interval = Number(settings.intervalMinutes) || 15;
-
       dialogState.resourceId = id;
       dialogState.resourceName = String(resourceName || booking?.resourceName || `Resource ${id}`);
       dialogState.booking = booking || null;
       dialogState.startStamp = fixedStart;
       dialogState.side = side === "before" ? "before" : "after";
-      dialogState.interval = interval;
+      dialogState.interval = null;
       dialogState.gapMinutes = Number.isFinite(gapMs) ? Math.max(0, Math.floor(gapMs / 60000)) : null;
       dialogState.coworker = shared.coworker;
       dialogState.coworkerError = shared.coworkerError || "";
@@ -155,23 +153,16 @@
       });
 
       const field = el("div", "booking-dialog-field");
-      const label = el("label", null, "Duration");
-      label.htmlFor = "onejob-booking-duration";
-
+      const durationSet = el("fieldset", "booking-duration-fieldset");
+      durationSet.appendChild(el("legend", null, "Duration"));
       const durationRow = el("div", "booking-duration");
-      const input = host.doc().createElement("input");
-      input.type = "number";
-      input.id = "onejob-booking-duration";
-      input.inputMode = "numeric";
-      input.min = String(interval);
-      input.max = String(gapCap());
-      input.step = String(interval);
-      input.value = String(defaultMinutes(interval));
-      input.addEventListener("input", () => {
-        dialogState.edited = true;
-        onDurationChanged();
-      });
-      durationRow.append(input, el("span", "booking-duration-unit", "min"));
+      const hoursInput = durationInput("hours", "Hours", Math.floor(gapCap() / 60));
+      const minutesInput = durationInput("minutes", "Minutes", 59);
+      durationRow.append(hoursInput.label, minutesInput.label);
+      const initialDuration = O.durationParts(defaultMinutes());
+      hoursInput.input.value = String(initialDuration.hours);
+      minutesInput.input.value = String(initialDuration.minutes);
+      durationSet.appendChild(durationRow);
 
       const presets = el("div", "booking-presets");
       const presetButtons = [];
@@ -182,20 +173,22 @@
         preset.dataset.minutes = String(value);
         preset.addEventListener("click", () => {
           dialogState.edited = true;
-          input.value = String(value);
+          setDurationInputs(value);
           onDurationChanged();
         });
         presets.appendChild(preset);
         presetButtons.push(preset);
       }
 
-      field.append(label, durationRow, presets);
+      durationSet.appendChild(presets);
+      field.appendChild(durationSet);
 
       const range = el("p", "booking-dialog-range");
       range.id = "onejob-booking-range";
       const price = el("p", "booking-dialog-price");
       const error = el("p", "booking-dialog-error");
       error.setAttribute("role", "alert");
+      error.id = "onejob-booking-error";
       error.hidden = true;
       const fallback = el("p", "booking-dialog-fallback");
       fallback.hidden = true;
@@ -223,11 +216,22 @@
       });
 
       dialogState.node = node;
-      dialogState.parts = { input, range, price, error, fallback, confirm, presets: presetButtons };
+      dialogState.parts = {
+        hoursInput: hoursInput.input,
+        minutesInput: minutesInput.input,
+        range,
+        price,
+        error,
+        fallback,
+        confirm,
+        presets: presetButtons,
+      };
+      hoursInput.input.setAttribute("aria-describedby", error.id);
+      minutesInput.input.setAttribute("aria-describedby", error.id);
 
       renderDialog();
-      input.focus();
-      input.select?.();
+      hoursInput.input.focus();
+      hoursInput.input.select?.();
 
       loadBookingContext(token);
     }
@@ -318,19 +322,56 @@
      * capped by the gap and snapped to the interval, so a 30-minute gap opens on
      * 30 min instead of a value the portal would refuse.
      */
-    function defaultMinutes(interval) {
+    function defaultMinutes() {
       const preferred = Number(bookingCfg().defaultMinutes) || 60;
-      return O.gapDuration(dialogState.gapMinutes, interval, preferred, maxDuration());
+      return O.gapDuration(dialogState.gapMinutes, dialogState.interval, preferred, maxDuration());
+    }
+
+    function durationInput(id, labelText, max) {
+      const label = el("label", "booking-duration-part", labelText);
+      const input = host.doc().createElement("input");
+      input.type = "number";
+      input.id = `onejob-booking-${id}`;
+      input.name = `duration-${id}`;
+      input.inputMode = "numeric";
+      input.min = "0";
+      input.max = String(max);
+      input.step = "1";
+      input.value = "0";
+      label.htmlFor = input.id;
+      label.appendChild(input);
+      input.addEventListener("input", () => {
+        dialogState.edited = true;
+        onDurationChanged();
+      });
+      return { label, input };
+    }
+
+    function setDurationInputs(minutes) {
+      const parts = O.durationParts(minutes);
+      if (dialogState.parts) {
+        dialogState.parts.hoursInput.value = String(parts.hours);
+        dialogState.parts.minutesInput.value = String(parts.minutes);
+      }
+    }
+
+    function selectedDuration() {
+      return O.durationFromParts(
+        dialogState.parts?.hoursInput?.value ?? "0",
+        dialogState.parts?.minutesInput?.value ?? "0",
+      );
     }
 
     /** "" when the duration can be sent, otherwise the reason it cannot. */
     function validateMinutes(minutes) {
-      const value = Math.round(Number(minutes));
-      if (!Number.isFinite(value) || value <= 0) return "Enter a duration in minutes.";
-      if (value % dialogState.interval !== 0) {
+      if (minutes == null) return "Use whole hours and 0-59 minutes.";
+      const value = Number(minutes);
+      if (!Number.isInteger(value)) return "Use whole hours and 0-59 minutes.";
+      if (value <= 0) return "Enter a duration greater than zero.";
+      if (dialogState.interval && value % dialogState.interval !== 0) {
         return `Duration must be in ${O.durationLabel(dialogState.interval)} steps.`;
       }
-      if (value < dialogState.interval) {
+      if (value < (dialogState.interval || 1)) {
         return `The shortest booking is ${O.durationLabel(dialogState.interval)}.`;
       }
       if (dialogState.gapMinutes != null && value > dialogState.gapMinutes) {
@@ -353,7 +394,7 @@
       dialogState.previewing = false;
       renderDialog();
 
-      const minutes = Math.round(Number(dialogState.parts?.input?.value));
+      const minutes = selectedDuration();
       if (validateMinutes(minutes) || !dialogState.coworker) return;
 
       dialogState.previewing = true;
@@ -363,16 +404,16 @@
 
     function renderDialog() {
       if (!dialogState.node || !dialogState.parts) return;
-      const { input, range, price, error, fallback, confirm, presets } = dialogState.parts;
+      const { hoursInput, minutesInput, range, price, error, fallback, confirm, presets } = dialogState.parts;
 
-      const minutes = Math.round(Number(input.value));
+      const minutes = selectedDuration();
       const slot = slotFor(minutes);
       range.textContent = slot ? formatWindow(slot.start, slot.end) : "Choose a duration.";
 
       for (const preset of presets) {
         const value = Number(preset.dataset.minutes);
         preset.hidden =
-          value % dialogState.interval !== 0 ||
+          (dialogState.interval && value % dialogState.interval !== 0) ||
           (dialogState.gapMinutes != null && value > dialogState.gapMinutes);
         preset.classList.toggle("is-active", value === minutes);
       }
@@ -384,6 +425,10 @@
         (dialogState.coworker ? "" : dialogState.coworkerError || "Checking your member profile…");
       error.hidden = !message;
       error.textContent = message || "";
+      for (const input of [hoursInput, minutesInput]) {
+        if (dialogState.edited && validateMinutes(minutes)) input.setAttribute("aria-invalid", "true");
+        else input.removeAttribute("aria-invalid");
+      }
 
       const total = dialogState.preview?.total ?? 0;
       const currency = dialogState.preview?.currency || "";
@@ -434,15 +479,12 @@
       ]);
       if (token !== dialogState.token || !dialogState.node) return;
 
+      dialogState.interval = interval;
       if (interval) {
-        dialogState.interval = interval;
-        const input = dialogState.parts.input;
-        input.min = String(interval);
-        input.step = String(interval);
-        const current = Math.round(Number(input.value));
+        const current = selectedDuration();
         // Only snap the default; never overwrite what the member already typed.
         if (!dialogState.edited && (!(current > 0) || current % interval !== 0)) {
-          input.value = String(defaultMinutes(interval));
+          setDurationInputs(defaultMinutes());
         }
       }
 
@@ -504,7 +546,7 @@
         return;
       }
 
-      const slot = slotFor(Number(dialogState.parts.input.value));
+      const slot = slotFor(selectedDuration());
       if (!slot || !dialogState.coworker) return;
 
       const controller = new AbortController();
@@ -549,7 +591,7 @@
         return;
       }
 
-      const minutes = Math.round(Number(dialogState.parts.input.value));
+      const minutes = selectedDuration();
       const slot = slotFor(minutes);
       if (!slot || validateMinutes(minutes) || !dialogState.coworker) return;
 

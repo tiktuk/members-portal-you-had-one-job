@@ -775,14 +775,43 @@ h1 {
   letter-spacing: 0.06em;
 }
 
+.booking-duration-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.booking-duration-fieldset legend {
+  margin: 0 0 0.4rem;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .booking-duration {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
+.booking-dialog-field .booking-duration-part {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .booking-duration input {
-  width: 5.5rem;
+  width: 4.75rem;
   padding: 0.4rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: 8px;

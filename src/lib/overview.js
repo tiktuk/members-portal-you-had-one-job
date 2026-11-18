@@ -533,6 +533,18 @@
     return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
   }
 
+  function durationFromParts(hours, minutes) {
+    const h = Number(hours);
+    const m = Number(minutes);
+    if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0 || m > 59) return null;
+    return h * 60 + m;
+  }
+
+  function durationParts(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    return { hours: Math.floor(total / 60), minutes: total % 60 };
+  }
+
   /** "30 min", "1 h", "1 h 30 min" — the portal's duration wording. */
   function durationLabel(minutes) {
     const total = Math.max(0, Math.round(Number(minutes) || 0));
@@ -545,12 +557,11 @@
 
   /**
    * The duration the dialog offers for a gap: the preferred length (an hour by
-   * default), capped by the free time and snapped down to the resource's
-   * interval. A gap too short for one interval still offers one, so the dialog
-   * can say why nothing fits rather than opening on a valid-looking value.
+   * default), capped by the free time and snapped down to a platform interval.
+   * Without one, duration precision is one minute.
    */
   function gapDuration(gapMinutes, intervalMinutes, preferredMinutes = 60, maxMinutes = 24 * 60) {
-    const step = Number(intervalMinutes) > 0 ? Number(intervalMinutes) : 15;
+    const step = Number(intervalMinutes) > 0 ? Number(intervalMinutes) : 1;
     const max = Number(maxMinutes) > 0 ? Number(maxMinutes) : 24 * 60;
     const cap = Number.isFinite(gapMinutes) ? Math.min(max, gapMinutes) : max;
     const preferred = Number(preferredMinutes) > 0 ? Number(preferredMinutes) : 60;
@@ -719,6 +730,8 @@
     dayLabel,
     defaultProfile,
     durationLabel,
+    durationFromParts,
+    durationParts,
     gapDuration,
     markOwnedBookings,
     normalizeLumaEvent,

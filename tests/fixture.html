@@ -355,7 +355,9 @@
         }
         const resourceMatch = target.match(/\/api\/public\/resources\/published\/(\d+)(?:[?#]|$)/);
         if (resourceMatch) {
-          return json({ Id: Number(resourceMatch[1]), IntervalLimit: 30 });
+          const resource = { Id: Number(resourceMatch[1]) };
+          if (resource.Id !== 1415309596) resource.IntervalLimit = 30;
+          return json(resource);
         }
         if (target.includes("/api/public/checkout/basket/")) {
           let body = {};
