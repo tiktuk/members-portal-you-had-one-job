@@ -404,6 +404,10 @@ dashboard's notes field and, if they need to live on disk, into
 - `lib/overview.js` owns the pure parts: `bookingWindow(booking, side, minutes)`
   (epoch stamps, crosses midnight), `rowGap`, `basketBody`, `defaultProfile`,
   `resourceInterval`, `durationLabel`, `bookingError`. The view owns the HTTP.
+- The shared dialog shows start, end and duration. The start or end touching
+  the selected slot/adjacent booking stays fixed; editing the other endpoint or
+  duration updates the remaining value, while the existing gap and resource
+  interval checks still apply.
 - **There is no plain create-booking endpoint.** The portal's own booking form
   posts a basket item, so this is the write path (all on the space host, which
   the existing host permission covers — no manifest change):

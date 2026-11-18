@@ -11,6 +11,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- The booking dialog shows start and end times alongside duration. Editing the
+  free endpoint recalculates duration, and editing duration recalculates that
+  endpoint; the selected slot or adjacent booking edge stays fixed.
 - Category week view: every machine of a category side by side for the week.
   Seven days run across and each day holds one narrow column per resource on a
   shared hour axis, so you can compare machines at the same hour. A "Week view"

@@ -41,7 +41,7 @@ FEATURES
 
 • Show all machines — from a pinned machine's calendar, Show all returns to the original category calendar. A heading above the pins strip names the machines or category currently shown.
 
-• Book the gap — hover a booking or a workshop reservation in the overview and a small + appears before and after its title, only where the resource is actually free. The left one books the resource for a slot that ends when that booking starts, the right one for a slot that starts when it ends; enter the duration in hours and minutes (one-minute precision unless Nexudus sets a resource interval). The dialog shows exact times, the member it books for and the price before you confirm. A paid slot opens the portal's payment page, and a slot the portal refuses says why and offers its booking form instead.
+• Book the gap — hover a booking or a workshop reservation in the overview and a small + appears before and after its title, only where the resource is actually free. The left one books the resource for a slot that ends when that booking starts, the right one for a slot that starts when it ends; set a duration in hours and minutes or edit the free start/end time, and the other value updates automatically (one-minute precision unless Nexudus sets a resource interval). The dialog shows exact times, the member it books for and the price before you confirm. A paid slot opens the portal's payment page, and a slot the portal refuses says why and offers its booking form instead.
 
 • Cancel from the overview — your own bookings carry a small × next to the title. It asks for one of the portal's cancellation reasons, warns if the portal charges a cancellation fee, and reports a refusal (already invoiced, inside the cancellation window, already started) without leaving the page.
 
@@ -288,8 +288,9 @@ listed below.
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
 5. In that overview, hover a booking or a workshop reservation: a small + appears
-   before and after its title. Clicking one opens a dialog that asks only for a
-   duration and shows the exact times, the member it books for and the price.
+   before and after its title. Clicking one opens a dialog where you can edit
+   duration or the free start/end time; it shows the exact times, the member it
+   books for and the price.
    Confirming creates a real booking on the portal, so only confirm one if you
    want it in the test account. The × on your own rows cancels a real booking,
    with one of the portal's cancellation reasons.
@@ -331,7 +332,7 @@ space's own booking API subdomain.
   description uses the platform name only to say what the extension works with.
   Do not put it in the extension name.
 - **The overview can create and cancel bookings.** Those are the extension's
-  only write actions: confirming the duration dialog creates a real booking on
+  only write actions: confirming the booking-time dialog creates a real booking on
   the portal (through the portal's own checkout, with the member's own session),
   and the × on your own rows cancels one with the portal's own reasons. There
   is no undo inside the extension — rebook, or use the portal. Everything else

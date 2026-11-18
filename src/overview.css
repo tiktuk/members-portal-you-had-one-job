@@ -782,6 +782,14 @@ h1 {
   border: 0;
 }
 
+.booking-time-fieldset {
+  min-width: 0;
+  margin: 0 0 0.8rem;
+  padding: 0;
+  border: 0;
+}
+
+.booking-time-fieldset legend,
 .booking-duration-fieldset legend {
   margin: 0 0 0.4rem;
   padding: 0;
@@ -790,6 +798,53 @@ h1 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.booking-time-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.booking-dialog-field .booking-time-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.booking-time-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.booking-time-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.booking-time-input:read-only {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.booking-dialog-time-hint {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .booking-duration {
@@ -957,5 +1012,9 @@ h1 {
 
   .booking-dialog {
     width: calc(100vw - 1.5rem);
+  }
+
+  .booking-time-fields {
+    grid-template-columns: 1fr;
   }
 }

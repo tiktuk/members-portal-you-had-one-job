@@ -533,6 +533,19 @@ test("bookingWindow crosses midnight without clamping", () => {
   });
 });
 
+test("bookingWindowFromEndpoint keeps either edge fixed and derives whole-minute duration", () => {
+  const O = loadOverview();
+  const start = new Date(2026, 10, 3, 8, 0).getTime();
+  const end = new Date(2026, 10, 3, 9, 15).getTime();
+  const window = { start, end };
+
+  assert.deepEqual(plain(O.bookingWindowFromEndpoint(start, "start", end)), window);
+  assert.deepEqual(plain(O.bookingWindowFromEndpoint(end, "end", start)), window);
+  assert.equal(O.windowDurationMinutes(window), 75);
+  assert.equal(O.windowDurationMinutes({ start, end: start + 30_000 }), null);
+  assert.equal(O.bookingWindowFromEndpoint(start, "middle", end), null);
+});
+
 test("bookingWindow rejects a bad side or duration", () => {
   const O = loadOverview();
   const booking = { stamp: 1000, endStamp: 2000 };

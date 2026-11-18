@@ -41,7 +41,11 @@
       previewing: false,
       submitError: "",
       busy: false,
-      /** Whether the member has touched the duration field. */
+      /** Which timing control should drive the other values. */
+      timingSource: "duration",
+      /** Show time-field validation after the member finishes editing. */
+      timeErrorVisible: false,
+      /** Whether the member has edited a timing control. */
       edited: false,
       abort: null,
       timer: null,
@@ -94,8 +98,8 @@
      *
      * The portal has no plain "create booking" call: its own form posts a
      * basket item to /api/public/checkout/basket/invoice (after a preview
-     * call), so the dialog asks for the one thing that is not derivable — the
-     * duration — and builds that body from the row, the card and the session.
+     * call), so the dialog lets the member set a duration or the free edge of
+     * the time window and builds that body from the row, card and session.
      * ------------------------------------------------------------------ */
 
     function bookingCfg() {
@@ -134,6 +138,8 @@
       dialogState.previewing = false;
       dialogState.submitError = "";
       dialogState.busy = false;
+      dialogState.timingSource = "duration";
+      dialogState.timeErrorVisible = false;
       dialogState.edited = false;
       dialogState.token += 1;
       const token = dialogState.token;
@@ -153,13 +159,28 @@
       });
 
       const field = el("div", "booking-dialog-field");
+      const timeSet = el("fieldset", "booking-time-fieldset");
+      timeSet.appendChild(el("legend", null, "Booking time"));
+      const timeRow = el("div", "booking-time-fields");
+      const startTime = bookingTimeInput("start-time", "Start");
+      const endTime = bookingTimeInput("end-time", "End");
+      const timeHint = el("p", "booking-dialog-time-hint", bookingTimeHint());
+      timeHint.id = "onejob-booking-time-hint";
+      timeRow.append(startTime.label, endTime.label);
+      timeSet.append(timeRow, timeHint);
+
+      const fixedEdge = fixedTimeEdge();
+      startTime.input.readOnly = fixedEdge === "start";
+      endTime.input.readOnly = fixedEdge === "end";
+
       const durationSet = el("fieldset", "booking-duration-fieldset");
       durationSet.appendChild(el("legend", null, "Duration"));
       const durationRow = el("div", "booking-duration");
       const hoursInput = durationInput("hours", "Hours", Math.floor(gapCap() / 60));
       const minutesInput = durationInput("minutes", "Minutes", 59);
       durationRow.append(hoursInput.label, minutesInput.label);
-      const initialDuration = O.durationParts(defaultMinutes());
+      const initialMinutes = defaultMinutes();
+      const initialDuration = O.durationParts(initialMinutes);
       hoursInput.input.value = String(initialDuration.hours);
       minutesInput.input.value = String(initialDuration.minutes);
       durationSet.appendChild(durationRow);
@@ -173,7 +194,10 @@
         preset.dataset.minutes = String(value);
         preset.addEventListener("click", () => {
           dialogState.edited = true;
+          dialogState.timingSource = "duration";
+          dialogState.timeErrorVisible = false;
           setDurationInputs(value);
+          syncTimeInputsFromDuration(value);
           onDurationChanged();
         });
         presets.appendChild(preset);
@@ -181,7 +205,7 @@
       }
 
       durationSet.appendChild(presets);
-      field.appendChild(durationSet);
+      field.append(timeSet, durationSet);
 
       const range = el("p", "booking-dialog-range");
       range.id = "onejob-booking-range";
@@ -219,6 +243,9 @@
       dialogState.parts = {
         hoursInput: hoursInput.input,
         minutesInput: minutesInput.input,
+        startTimeInput: startTime.input,
+        endTimeInput: endTime.input,
+        timeHint,
         range,
         price,
         error,
@@ -226,9 +253,12 @@
         confirm,
         presets: presetButtons,
       };
-      hoursInput.input.setAttribute("aria-describedby", error.id);
-      minutesInput.input.setAttribute("aria-describedby", error.id);
+      const describedBy = `${timeHint.id} ${error.id}`;
+      for (const input of [hoursInput.input, minutesInput.input, startTime.input, endTime.input]) {
+        input.setAttribute("aria-describedby", describedBy);
+      }
 
+      syncTimeInputsFromDuration(initialMinutes);
       renderDialog();
       hoursInput.input.focus();
       hoursInput.input.select?.();
@@ -313,6 +343,48 @@
       return { start: dialogState.startStamp, end: dialogState.startStamp + value * 60000 };
     }
 
+    function fixedTimeEdge() {
+      return dialogState.startStamp != null || dialogState.side === "after" ? "start" : "end";
+    }
+
+    function fixedTimeStamp() {
+      if (dialogState.startStamp != null) return dialogState.startStamp;
+      return dialogState.side === "before" ? Number(dialogState.booking?.stamp) : Number(dialogState.booking?.endStamp);
+    }
+
+    function timeBasedSlot() {
+      const edge = fixedTimeEdge();
+      const input = edge === "start" ? dialogState.parts?.endTimeInput : dialogState.parts?.startTimeInput;
+      const endpoint = input ? new Date(input.value).getTime() : NaN;
+      if (!Number.isFinite(endpoint)) return null;
+      return O.bookingWindowFromEndpoint(fixedTimeStamp(), edge, endpoint);
+    }
+
+    function bookingTimeHint() {
+      if (fixedTimeEdge() === "start") {
+        const anchor = dialogState.startStamp != null ? "the selected slot" : "the adjacent booking's end";
+        return `The start stays at ${anchor}. Change the end time or duration to update the booking.`;
+      }
+      return "The end stays at the adjacent booking's start. Change the start time or duration to update the booking.";
+    }
+
+    function syncTimeInputsFromDuration(minutes) {
+      const slot = slotFor(minutes);
+      if (!slot || !dialogState.parts) return;
+      dialogState.parts.startTimeInput.value = localDateTimeInputValue(slot.start);
+      dialogState.parts.endTimeInput.value = localDateTimeInputValue(slot.end);
+    }
+
+    function syncDurationFromTime() {
+      const minutes = O.windowDurationMinutes(timeBasedSlot());
+      if (minutes == null) {
+        dialogState.parts.hoursInput.value = "";
+        dialogState.parts.minutesInput.value = "";
+        return;
+      }
+      setDurationInputs(Math.max(0, minutes));
+    }
+
     function gapCap() {
       return dialogState.gapMinutes == null ? maxDuration() : Math.max(0, dialogState.gapMinutes);
     }
@@ -342,7 +414,35 @@
       label.appendChild(input);
       input.addEventListener("input", () => {
         dialogState.edited = true;
+        dialogState.timingSource = "duration";
+        dialogState.timeErrorVisible = false;
+        syncTimeInputsFromDuration(selectedDuration());
         onDurationChanged();
+      });
+      return { label, input };
+    }
+
+    function bookingTimeInput(id, labelText) {
+      const label = el("label", "booking-time-part", labelText);
+      const input = host.doc().createElement("input");
+      input.type = "datetime-local";
+      input.id = `onejob-booking-${id}`;
+      input.name = `booking-${id}`;
+      input.step = "60";
+      input.className = "booking-time-input";
+      label.htmlFor = input.id;
+      label.appendChild(input);
+      input.addEventListener("input", () => {
+        dialogState.edited = true;
+        dialogState.timingSource = "time";
+        dialogState.timeErrorVisible = false;
+        syncDurationFromTime();
+        onDurationChanged();
+      });
+      input.addEventListener("blur", () => {
+        if (dialogState.timingSource !== "time") return;
+        dialogState.timeErrorVisible = true;
+        renderDialog();
       });
       return { label, input };
     }
@@ -356,6 +456,9 @@
     }
 
     function selectedDuration() {
+      if (dialogState.timingSource === "time") {
+        return O.windowDurationMinutes(timeBasedSlot());
+      }
       return O.durationFromParts(
         dialogState.parts?.hoursInput?.value ?? "0",
         dialogState.parts?.minutesInput?.value ?? "0",
@@ -364,10 +467,13 @@
 
     /** "" when the duration can be sent, otherwise the reason it cannot. */
     function validateMinutes(minutes) {
-      if (minutes == null) return "Use whole hours and 0-59 minutes.";
+      const fromTime = dialogState.timingSource === "time";
+      if (minutes == null) return fromTime ? "Enter a valid start or end time." : "Use whole hours and 0-59 minutes.";
       const value = Number(minutes);
-      if (!Number.isInteger(value)) return "Use whole hours and 0-59 minutes.";
-      if (value <= 0) return "Enter a duration greater than zero.";
+      if (!Number.isInteger(value)) {
+        return fromTime ? "Use minute precision for the booking times." : "Use whole hours and 0-59 minutes.";
+      }
+      if (value <= 0) return fromTime ? "The end time must be after the start time." : "Enter a duration greater than zero.";
       if (dialogState.interval && value % dialogState.interval !== 0) {
         return `Duration must be in ${O.durationLabel(dialogState.interval)} steps.`;
       }
@@ -404,11 +510,26 @@
 
     function renderDialog() {
       if (!dialogState.node || !dialogState.parts) return;
-      const { hoursInput, minutesInput, range, price, error, fallback, confirm, presets } = dialogState.parts;
+      const {
+        hoursInput,
+        minutesInput,
+        startTimeInput,
+        endTimeInput,
+        range,
+        price,
+        error,
+        fallback,
+        confirm,
+        presets,
+      } = dialogState.parts;
 
       const minutes = selectedDuration();
       const slot = slotFor(minutes);
-      range.textContent = slot ? formatWindow(slot.start, slot.end) : "Choose a duration.";
+      range.textContent = slot
+        ? formatWindow(slot.start, slot.end)
+        : dialogState.timingSource === "time"
+          ? "Enter valid booking times."
+          : "Choose a duration.";
 
       for (const preset of presets) {
         const value = Number(preset.dataset.minutes);
@@ -418,16 +539,32 @@
         preset.classList.toggle("is-active", value === minutes);
       }
 
+      const timingError = validateMinutes(minutes);
       const message =
         dialogState.submitError ||
         dialogState.previewError ||
-        validateMinutes(minutes) ||
+        (dialogState.timingSource !== "time" || dialogState.timeErrorVisible ? timingError : "") ||
         (dialogState.coworker ? "" : dialogState.coworkerError || "Checking your member profile…");
       error.hidden = !message;
       error.textContent = message || "";
       for (const input of [hoursInput, minutesInput]) {
-        if (dialogState.edited && validateMinutes(minutes)) input.setAttribute("aria-invalid", "true");
+        if (dialogState.edited && dialogState.timingSource === "duration" && validateMinutes(minutes)) {
+          input.setAttribute("aria-invalid", "true");
+        }
         else input.removeAttribute("aria-invalid");
+      }
+      for (const input of [startTimeInput, endTimeInput]) {
+        if (
+          !input.readOnly &&
+          dialogState.edited &&
+          dialogState.timingSource === "time" &&
+          dialogState.timeErrorVisible &&
+          timingError
+        ) {
+          input.setAttribute("aria-invalid", "true");
+        } else {
+          input.removeAttribute("aria-invalid");
+        }
       }
 
       const total = dialogState.preview?.total ?? 0;
@@ -452,6 +589,7 @@
       const ready =
         Boolean(dialogState.coworker) &&
         Boolean(dialogState.preview) &&
+        Boolean(slot) &&
         !dialogState.previewing &&
         !dialogState.busy &&
         !dialogState.previewError &&
@@ -487,6 +625,7 @@
           setDurationInputs(defaultMinutes());
         }
       }
+      syncTimeInputsFromDuration(selectedDuration());
 
       dialogState.coworker = shared.coworker;
       dialogState.coworkerError = shared.coworker ? "" : shared.coworkerError || "Couldn't find your member profile.";
@@ -593,7 +732,13 @@
 
       const minutes = selectedDuration();
       const slot = slotFor(minutes);
-      if (!slot || validateMinutes(minutes) || !dialogState.coworker) return;
+      if (!slot || validateMinutes(minutes) || !dialogState.coworker) {
+        if (dialogState.timingSource === "time") {
+          dialogState.timeErrorVisible = true;
+          renderDialog();
+        }
+        return;
+      }
 
       dialogState.busy = true;
       dialogState.submitError = "";
@@ -958,6 +1103,14 @@
         return `${clockLabel(from)} – ${clockLabel(to)} · ${dateLabel(from)}`;
       }
       return `${dateLabel(from)}, ${clockLabel(from)} – ${dateLabel(to)}, ${clockLabel(to)}`;
+    }
+
+    function localDateTimeInputValue(stamp) {
+      const date = new Date(stamp);
+      if (!Number.isFinite(date.getTime())) return "";
+      const pad = (value) => String(value).padStart(2, "0");
+      const year = String(date.getFullYear()).padStart(4, "0");
+      return `${year}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
     function clockLabel(date) {

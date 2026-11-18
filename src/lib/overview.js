@@ -489,6 +489,27 @@
       : { start: edge, end: edge + delta };
   }
 
+  /** Build a window from one fixed edge and the editable opposite endpoint. */
+  function bookingWindowFromEndpoint(fixedStamp, fixedEdge, endpointStamp) {
+    if (
+      !Number.isFinite(fixedStamp) ||
+      !Number.isFinite(endpointStamp) ||
+      (fixedEdge !== "start" && fixedEdge !== "end")
+    ) {
+      return null;
+    }
+    return fixedEdge === "start"
+      ? { start: fixedStamp, end: endpointStamp }
+      : { start: endpointStamp, end: fixedStamp };
+  }
+
+  /** Whole minutes in a window, or null when either edge is invalid. */
+  function windowDurationMinutes(window) {
+    if (!window || !Number.isFinite(window.start) || !Number.isFinite(window.end)) return null;
+    const minutes = (window.end - window.start) / 60000;
+    return Number.isInteger(minutes) ? minutes : null;
+  }
+
   /**
    * The portal's checkout basket item, exactly as its own booking form posts
    * it. `FromTime`/`ToTime` are absolute instants, so the portal's
@@ -723,6 +744,7 @@
     basketBody,
     bookingError,
     bookingWindow,
+    bookingWindowFromEndpoint,
     buildModel,
     buildMyBookings,
     cancelBody,
@@ -740,6 +762,7 @@
     rangeFor,
     resourceIcon,
     resourceInterval,
+    windowDurationMinutes,
     rowGap,
     toPortalIso,
     toQueryTimestamp,
