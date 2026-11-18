@@ -902,6 +902,7 @@
 
     const overlay = document.createElement("div");
     overlay.className = "onejob-overview-overlay";
+    overlay.dataset.kind = kind;
 
     const backdrop = document.createElement("div");
     backdrop.className = "onejob-overview-backdrop";

@@ -589,6 +589,10 @@ dashboard's notes field and, if they need to live on disk, into
   the two-week idea above, so this is our own overlay (`kind: "week"`,
   `openWeekOverlay()` in `content.js`, stylesheets `overview.css` +
   `weekgrid.css`).
+- The week panel is content-height by default, bounded by the available
+  viewport height. `openOverlayNow()` exposes the view kind on the outer
+  overlay's `data-kind`, so only the week grid opts out of the full-height
+  panel used by the overview and statistics views.
 - **Entry points:** a `Week view` row under `Statistics` in each group's list
   (so it is in the mobile sheet too) and `barActions()`, which puts *Week view*
   and *Statistics* (plus *Show all …* while a pin is open) as text links at the

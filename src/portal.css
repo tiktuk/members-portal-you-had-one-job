@@ -379,7 +379,7 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Shared overlay shell (pinned overview and resource statistics; the
+ * Shared overlay shell (pinned overview, resource statistics and week view;
  * contents are rendered in a shadow root from lib/*-view.js + *.css)
  * ------------------------------------------------------------------ */
 
@@ -410,6 +410,13 @@
   min-width: 0;
 }
 
+/* The week grid has its own scroll area, so its shell need not fill the viewport. */
+.onejob-overview-overlay[data-kind="week"] .onejob-overview-panel {
+  height: auto;
+  max-height: calc(100vh - 1.5rem);
+  transform: translateY(-0.5rem);
+}
+
 .onejob-overview-host {
   display: flex;
   flex: 1 1 auto;
@@ -427,6 +434,12 @@
     width: 100%;
     height: calc(100dvh - 0.25rem);
     max-height: calc(100dvh - 0.25rem);
+  }
+
+  .onejob-overview-overlay[data-kind="week"] .onejob-overview-panel {
+    height: auto;
+    max-height: calc(100dvh - 0.25rem);
+    transform: none;
   }
 }
 
