@@ -47,6 +47,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- The in-portal overview, statistics and week-view panels use much smaller
+  viewport insets and expand to the available screen space.
 - The category week view can switch between a full week and a single-day view;
   day navigation moves one date at a time.
 - Booking durations can be entered as hours and minutes. Durations use

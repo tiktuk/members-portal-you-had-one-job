@@ -55,16 +55,16 @@
   min-width: 0;
   max-width: none;
   margin: 0;
-  padding: 1rem 1.15rem 1.5rem;
+  padding: 0.65rem 0.75rem 0.9rem;
   overflow: auto;
   overscroll-behavior: contain;
-  border-radius: 1.1rem;
+  border-radius: 0.75rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
 .overview.is-panel .page-header {
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
 }
 
 /* The overlay is wider than the page, so it fits four cards per row instead
@@ -83,7 +83,7 @@
 
 @media (max-width: 640px) {
   .overview.is-panel {
-    border-radius: 1.25rem 1.25rem 0 0;
+    border-radius: 0.75rem 0.75rem 0 0;
   }
 }
 
