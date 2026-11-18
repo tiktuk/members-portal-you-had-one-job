@@ -85,7 +85,7 @@ It does eight things:
    the Django dashboard. The toolbar popup is the only place this is switched;
    the overview header has no events toggle of its own.
 
-The six toggles live in the toolbar popup; pins are managed from the strip at
+The seven toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page and from the menu's group chevrons. The overview page uses
 the portal session the content script mirrors into extension storage, so open the
 portal once while signed in.

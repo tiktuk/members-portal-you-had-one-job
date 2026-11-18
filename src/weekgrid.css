@@ -1,0 +1,412 @@
+/* Category week view. Loaded after overview.css: the root also carries
+   .overview, so the palette, header, buttons, notices and the booking dialogs
+   come from there. Everything below is scoped to .weekgrid. */
+
+.weekgrid {
+  --wg-hour: 34px;
+  --wg-axis: 3.2rem;
+  --wg-col-min: 30px;
+  --wg-day-min: 7rem;
+  --wg-names: 6.5rem;
+  /* Only the overlay's own palette: neutral for other members, the accent for
+     the member's own bookings. */
+  --wg-block: color-mix(in srgb, var(--fg) 24%, var(--surface));
+  --wg-block-fg: var(--fg);
+  --wg-mine: var(--accent);
+  --wg-mine-fg: #fff;
+
+  max-width: none;
+  min-width: 0;
+}
+
+.weekgrid .actions {
+  flex-wrap: wrap;
+}
+
+.wg-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0;
+}
+
+.wg-modes:has(.wg-mode) {
+  padding: 0.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.wg-mode {
+  padding: 0.25rem 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.wg-mode:hover {
+  background: var(--accent-soft);
+}
+
+.wg-mode[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.wg-scope {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.wg-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.wg-title {
+  min-width: 7.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.wg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.wg-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Grid
+ * ------------------------------------------------------------------ */
+
+.wg-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 13rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overscroll-behavior: contain;
+}
+
+.wg-scroll.is-loading {
+  opacity: 0.65;
+}
+
+.wg {
+  min-width: calc(var(--wg-axis) + 7 * max(var(--wg-units) * var(--wg-col-min), var(--wg-day-min)));
+}
+
+.wg-head,
+.wg-cols {
+  display: grid;
+  grid-template-columns: var(--wg-axis) repeat(7, minmax(max(calc(var(--wg-units) * var(--wg-col-min)), var(--wg-day-min)), 1fr));
+}
+
+.wg-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.wg-corner {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--surface);
+}
+
+.wg-dayhead {
+  min-width: 0;
+  border-left: 1px solid var(--line);
+}
+
+.wg-daylabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.wg-weekday {
+  font-weight: 650;
+}
+
+.wg-date {
+  color: var(--muted);
+}
+
+.wg-dayhead.is-weekend .wg-weekday {
+  font-weight: 800;
+}
+
+.wg-dayhead.is-today .wg-weekday,
+.wg-dayhead.is-today .wg-date {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.wg-dayhead.is-past .wg-daylabel {
+  opacity: 0.6;
+}
+
+.wg-names {
+  display: grid;
+  grid-template-columns: repeat(var(--wg-count), minmax(0, 1fr));
+  height: var(--wg-names);
+  overflow: hidden;
+}
+
+.wg-scroll.is-single .wg-names {
+  display: none;
+}
+
+.wg-name {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.25rem 0;
+  border-left: 1px dotted var(--line);
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+
+.wg-name:first-child {
+  border-left: 0;
+}
+
+.wg-name > span {
+  max-height: calc(var(--wg-names) - 0.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.wg-axis {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  height: calc(var(--wg-hours) * var(--wg-hour));
+  background: var(--surface);
+}
+
+.wg-hour {
+  display: block;
+  height: var(--wg-hour);
+  padding: 0.25rem 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wg-day {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--wg-count), minmax(0, 1fr));
+  min-width: 0;
+  height: calc(var(--wg-hours) * var(--wg-hour));
+  border-left: 1px solid var(--line);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--wg-hour) - 1px),
+    var(--line) calc(var(--wg-hour) - 1px),
+    var(--line) var(--wg-hour)
+  );
+}
+
+.wg-day.is-weekend {
+  background-color: color-mix(in srgb, var(--muted) 5%, transparent);
+}
+
+.wg-day.is-today {
+  background-color: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.wg-col {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.wg-col.has-capacity {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% / var(--wg-capacity) - 1px),
+    var(--line) calc(100% / var(--wg-capacity) - 1px),
+    var(--line) calc(100% / var(--wg-capacity))
+  );
+}
+
+.wg-col + .wg-col {
+  border-left: 1px dotted var(--line);
+}
+
+.wg-col:hover {
+  background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.wg-day.is-past .wg-col {
+  cursor: default;
+}
+
+.wg-day.is-past .wg-col:hover {
+  background-color: transparent;
+}
+
+/* ------------------------------------------------------------------ *
+ * Bookings, events, now
+ * ------------------------------------------------------------------ */
+
+.wg-block {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  min-height: 3px;
+  border-radius: 3px;
+  background: var(--wg-block);
+  /* A ring in the surface colour keeps back-to-back and side-by-side bookings apart. */
+  box-shadow: 0 0 0 1px var(--surface);
+  cursor: default;
+}
+
+/* Names run vertically from the top (like the machine names above) because a column is
+   too narrow for horizontal text; with one or two columns per day they are
+   horizontal. */
+.wg-block {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.wg-block-name {
+  max-height: 100%;
+  padding: 5px 0 0;
+  overflow: hidden;
+  color: var(--wg-block-fg);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.wg-scroll.is-wide .wg-block {
+  display: block;
+}
+
+.wg-scroll.is-wide .wg-block-name {
+  max-height: none;
+  padding: 3px 5px;
+  writing-mode: horizontal-tb;
+}
+
+.wg-block.is-mine {
+  background: var(--wg-mine);
+  cursor: pointer;
+}
+
+.wg-block.is-mine .wg-block-name {
+  color: var(--wg-mine-fg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .weekgrid {
+    --wg-mine-fg: #10131a;
+  }
+}
+
+.wg-block.is-linked {
+  opacity: 0.6;
+  outline: 1px dashed color-mix(in srgb, var(--fg) 45%, transparent);
+  outline-offset: -2px;
+}
+
+.wg-block.is-reserved {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--muted) 55%, var(--surface)) 0,
+    color-mix(in srgb, var(--muted) 55%, var(--surface)) 4px,
+    color-mix(in srgb, var(--muted) 30%, var(--surface)) 4px,
+    color-mix(in srgb, var(--muted) 30%, var(--surface)) 8px
+  );
+}
+
+.wg-block.continues-before {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.wg-block.continues-after {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.wg-day.is-past .wg-block {
+  opacity: 0.7;
+}
+
+.wg-event {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  border-left: 3px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  pointer-events: none;
+}
+
+.wg-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--danger);
+  pointer-events: none;
+}
+
+.wg-ghost {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  min-height: 3px;
+  border: 1px dashed var(--accent);
+  border-radius: 3px;
+  background: var(--accent-soft);
+  pointer-events: none;
+}

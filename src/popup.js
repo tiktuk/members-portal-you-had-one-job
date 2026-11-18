@@ -8,6 +8,7 @@
     navMenu: true,
     dayGrid: cfg.dayGrid?.enabled !== false,
     dayGridEvents: cfg.dayGrid?.events !== false,
+    weekGrid: cfg.weekGrid?.enabled !== false,
     lumaEvents: cfg.luma?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
   };
@@ -15,6 +16,7 @@
   const calendarToggle = document.getElementById("calendar-default");
   const dayGridToggle = document.getElementById("day-grid");
   const dayGridEventsToggle = document.getElementById("day-grid-events");
+  const weekGridToggle = document.getElementById("week-grid");
   const navToggle = document.getElementById("nav-menu");
   const navRowTitle = document.getElementById("nav-row-title");
   const navRowHint = document.getElementById("nav-row-hint");
@@ -36,6 +38,7 @@
     calendarToggle.checked = settings.calendarDefault !== false;
     dayGridToggle.checked = settings.dayGrid !== false;
     dayGridEventsToggle.checked = settings.dayGridEvents !== false;
+    weekGridToggle.checked = settings.weekGrid !== false;
     navToggle.checked = settings.navMenu !== false;
     lumaToggle.checked = settings.lumaEvents !== false;
     geoToggle.checked = settings.geoBlockPrompt !== false;
@@ -48,6 +51,9 @@
     );
     dayGridEventsToggle.addEventListener("change", () =>
       saveSettings({ dayGridEvents: dayGridEventsToggle.checked }),
+    );
+    weekGridToggle.addEventListener("change", () =>
+      saveSettings({ weekGrid: weekGridToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
     lumaToggle.addEventListener("change", () =>

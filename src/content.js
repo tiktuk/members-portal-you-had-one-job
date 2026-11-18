@@ -33,6 +33,7 @@
     navMenu: true,
     dayGrid: cfg.dayGrid?.enabled !== false,
     dayGridEvents: cfg.dayGrid?.events !== false,
+    weekGrid: cfg.weekGrid?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
     /** `cfg.onboarding.version` once the pinning tour has been shown. */
     onboardingVersion: 0,
@@ -45,6 +46,8 @@
     '<svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 512 512" height="12" width="12" aria-hidden="true"><path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path></svg>';
   const OVERVIEW_ICON =
     '<svg viewBox="0 0 24 24" height="1em" width="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>';
+  const WEEK_ICON =
+    '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18"></path><path d="M9 9v12"></path><path d="M15 9v12"></path></svg>';
   const STATS_ICON =
     '<svg viewBox="0 0 24 24" height="14" width="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M2 20h20"></path></svg>';
   const PIN_ICON =
@@ -623,6 +626,28 @@
           statsRow.appendChild(statsButton);
           resourceList.appendChild(statsRow);
 
+          if (state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
+            const weekRow = document.createElement("div");
+            weekRow.className = "onejob-resource-row";
+            const weekButton = document.createElement("button");
+            weekButton.type = "button";
+            weekButton.className = "onejob-link onejob-stats-link";
+            weekButton.title = `Week view of all ${group.label}`;
+            weekButton.setAttribute("aria-label", `Week view of all ${group.label}`);
+            weekButton.append(document.createTextNode(cfg.weekGrid?.menuLabel || "Week view"));
+            weekButton.addEventListener("click", (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              closeMenu();
+              closeSheet();
+              openWeekOverlay({
+                scope: { type: type.slug, group: group.name, label: group.label },
+              });
+            });
+            weekRow.appendChild(weekButton);
+            resourceList.appendChild(weekRow);
+          }
+
           section.appendChild(resourceList);
         }
       }
@@ -955,6 +980,51 @@
       ariaModal: !fromTour,
       mount: (root, viewOptions) => globalThis.OneJobStatsView.mount(root, { ...viewOptions, scope }),
     });
+  }
+
+  function openWeekOverlay(options = {}) {
+    if (activeOverlay?.kind === "week" || !globalThis.OneJobWeekGridView) return;
+    const scope = options.scope || null;
+    state.tour?.end("week");
+    openOverlay({
+      kind: "week",
+      label: scope?.label
+        ? `${cfg.weekGrid?.label || "Week view"}: ${scope.label}`
+        : cfg.weekGrid?.label || "Week view",
+      stylesheets: ["overview.css", "weekgrid.css"],
+      mount: (root, viewOptions) => globalThis.OneJobWeekGridView.mount(root, { ...viewOptions, scope }),
+    });
+  }
+
+  /**
+   * The category the calendar on screen shows, for the pins strip's Week view
+   * and Statistics links: the bookings type plus the raw `group` query value
+   * (it can end with a space). On a pinned single-resource calendar the scope
+   * is that one resource, with its category as `categoryLabel`.
+   */
+  function calendarScope() {
+    if (!hasExtensionApis) return null;
+    const info = U.parseBookingPath(location.pathname);
+    if (!info || info.view !== "calendar" || info.type === "all") return null;
+    const pin = dayGridPin();
+    if (pin) {
+      const name = pin.name || findResource(pin.id)?.name || "";
+      const categoryLabel = pin.group
+        ? G.displayGroupName(pin.group, cfg.nav.stripGroupPrefix)
+        : G.typeLabel(pin.type || info.type);
+      return {
+        type: pin.type || info.type,
+        group: pin.group || "",
+        resourceId: pin.id,
+        label: name || "Pinned resource",
+        categoryLabel,
+      };
+    }
+    const group = new URLSearchParams(location.search).get("group") || "";
+    const label = group
+      ? G.displayGroupName(group, cfg.nav.stripGroupPrefix)
+      : G.typeLabel(info.type);
+    return { type: info.type, group, label, categoryLabel: label };
   }
 
   function closeOverlay(cancelPending = true) {
@@ -1521,7 +1591,7 @@
   function ensurePinsBar() {
     const pins = state.pins.filter((pin) => pin && pin.id);
     const pinnedId = currentPinnedId();
-    if (!pins.length && !pinnedId) {
+    if (!pins.length && !pinnedId && !calendarScope()) {
       document.getElementById(PINS_BAR_WRAP_ID)?.remove();
       return;
     }
@@ -1585,6 +1655,8 @@
       state.groupsVersion,
       currentPinnedId(),
       location.search,
+      state.settings.weekGrid,
+      calendarScope()?.label || "",
     ].join("|");
   }
 
@@ -1595,10 +1667,13 @@
     const current = U.parseBookingPath(location.pathname);
     const pinnedId = currentPinnedId();
 
-    const label = document.createElement("span");
-    label.className = "onejob-pins-bar-label";
-    label.textContent = "Pinned";
-    const nodes = [label];
+    const nodes = [];
+    if (pins.length) {
+      const label = document.createElement("span");
+      label.className = "onejob-pins-bar-label";
+      label.textContent = "Pinned";
+      nodes.push(label);
+    }
 
     for (const pin of pins) {
       const resource = findResource(pin.id);
@@ -1641,8 +1716,58 @@
       nodes.push(chip);
     }
 
-    if (pinnedId) nodes.push(showAllLink());
+    const actions = barActions(Boolean(pinnedId));
+    if (actions) nodes.push(actions);
     return nodes;
+  }
+
+  /**
+   * The links at the right end of the strip: the way out of a single-resource
+   * view, then the week view and the statistics of the category on screen.
+   * They live here, not in the portal's toolbar, which re-renders badly when
+   * anything is injected into it.
+   */
+  function barActions(pinned) {
+    const scope = calendarScope();
+    const links = [];
+    if (pinned) links.push(showAllLink());
+
+    const action = (label, title, onClick) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "onejob-pins-action";
+      button.textContent = label;
+      button.title = title;
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        onClick();
+      });
+      links.push(button);
+    };
+
+    if (scope && state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
+      const label = cfg.weekGrid?.buttonLabel || "Week view";
+      action(
+        label,
+        scope.resourceId
+          ? `${label}: ${scope.label}, with the other machines one click away`
+          : `${label}: all of ${scope.label} side by side`,
+        () => openWeekOverlay({ scope }),
+      );
+    }
+    if (scope && globalThis.OneJobStatsView) {
+      action("Statistics", `Statistics for ${scope.categoryLabel}`, () =>
+        openStatsOverlay({
+          scope: { type: scope.type, group: scope.group, label: scope.categoryLabel },
+        }),
+      );
+    }
+
+    if (!links.length) return null;
+    const wrap = document.createElement("div");
+    wrap.className = "onejob-pins-actions";
+    wrap.append(...links);
+    return wrap;
   }
 
   /**

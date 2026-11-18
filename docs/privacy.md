@@ -19,11 +19,11 @@ goes to your own portal.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned and the six toggles in
+- **Your pins and settings.** Which resources you pinned and the seven toggles in
   the toolbar popup.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to
-  fill the overview cards. Booking records include the name of the member who
+  fill the overview cards and the category week view. Booking records include the name of the member who
   booked a shared resource, which the portal already shows you on its own
   calendar.
 - **Resource statistics.** Booking times for the resources published in the
@@ -33,7 +33,7 @@ goes to your own portal.
 - **Your portal page.** The extension reads the portal's own navigation labels
   and address to build the Resources menu and to keep the calendar view when you
   navigate.
-- **A booking you confirm.** The overview can book the slot just before or after
+- **A booking you confirm.** The overview and the category week view can book the slot just before or after
   a booking or workshop reservation, and cancel one of your own bookings with
   one of the portal's cancellation reasons. The dialog shows the resource, the
   times, the member it books for and the price the portal quotes; nothing is

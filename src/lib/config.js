@@ -117,6 +117,28 @@
     },
 
     /**
+     * The category week view: every resource of a menu group (or of the
+     * calendar on screen) side by side, seven days across with one narrow
+     * column per resource inside each day. The hour window grows to include any
+     * booking outside `hourFrom`–`hourTo`. Luma events follow the overview's
+     * "Luma events" switch.
+     */
+    weekGrid: {
+      /** Default for the popup's "Category week view" toggle. */
+      enabled: true,
+      label: "Week view",
+      /** Label of the group's row in the Resources menu. */
+      menuLabel: "Week view",
+      /** Label of the button above the calendar. */
+      buttonLabel: "Week view",
+      hourFrom: 6,
+      hourTo: 22,
+      /** A week is refetched when older than this; the open view refreshes each minute. */
+      cacheTtlMs: 30 * 1000,
+      refreshMs: 60 * 1000,
+    },
+
+    /**
      * The one-time feature tour on the first portal visit. `version` is the
      * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
      * again after rewriting it. The pin step opens the Resources menu itself,

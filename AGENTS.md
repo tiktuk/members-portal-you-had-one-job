@@ -83,6 +83,14 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/lib/luma.js` — Luma public API helpers (source parsing, list/event URLs,
   ProseMirror description flattening); loaded by the background worker and the
   tests, never by the page.
+- `src/lib/weekgrid.js` — bookings → category week grid model (Monday-aligned
+  week, per-day per-resource blocks, hour window, own/linked/reserved flags,
+  Luma bands) plus `slotAt` (what a click on a column means); pure, loaded by
+  the content script and the tests.
+- `src/lib/booking-dialog.js` — the booking and cancel dialogs as
+  `OneJobBookingDialog.create(host)`; shared by the overview and the week view.
+- `src/lib/weekgrid-view.js` — the category week view UI as
+  `OneJobWeekGridView.mount(root, { scope })`; only mounted in the overlay.
 - `src/lib/overview-view.js` — the overview UI (shell, fetching, rendering) as
   `OneJobOverviewView.mount(root, { variant: "page" | "panel" })`; shared by the
   standalone page and the in-portal overlay.
@@ -108,7 +116,7 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/stats.css` — the statistics screen's own styles, loaded after
   `overview.css` in the same shadow root so it can reuse the palette, header,
   buttons, notices and footer.
-- `src/popup.*` — toolbar settings UI (six toggles, the tour replay row, group
+- `src/popup.*` — toolbar settings UI (seven toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store
@@ -562,6 +570,112 @@ dashboard's notes field and, if they need to live on disk, into
   data. `tests/fixture.html` filters the fixture bookings by the requested
   range; `tests/screenshots.html` generates a deterministic year of invented
   bookings when `window.__statsMode` is set by clicking the stats menu row.
+
+## Category week view
+
+- **What it is:** `OneJobWeekGridView` shows every resource of one menu group
+  (or of the calendar on screen) in a single week grid: seven day groups across,
+  one narrow column per resource inside each day, one shared hour axis. The
+  portal's own week view cannot do this (`resourceTimeGrid/7` nests days inside
+  resources), and reaching into FullCalendar was rejected for the same reason as
+  the two-week idea above, so this is our own overlay (`kind: "week"`,
+  `openWeekOverlay()` in `content.js`, stylesheets `overview.css` +
+  `weekgrid.css`).
+- **Entry points:** a `Week view` row under `Statistics` in each group's list
+  (so it is in the mobile sheet too) and `barActions()`, which puts *Week view*
+  and *Statistics* (plus *Show all …* while a pin is open) as text links at the
+  right end of the pins strip, in the style of the existing *Show all* link
+  (`.onejob-pins-actions`, `.onejob-pins-action`). The strip now also exists on a
+  bookings *calendar* route with no pins, holding just those links
+  (`ensurePinsBar` checks `calendarScope()`); its key includes the scope label and
+  `settings.weekGrid`. Statistics opens scoped to the category on screen. **Never
+  put these inside the portal's toolbar:** the first version put a button next to
+  the View dropdown, and the portal's calendar then re-rendered badly
+  (FullCalendar logged `Unknown option 'currentTime'`/`'calendarView'`, and the
+  bookings flickered and vanished). Our strips are the only injected content in
+  `<main>`. Scope comes from
+  the URL (`type` + raw `group` query value, which can end with a space; no
+  `group` means the whole type). Not offered on `/all` (`calendarScope()`). On a pinned
+  single-resource calendar the scope carries `resourceId` (from `dayGridPin()`),
+  the view filters the list to that one resource, hides the rotated names
+  (`.is-single`) and each day gets `--wg-day-min` (7rem) instead of 30px.
+  The header's `.wg-modes` switch picks what the grid shows
+  (`state.mode`, `resourcesFor()`): `single` (only with `resourceId`), `pinned`
+  (the pins of the scope's type, offered when there is more than the one machine),
+  `category` (type + group), one `cat:<n>` per *other* category the member has
+  pins in (`otherCategories()`, derived from the pinned resource's live group in
+  the published list because a pin's stored group can be stale; skipped when the
+  scope is a whole type that already contains it) and `mine` (machines `W.ownedResourceIds` finds in the
+  visible week, in any category). The first three come from the published list;
+  `mine` depends on the week, so `buildModel()` recomputes `state.resources` on
+  every week change. Category labels come from `scope.categoryLabel`. Own
+  bookings are matched by id, then by the member the record names, and only a
+  record that names nobody falls back to overlapping an own booking in time
+  (otherwise a tentative booking next to yours turned green).
+  A block's tooltip names the member (`coworkerName` from the feed, or the
+  reservation's title) and is printed inside the block after the booking's start time (`10:00 Alex Kim`): vertically from the top, like the
+  machine names, in narrow columns, and horizontally with one or two columns per
+  day (`.is-wide`). Names are only displayed, never stored.
+  Colours stay inside the overlay palette: other members' bookings are a
+  neutral grey (`--fg` mixed into `--surface`), the member's own use `--accent`;
+  no green. Records of the same member on the same resource with the same start
+  and end (different ids; the resource has `AllowMultipleBookings`) become one
+  visual block with `count` ("×2"), because the portal's calendar draws them
+  once; the count still consumes that many units of the resource's `Allocation`.
+  Multi-unit resources get proportionally wider capacity lanes, and a blank lane
+  stays bookable until capacity is full. The feed does not map a booking to a
+  particular physical unit. A record that names nobody is never merged. Checked
+  against the live feed: one
+  member's 13:00–23:45 booking arrived as two records on the Enclosure 0,4mm, two
+  on the MK4S and four linked copies on the "3D Printing Lab", which is not in the
+  machines category. Overlapping blocks in a column get `lane`/`lanes` from `assignLanes` and sit
+  side by side. The strip is rebuilt only when its scope changes (`ensureNav` runs
+  on every mutation). The popup's `settings.weekGrid` (default
+  `config.weekGrid.enabled`) removes both.
+- **Data:** per visible week, `fullCalendarBookings` (`showAll`, normalised with
+  `perResource: true` so a linked booking shows on every machine it blocks),
+  `fullCalendarEvents` (workshop reservations with a `resourceId`, drawn hatched
+  and counted as occupied), and `/api/public/bookings/my` (own bookings; the first
+  record naming its coworker identifies the member so finished bookings stay
+  highlighted). The week view also reads the published resource's `Allocation`
+  for concurrent-unit capacity; this stays in memory and is not added to the
+  cached resource groups. Luma comes through the background worker and follows the overview's
+  `settings.lumaEvents`. Weeks are cached in memory for `config.weekGrid.cacheTtlMs`;
+  the open view refreshes every minute unless a dialog is open. Resources come
+  from the published list, narrowed by `S.filterResources` and sorted by name.
+- **Model:** `lib/weekgrid.js::weekGrid` clips each booking to every day it
+  touches and positions blocks in percent of the hour window. The window
+  (`config.weekGrid.hourFrom`/`hourTo`, 06–22) grows to include any booking
+  outside it, so nothing is hidden. Blocks keep `rawStart`/`rawEnd` for the real
+  times of a booking that crosses midnight.
+- **Booking:** a pointer position becomes a time via the column's bounding box;
+  `slotAt` snaps it down to `config.overview.booking.intervalMinutes`, says
+  whether the resource has capacity for the snapped interval and how long it
+  stays available before reaching full capacity (capped at midnight). Clicking
+  an own booking opens the cancel dialog; clicking a free capacity lane opens
+  `dialogs.openBooking({
+  resourceId, resourceName, startStamp, gapMs })`.
+- **Shared dialogs:** `lib/booking-dialog.js` owns the booking and cancel
+  dialogs, the member profile and resource-interval lookups and the basket
+  calls. A view passes a *host* (`doc`, `root`, `session`, `fetchJson`,
+  `portalOrigin`, `webAddress`, `isPanel`, `closePanel`, `reload`, `showSuccess`,
+  `ownCoworkerId`). `openBooking` takes either `booking` + `side` (the overview's
+  gap buttons) or `startStamp` (a free slot). Call `reset()` when the session
+  changes. Load it before the view that uses it, including in `overview.html`.
+- **Layout:** `.wg-head` (sticky) and `.wg-cols` are grids with the same
+  `var(--wg-axis) repeat(7, minmax(sum of allocation * 30px, 1fr))` template
+  inside one scroll box, so they stay aligned and the grid scrolls sideways
+  instead of squeezing capacity lanes below 30px. Resource tracks are weighted
+  by allocation, and each multi-unit column is split into visible lanes.
+  Machine names are vertical text (`writing-mode: vertical-rl`, reading top to bottom, anchored at the top, as are the names inside blocks) with
+  an absolute `max-height` (a percentage did not truncate reliably after a
+  re-render). The body re-renders on every state change, so `renderBody` restores
+  the scroll position.
+- **Tests:** `tests/weekgrid.test.mjs` covers the week range, window growth, ownership,
+  midnight splits, linked/own/reserved flags, capacity lanes, remaining-unit
+  booking and `slotAt`. The view is
+  checked in `tests/fixture.html` (extra bookings for several machines): open it,
+  click *Week view*, click a free slot to book and an own booking to cancel.
 
 ## Calendar day grid
 

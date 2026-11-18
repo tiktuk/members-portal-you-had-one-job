@@ -38,8 +38,11 @@
         "lib/groups.js",
         "lib/overview.js",
         "lib/stats.js",
+        "lib/weekgrid.js",
+        "lib/booking-dialog.js",
         "lib/overview-view.js",
         "lib/stats-view.js",
+        "lib/weekgrid-view.js",
         "lib/tour.js",
         "content.js"
       ],
@@ -49,7 +52,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css", "stats.css"],
+      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css", "stats.css", "weekgrid.css"],
       "matches": ["https://members.motionlab.berlin/*"]
     }
   ]

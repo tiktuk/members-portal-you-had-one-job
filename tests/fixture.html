@@ -149,7 +149,7 @@
       window.__fixturePayload = {
         Resources: [
           { Id: 1415309474, Name: "Prusa - XL", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
-          { Id: 1415309571, Name: "Prusa - MK4", SystemResourceType: 10, GroupName: "Machines: 3D printing" },
+          { Id: 1415309571, Name: "Prusa - MK4", SystemResourceType: 10, GroupName: "Machines: 3D printing", Allocation: 3 },
           { Id: 1415309496, Name: "OLSK Large CNC", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
           { Id: 1415309596, Name: "CNC Routermax 1325 Deluxe", SystemResourceType: 10, GroupName: "Machines: CNC Machining" },
           { Id: 1415309492, Name: "xTool F1", SystemResourceType: 10, GroupName: "Machines: Laser Cutting" },
@@ -253,6 +253,11 @@
         // the overview (which only looks forward) ignores it.
         { id: 9003, resourceId: 1415309496, start: iso(-5, 8), end: iso(-5, 10), coworkerId: 5001, coworkerFullName: "Alex Kim" },
         { id: 9004, resourceId: 1415309591, start: iso(2, 14), end: iso(2, 16), coworkerId: 5003, coworkerFullName: "Jo Weber" },
+        { id: 9005, resourceId: 1415309474, start: iso(0, 13), end: iso(0, 17), coworkerId: 5003, coworkerFullName: "Jo Weber" },
+        { id: 9006, resourceId: 1415309571, start: iso(1, 10), end: iso(1, 12), coworkerId: 5002, coworkerFullName: "Sam Ortiz" },
+        { id: 9007, resourceId: 1415309492, start: iso(1, 15), end: iso(1, 18), coworkerId: 5003, coworkerFullName: "Jo Weber" },
+        { id: 9008, resourceId: 1415309596, start: iso(2, 9), end: iso(2, 13), coworkerId: 5002, coworkerFullName: "Sam Ortiz" },
+        { id: 9009, resourceId: 1415309601, start: iso(3, 11), end: iso(3, 12), coworkerId: 5001, coworkerFullName: "Alex Kim" },
       ];
       window.__fixtureEvents = [
         {
@@ -410,8 +415,11 @@
     <script src="/src/lib/groups.js"></script>
     <script src="/src/lib/overview.js"></script>
     <script src="/src/lib/stats.js"></script>
+    <script src="/src/lib/weekgrid.js"></script>
+    <script src="/src/lib/booking-dialog.js"></script>
     <script src="/src/lib/overview-view.js"></script>
     <script src="/src/lib/stats-view.js"></script>
+    <script src="/src/lib/weekgrid-view.js"></script>
     <script src="/src/lib/tour.js"></script>
     <script src="/src/content.js"></script>
   </body>

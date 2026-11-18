@@ -9,6 +9,51 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Added
+
+- Category week view: every machine of a category side by side for the week.
+  Seven days run across and each day holds one narrow column per resource on a
+  shared hour axis, so you can compare machines at the same hour. A "Week view"
+  link sits at the right end of the pins strip on category calendars (next to
+  Statistics, and Show all while a pin is open), and each
+  group in the Resources menu has a "Week view" row under Statistics. Your own
+  bookings are green, workshop reservations are hatched and Luma events tint the
+  day. Click a free time to book it (the same dialog as the overview, capped to
+  the free gap) or one of your own bookings to cancel it. The toolbar popup's
+  "Category week view" toggle hides both entry points. On a pinned
+  single-resource calendar the button shows just that machine, one wide column
+  per day, and overlapping bookings (a tentative one next to a firm one) sit
+  side by side instead of hiding each other.
+- The week view's tooltips name the member behind each booking, and the name is
+  printed inside the block after the booking's start time, vertically from the top in narrow columns and horizontally when a
+  day has one or two columns.
+- The week view draws several bookings of one member on the same machine in
+  the same slot once, with a "×2" after the name, like the portal's own calendar
+  does. The feed holds one record per booking, and a machine that allows
+  multiple bookings can hold the same member's booking twice.
+- In the week view a booking that the portal links to several machines (for
+  example the Prusa MK4 enclosure variants) is drawn on each of them, and the
+  copies on the linked machines are lighter with a dashed outline; the tooltip
+  says it was booked on a connected machine.
+- The week view's machine-name header grows to fit the longest name (up to
+  14rem), so similarly named machines ("Prusa - MK4 Enclosure 1" / "… 2") no
+  longer end up with the same truncated label; a resource listed twice by the
+  portal is shown once.
+- The week view has a switch in its header between the pinned machine it was
+  opened from, all your pinned machines of that type, the whole category and
+  one button per other category you have pins in (viewing a laser with a CNC
+  pinned adds "CNC Machining"), and "My bookings" (every machine you have a booking on in the visible week, in any
+  category).
+
+### Changed
+
+- The booking and cancel dialogs moved out of the overview into
+  `lib/booking-dialog.js` so the overview and the week view share them. No
+  change in behaviour.
+- The category week view uses Nexudus resource `Allocation` to show concurrent
+  capacity lanes. Remaining lanes stay bookable even while another unit is
+  reserved; the portal feed does not identify the numbered physical machine.
+
 ## [1.1.1] - 2026-11-17
 
 ### Changed
