@@ -1592,7 +1592,8 @@
   function ensurePinsBar() {
     const pins = state.pins.filter((pin) => pin && pin.id);
     const pinnedId = currentPinnedId();
-    if (!pins.length && !pinnedId && !calendarScope()) {
+    const scope = calendarScope();
+    if (!pins.length && !pinnedId && !scope) {
       document.getElementById(PINS_BAR_WRAP_ID)?.remove();
       return;
     }
@@ -1615,11 +1616,36 @@
     }
     // Match the width of the portal's content container.
     mountStrip(wrap, main);
+    updateCalendarScopeHeading(wrap, scope);
 
-    const key = pinsBarKey(pins);
+    const key = pinsBarKey(pins, scope);
     if (bar.dataset.key === key) return;
     bar.dataset.key = key;
-    bar.replaceChildren(...renderPinsBar(pins));
+    bar.replaceChildren(...renderPinsBar(pins, scope));
+  }
+
+  function updateCalendarScopeHeading(wrap, scope) {
+    let heading = wrap.querySelector(".onejob-calendar-scope-heading");
+    if (!scope || scope.resourceId) {
+      heading?.remove();
+      return;
+    }
+
+    if (!heading) {
+      heading = document.createElement("h2");
+      heading.className = "onejob-calendar-scope-heading";
+      wrap.prepend(heading);
+    }
+    const text = calendarScopeHeading(scope);
+    if (heading.textContent !== text) heading.textContent = text;
+  }
+
+  function calendarScopeHeading(scope) {
+    const type = scope.type ? G.typeLabel(scope.type).toLowerCase() : "resources";
+    const category = scope.group ? G.displayGroupName(scope.group, cfg.nav.stripGroupPrefix) : "";
+    if (!category || category.toLowerCase() === type) return `All ${type}`;
+    if (category.toLowerCase().startsWith(`${type}:`)) return `All ${category}`;
+    return `All ${type} in ${category}`;
   }
 
   /**
@@ -1650,18 +1676,18 @@
    * Everything the strip's links depend on. Rebuilding it on every ensure pass
    * would fight the MutationObserver that schedules those passes.
    */
-  function pinsBarKey(pins) {
+  function pinsBarKey(pins, scope = calendarScope()) {
     return [
       pins.map((pin) => `${pin.id}:${pin.name}`).join(","),
       state.groupsVersion,
       currentPinnedId(),
       location.search,
       state.settings.weekGrid,
-      calendarScope()?.label || "",
+      scope?.label || "",
     ].join("|");
   }
 
-  function renderPinsBar(pins) {
+  function renderPinsBar(pins, scope = calendarScope()) {
     const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
     const view = cfg.defaultView;
     const { start, end } = U.currentRange(location.search);
@@ -1717,7 +1743,7 @@
       nodes.push(chip);
     }
 
-    const actions = barActions(Boolean(pinnedId));
+    const actions = barActions(Boolean(pinnedId), scope);
     if (actions) nodes.push(actions);
     return nodes;
   }
@@ -1728,8 +1754,7 @@
    * They live here, not in the portal's toolbar, which re-renders badly when
    * anything is injected into it.
    */
-  function barActions(pinned) {
-    const scope = calendarScope();
+  function barActions(pinned, scope = calendarScope()) {
     const links = [];
     if (pinned) links.push(showAllLink());
 

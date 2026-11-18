@@ -255,6 +255,10 @@ dashboard's notes field and, if they need to live on disk, into
   pin state instead of two saying the same thing. The strip is rebuilt only when
   `pinsBarKey()` changes: the `MutationObserver` schedules an ensure pass for
   every DOM mutation, so rebuilding unconditionally would loop.
+- On a type/category calendar (`calendarScope()` without `resourceId`), the
+  wrapper also shows `.onejob-calendar-scope-heading` above the pins strip, e.g.
+  "All machines in CNC Machining". It is removed on a pinned single-resource
+  calendar and omitted on `/all`.
 - Where the strip is mounted depends on `<main>`'s own display
   (`mountPinsBar()`): booking pages have a plain block `<main>` and the strip is
   its first child, but the personal pages (`/user/dashboard/*`) render

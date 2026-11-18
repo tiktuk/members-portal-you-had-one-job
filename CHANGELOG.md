@@ -47,6 +47,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- The original calendar page labels the type/category shown after using
+  *Show all*, rather than leaving the scope implicit in the first resource.
 - The in-portal overview, statistics and week-view panels use much smaller
   viewport insets and expand to the available screen space.
 - The category week view can switch between a full week and a single-day view;

@@ -54,6 +54,14 @@
   background: var(--bs-body-bg, #fff);
 }
 
+.onejob-calendar-scope-heading {
+  margin: 0.75rem 0 0.25rem;
+  color: var(--bs-body-color, #212529);
+  font-size: 1.15rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
 .onejob-pins-bar-label {
   margin: 0 0.15rem 0 0.1rem;
   font-size: 0.68rem;
