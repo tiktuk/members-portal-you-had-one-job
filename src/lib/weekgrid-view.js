@@ -196,7 +196,7 @@
 
     const header = el("header", "page-header");
     const heading = el("div", "page-heading");
-    ui.heading = el("h1", null, weekCfg().label || "Week view");
+    ui.heading = el("h1", null, weekCfg().label || "Caro Week View");
     heading.appendChild(ui.heading);
     ui.modes = el("div", "wg-modes");
     ui.modes.setAttribute("role", "group");
@@ -246,7 +246,7 @@
     ui.refreshButton.addEventListener("click", () => load({ force: true }));
     actions.appendChild(ui.refreshButton);
 
-    actions.appendChild(iconButton("Close week view", "×", () => ui.onClose?.()));
+    actions.appendChild(iconButton("Close Caro Week View", "×", () => ui.onClose?.()));
 
     header.append(heading, actions);
 
@@ -797,7 +797,7 @@
 
     ui.refreshButton.disabled = state.loading;
     ui.refreshButton.textContent = state.loading ? "Refreshing…" : "Refresh";
-    ui.heading.textContent = dayView ? "Day view" : weekCfg().label || "Week view";
+    ui.heading.textContent = dayView ? "Day view" : weekCfg().label || "Caro Week View";
     ui.nav.setAttribute("aria-label", dayView ? "Day" : "Week");
     ui.previousButton.title = dayView ? "Previous day" : "Previous week";
     ui.previousButton.setAttribute("aria-label", ui.previousButton.title);

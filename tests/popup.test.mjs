@@ -42,9 +42,21 @@ test("the two event rows are named by the view they affect", () => {
 test("week-view machine colours are a default-on popup setting", () => {
   const config = loadConfig();
   assert.equal(config.weekGrid.machineColors, true);
-  assert.ok(config.onboarding.settings.some((row) => row.key === "machineColors"));
+  assert.ok(config.onboarding.settings.some((row) =>
+    row.key === "machineColors" && row.label === "Machine colours in Caro Week View"
+  ));
   assert.match(html, /id="machine-colors"/);
+  assert.match(html, /Machine colours in Caro Week View/);
   assert.match(script, /machineColors: machineColorsToggle\.checked/);
+});
+
+test("Caro Week View is the configured name across its entry points", () => {
+  const config = loadConfig();
+  assert.equal(config.weekGrid.label, "Caro Week View");
+  assert.equal(config.weekGrid.menuLabel, "Caro Week View");
+  assert.equal(config.weekGrid.buttonLabel, "Caro Week View");
+  assert.match(html, /<span class="row-title">Caro Week View<\/span>/);
+  assert.match(html, /“Caro Week View” button/);
 });
 
 test("the overview header has no events toggle", () => {

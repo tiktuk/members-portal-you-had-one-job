@@ -49,7 +49,7 @@ FEATURES
 
 • Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
-• Category week view — open it from the "Week view" link at the right end of the strip above a category calendar, or from the Week view row under each group in the Resources menu. Machines appear side by side by day on a shared hour axis; weekends are lightly shaded, elapsed days are hidden in the current week, and day headers have distinct shades and separators. Use the Week/Day toggle to switch between the full week and one date; the arrows move by a week or a day, and Today returns to the current period. Related machines share a hue with a different shade per machine; colours are on by default and can be turned off in the toolbar popup. For resources with multiple units, each day shows its peak concurrent usage plus one spare capacity lane when allocation permits, and expands after a booking when another lane is needed. Lanes represent shared capacity, not numbered physical machines. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Category week view" toggle hides the button and the menu rows.
+• Caro Week View — open it from the "Caro Week View" link at the right end of the strip above a category calendar, or from the Caro Week View row under each group in the Resources menu. Machines appear side by side by day on a shared hour axis; weekends are lightly shaded, elapsed days are hidden in the current week, and day headers have distinct shades and separators. Use the Week/Day toggle to switch between the full week and one date; the arrows move by a week or a day, and Today returns to the current period. Related machines share a hue with a different shade per machine; colours are on by default and can be turned off in the toolbar popup. For resources with multiple units, each day shows its peak concurrent usage plus one spare capacity lane when allocation permits, and expands after a booking when another lane is needed. Lanes represent shared capacity, not numbered physical machines. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Caro Week View" toggle hides the button and the menu rows.
 
 • Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar; a dot marks the space's Luma events in that block and a green bar marks your own bookings; workshop reservations and bookings linked from another resource count as occupied. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it and "Luma events in heatmap" hides the dots.
 
@@ -155,7 +155,7 @@ rejection reason.
 
 ```
 storage: keeps pins, the eight popup toggles (including the machine-colours preference), a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
-https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics, and to create or cancel the booking the member confirms in the overview or the category week view. JSON only, no HTML.
+https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics, and to create or cancel the booking the member confirms in the overview or Caro Week View. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
 web_accessible_resources https://members.motionlab.berlin/*: the page script, overview page and statistics stylesheet must load into that portal page.
@@ -175,7 +175,7 @@ to the member's own portal and the space's public event calendar.
 
 | Data Type | Collected? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
 |-----------|-----------|------------------------|---------|---------------------------|
-| Personally identifiable info | Yes | No | Names of coworkers already visible on the portal's own calendar are shown on bookings in the overview and the category week view. Fetched from the member's portal, displayed, not stored; the statistics cache stores no names. | No |
+| Personally identifiable info | Yes | No | Names of coworkers already visible on the portal's own calendar are shown on bookings in the overview and Caro Week View. Fetched from the member's portal, displayed, not stored; the statistics cache stores no names. | No |
 | Health info | No | No | — | No |
 | Financial info | No | No | The overview shows the price the portal quotes for a booking and then opens the portal's own payment page; no card, bank or invoice data is read or stored. | No |
 | Authentication info | Yes | To the member's own portal only | The portal session token is kept on the device so the overview page can read the member's bookings without reopening the portal. It is sent only in requests to the member's own Nexudus space, and never to the developer or any other party. | No |
@@ -301,8 +301,8 @@ listed below.
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
 7. The toolbar popup has eight toggles: calendar as default view, the bookings
-  heatmap, the category week view, Luma events in heatmap, Luma events in overview, the
-  machine colours in week view, the Resources menu and the location prompt block.
+  heatmap, Caro Week View, Luma events in heatmap, Luma events in overview, the
+  machine colours in Caro Week View, the Resources menu and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
 content_scripts.matches and asks for host access to just that site and to the

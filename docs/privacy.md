@@ -1,6 +1,6 @@
 # Privacy Policy — Members portal, you had one job
 
-Last updated: 18 November 2026
+Last updated: 19 November 2026
 
 **Members portal, you had one job** is a browser extension that adds resource
 filters, pinned single-resource calendars, a pinned-resources overview and a
@@ -21,10 +21,10 @@ goes to your own portal.
   sent only to your own portal, and only to fetch your bookings.
 - **Your pins and settings.** Which resources you pinned and the eight toggles
   in the toolbar popup, including whether related machines are coloured in the
-  week view.
+  Caro Week View.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to
-  fill the overview cards and the category week view. Booking records include the name of the member who
+  fill the overview cards and Caro Week View. Booking records include the name of the member who
   booked a shared resource, which the portal already shows you on its own
   calendar.
 - **Resource statistics.** Booking times for the resources published in the
@@ -34,7 +34,7 @@ goes to your own portal.
 - **Your portal page.** The extension reads the portal's own navigation labels
   and address to build the Resources menu and to keep the calendar view when you
   navigate.
-- **A booking you confirm.** The overview and the category week view can book the slot just before or after
+- **A booking you confirm.** The overview and Caro Week View can book the slot just before or after
   a booking or workshop reservation, and cancel one of your own bookings with
   one of the portal's cancellation reasons. The dialog shows the resource, the
   times, the member it books for and the price the portal quotes; nothing is

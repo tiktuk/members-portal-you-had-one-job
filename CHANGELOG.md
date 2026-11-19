@@ -50,6 +50,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Changed
 
+- Renamed the category week view to “Caro Week View” throughout the interface and
+  store and privacy copy.
 - The week-view popup fits its calendar content, sits slightly higher, and
   remains bounded on short screens.
 - The original calendar page labels the type/category shown after using

@@ -123,15 +123,15 @@
      * "Luma events" switch.
      */
     weekGrid: {
-      /** Default for the popup's "Category week view" toggle. */
+      /** Default for the popup's "Caro Week View" toggle. */
       enabled: true,
       /** Default for the popup's related-machine colours setting. */
       machineColors: true,
-      label: "Week view",
+      label: "Caro Week View",
       /** Label of the group's row in the Resources menu. */
-      menuLabel: "Week view",
+      menuLabel: "Caro Week View",
       /** Label of the button above the calendar. */
-      buttonLabel: "Week view",
+      buttonLabel: "Caro Week View",
       hourFrom: 6,
       hourTo: 22,
       /** A week is refetched when older than this; the open view refreshes each minute. */
@@ -159,7 +159,7 @@
         { key: "calendarDefault", label: "Calendar as default view" },
         { key: "dayGrid", label: "Bookings heatmap" },
         { key: "dayGridEvents", label: "Luma events in heatmap" },
-        { key: "machineColors", label: "Machine colours in week view" },
+        { key: "machineColors", label: "Machine colours in Caro Week View" },
         { key: "lumaEvents", label: "Luma events in overview" },
         { key: "navMenu", label: "Resources in the main menu" },
         { key: "geoBlockPrompt", label: "Block location prompt" },

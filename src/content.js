@@ -633,9 +633,9 @@
             const weekButton = document.createElement("button");
             weekButton.type = "button";
             weekButton.className = "onejob-link onejob-stats-link";
-            weekButton.title = `Week view of all ${group.label}`;
-            weekButton.setAttribute("aria-label", `Week view of all ${group.label}`);
-            weekButton.append(document.createTextNode(cfg.weekGrid?.menuLabel || "Week view"));
+            weekButton.title = `Caro Week View of all ${group.label}`;
+            weekButton.setAttribute("aria-label", `Caro Week View of all ${group.label}`);
+            weekButton.append(document.createTextNode(cfg.weekGrid?.menuLabel || "Caro Week View"));
             weekButton.addEventListener("click", (event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -991,8 +991,8 @@
     openOverlay({
       kind: "week",
       label: scope?.label
-        ? `${cfg.weekGrid?.label || "Week view"}: ${scope.label}`
-        : cfg.weekGrid?.label || "Week view",
+        ? `${cfg.weekGrid?.label || "Caro Week View"}: ${scope.label}`
+        : cfg.weekGrid?.label || "Caro Week View",
       stylesheets: ["overview.css", "weekgrid.css"],
       mount: (root, viewOptions) => globalThis.OneJobWeekGridView.mount(root, { ...viewOptions, scope }),
     });
@@ -1773,7 +1773,7 @@
     };
 
     if (scope && state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
-      const label = cfg.weekGrid?.buttonLabel || "Week view";
+      const label = cfg.weekGrid?.buttonLabel || "Caro Week View";
       action(
         label,
         scope.resourceId
