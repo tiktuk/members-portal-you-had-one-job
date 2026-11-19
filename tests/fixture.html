@@ -412,18 +412,27 @@
       render();
       setInterval(render, 200);
     </script>
-    <script src="/src/lib/config.js"></script>
-    <script src="/src/lib/url.js"></script>
-    <script src="/src/lib/keyboard-shortcuts.js"></script>
-    <script src="/src/lib/groups.js"></script>
-    <script src="/src/lib/overview.js"></script>
-    <script src="/src/lib/stats.js"></script>
-    <script src="/src/lib/weekgrid.js"></script>
-    <script src="/src/lib/booking-dialog.js"></script>
-    <script src="/src/lib/overview-view.js"></script>
-    <script src="/src/lib/stats-view.js"></script>
-    <script src="/src/lib/weekgrid-view.js"></script>
-    <script src="/src/lib/tour.js"></script>
-    <script src="/src/content.js"></script>
+    <!-- Same order as the manifest; ?t= defeats the dev server's heuristic
+         caching so a reload always picks up local edits. -->
+    <script>
+      for (const src of [
+        "lib/config.js",
+        "lib/url.js",
+        "lib/keyboard-shortcuts.js",
+        "lib/resource-picker.js",
+        "lib/groups.js",
+        "lib/overview.js",
+        "lib/stats.js",
+        "lib/weekgrid.js",
+        "lib/booking-dialog.js",
+        "lib/overview-view.js",
+        "lib/stats-view.js",
+        "lib/weekgrid-view.js",
+        "lib/tour.js",
+        "content.js",
+      ]) {
+        document.write(`<script src="/src/${src}?t=${Date.now()}"><\/script>`);
+      }
+    </script>
   </body>
 </html>

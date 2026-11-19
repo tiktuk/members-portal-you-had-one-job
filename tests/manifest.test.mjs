@@ -90,6 +90,7 @@ test("content script loads shared libraries before itself", () => {
     "lib/config.js",
     "lib/url.js",
     "lib/keyboard-shortcuts.js",
+    "lib/resource-picker.js",
     "lib/groups.js",
     "lib/overview.js",
     "lib/stats.js",

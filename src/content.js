@@ -280,6 +280,7 @@
       { key: "Alt+O", label: "Open Booking Overview (modifier shortcut)" },
       { key: "Alt+S", label: "Open Statistics (modifier shortcut)" },
       { key: "h", label: "Show keyboard shortcuts" },
+      { key: "p", label: "Find a resource" },
     ];
 
     if (scope && state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
@@ -381,8 +382,93 @@
       openWeekOverlay({ scope });
       return;
     }
+    if (K.matches(event, "p")) {
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      openResourcePicker();
+      return;
+    }
 
     if (activeOverlay?.view?.handleShortcut?.(event)) return;
+  }
+
+  /* ------------------------------------------------------------------
+   * Resource picker (quick open)
+   * ------------------------------------------------------------------ */
+
+  let resourcePicker = null;
+
+  function openResourcePicker() {
+    const P = globalThis.OneJobResourcePicker;
+    if (!P || !document.body) return;
+    if (!resourcePicker) {
+      resourcePicker = P.mount(document.body, {
+        onPick: (item) => {
+          const resource = item.resource;
+          // In Caro Week View a pick re-scopes the open view instead of
+          // navigating to the resource's calendar.
+          if (activeOverlay?.kind === "week" && typeof activeOverlay.view?.setScope === "function") {
+            activeOverlay.view.setScope({
+              type: resource.type || "",
+              group: resource.group || "",
+              resourceId: resource.id,
+              label: item.name,
+              categoryLabel:
+                G.displayGroupName(resource.group, cfg.nav.stripGroupPrefix) ||
+                G.typeLabel(resource.type),
+            });
+            return;
+          }
+          openResource(resource);
+        },
+      });
+    }
+    resourcePicker.open(() => pickerItems());
+    // When the resource list has not been fetched yet (the Resources menu is
+    // off), a refresh fills the picker on next open; offer an empty first
+    // render instead of blocking the palette on a network call.
+    if (!state.groups?.resources?.length) refreshGroups();
+  }
+
+  function pickerItems() {
+    const pinnedIds = new Set(state.pins.map((pin) => String(pin.id)));
+    const pinned = state.pins.map((pin) => pickerItem(pin, true));
+    const rest = (state.groups?.resources || [])
+      .filter((resource) => !pinnedIds.has(String(resource.id)))
+      .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
+      .map((resource) => pickerItem(resource, false));
+    return [...pinned, ...rest];
+  }
+
+  function pickerItem(resource, pinned) {
+    const type = resource.type || "all";
+    const subtitle = [
+      G.typeLabel(type),
+      G.displayGroupName(resource.group, cfg.nav.stripGroupPrefix),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return {
+      name: resource.name || `Resource ${resource.id}`,
+      subtitle,
+      pinned,
+      resource,
+    };
+  }
+
+  /** Open a resource's single-resource calendar, like a pin chip's link. */
+  function openResource(resource) {
+    if (!resource?.id) return;
+    const type = resource.type || "all";
+    const group = resource.group || "";
+    const name = resource.name || `Resource ${resource.id}`;
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const { start, end } = U.currentRange(location.search);
+    rememberPinnedResource({ id: resource.id, name, group, type });
+    location.assign(
+      U.bookingHref({ webAddress, type, view: cfg.defaultView, group, resource: resource.id, start, end }),
+    );
   }
 
   function findNavList() {

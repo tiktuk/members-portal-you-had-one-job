@@ -137,6 +137,7 @@
       isHelpOpen: () => Boolean(ui.help?.isOpen()),
       handleShortcut,
       shortcutBindings,
+      setScope,
     };
   }
 
@@ -148,6 +149,27 @@
     const resourceId = scope.resourceId != null ? String(scope.resourceId) : "";
     const label = String(scope.label || group || type);
     return { type, group, resourceId, label, categoryLabel: String(scope.categoryLabel || label) };
+  }
+
+  /** Point the view at another resource or category without a page reload. */
+  function setScope(scope) {
+    const next = normalizeScope(scope);
+    if (!next) return;
+    const nextMode = next.resourceId ? "single" : "category";
+    if (
+      state.mode === nextMode &&
+      state.scope?.type === next.type &&
+      state.scope?.group === next.group &&
+      state.scope?.resourceId === next.resourceId
+    ) {
+      return;
+    }
+    state.scope = next;
+    state.mode = nextMode;
+    state.notice = "";
+    applyScope();
+    buildModel();
+    render();
   }
 
   function destroy() {

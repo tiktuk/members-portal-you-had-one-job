@@ -11,6 +11,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- Press `p` for a quick-open resource chooser (fuzzy search, pinned resources
+  first) that jumps straight to the chosen resource's calendar. While Caro
+  Week View is open, the chooser instead switches the view to the picked
+  resource without leaving it.
 - Shortcut help now includes a short guide to the extension's other features.
 - Put shortcut help beside Statistics in the portal strip and beside Refresh
   in the overview, Statistics, and Caro Week View headers; strengthen keycap
@@ -89,6 +93,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   current week, and gives each day header its own shade and divider. Related
   machines share a hue with a different shade per machine; machine colours are
   on by default and can be turned off in the toolbar popup.
+
+### Fixed
+
+- The resource chooser stays on top and closable even when the portal breaks
+  dialog modality: `showModal()` now falls back to the picker's own
+  full-screen backdrop and layer, and Escape closes the chooser and shortcut
+  help explicitly instead of relying on the dialog's native close.
 
 ## [1.1.1] - 2026-11-17
 

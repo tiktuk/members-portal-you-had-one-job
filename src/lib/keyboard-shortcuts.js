@@ -3,11 +3,11 @@
   "use strict";
 
   let helpId = 0;
-  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", ",", "."]);
+  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", "p", ",", "."]);
   const FEATURE_GUIDE = [
     {
       title: "Resources and pins",
-      description: "Browse groups in the Resources menu and pin a machine. The pins strip opens its single-resource calendar.",
+      description: "Browse groups in the Resources menu and pin a machine. The pins strip opens its single-resource calendar; press P to search and open any resource.",
     },
     {
       title: "Booking Overview",
@@ -234,8 +234,31 @@
         empty.textContent = "No single-key shortcuts are active here.";
         list.appendChild(empty);
       }
-      dialog.showModal();
+      try {
+        dialog.showModal();
+      } catch {
+        // Fall through to the non-modal fallback below.
+      }
+      let modal = true;
+      try {
+        modal = dialog.matches(":modal");
+      } catch {
+        // Old engines without :modal still modal dialogs normally.
+      }
+      if (!modal) {
+        if (!dialog.open) dialog.open = true;
+        dialog.classList.add("onejob-keyboard-dialog-fallback");
+      }
     }
+
+    // The portal's global Escape handler can suppress the dialog's native
+    // cancel; close explicitly and keep focus away from its listener.
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      dialog.close();
+    });
 
     button.addEventListener("click", open);
     return {

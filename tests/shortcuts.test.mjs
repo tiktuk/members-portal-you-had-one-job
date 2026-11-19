@@ -83,7 +83,7 @@ test("dynamic pill shortcuts are unique and avoid global bindings", () => {
   shortcuts.assignShortcuts(buttons);
   const keys = buttons.map((button) => button.dataset.onejobShortcut);
   assert.equal(new Set(keys).size, keys.length);
-  assert.deepEqual(keys, ["i", "p", "m"]);
+  assert.deepEqual(keys, ["i", "n", "m"]);
   assert.ok(keys.every((key) => !shortcuts.GLOBAL_KEYS.has(key)));
   assert.equal(buttons[0].attributes["aria-keyshortcuts"], "I");
 });

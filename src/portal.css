@@ -134,6 +134,11 @@ body > .onejob-keyboard-help {
   overscroll-behavior: contain;
 }
 
+/* Non-modal fallback for pages that break showModal() (see .onejob-picker). */
+.onejob-keyboard-dialog-fallback {
+  z-index: 2147483001;
+}
+
 .onejob-keyboard-dialog-head {
   display: flex;
   align-items: center;
@@ -225,6 +230,142 @@ body > .onejob-keyboard-help {
   color: var(--bs-secondary-color, #6c757d);
   font-size: 0.8rem;
   line-height: 1.4;
+}
+
+/* Quick-open resource picker ------------------------------------------------ */
+
+.onejob-picker {
+  position: fixed;
+  inset: 9vh auto auto 50%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(72vh, 34rem);
+  margin: 0;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.85rem;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.onejob-picker::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+}
+
+/* Non-modal fallback: a page that breaks showModal() gets a plain layer
+   above its own chrome instead of a dialog hidden under it. */
+.onejob-picker-fallback {
+  z-index: 2147483001;
+}
+
+.onejob-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.onejob-picker-backdrop[hidden] {
+  display: none;
+}
+
+.onejob-picker-input {
+  margin: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.55rem;
+  background: var(--bs-body-bg, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.onejob-picker-input:focus-visible {
+  outline: 2px solid var(--bs-primary, #ff5b13);
+  outline-offset: -1px;
+  border-color: var(--bs-primary, #ff5b13);
+}
+
+.onejob-picker-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+.onejob-picker-section {
+  padding: 0.45rem 0.9rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color, #6c757d);
+}
+
+.onejob-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.onejob-picker-row .onejob-picker-sub {
+  grid-column: 1 / -1;
+}
+
+.onejob-picker-row.is-active {
+  background: var(--bs-primary-bg-subtle, #ffdecf);
+}
+
+.onejob-picker-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onejob-picker-sub {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.onejob-picker-pinned {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--bs-primary-bg-subtle, #ffdecf);
+  color: var(--bs-emphasis-color, var(--bs-body-color, #212529));
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.onejob-picker-row.is-active .onejob-picker-pinned {
+  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-primary-border-subtle, #ffbd9f);
+}
+
+.onejob-picker-empty {
+  padding: 1.4rem 0.9rem;
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.onejob-picker-foot {
+  padding: 0.4rem 0.9rem;
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.72rem;
 }
 
 .onejob-pins-bar-label {
