@@ -252,6 +252,12 @@ body > .onejob-keyboard-help {
   overflow: hidden;
 }
 
+/* display:grid above would override the UA's dialog:not([open]){display:none},
+   leaving a "closed" palette painted in normal flow behind the page. */
+.onejob-picker:not([open]) {
+  display: none;
+}
+
 .onejob-picker::backdrop {
   background: rgba(0, 0, 0, 0.42);
 }

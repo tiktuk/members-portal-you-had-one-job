@@ -96,6 +96,9 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Fixed
 
+- The resource chooser no longer stays painted behind the page after Escape:
+  its `display: grid` had overridden the browser's `dialog:not([open])` rule,
+  so a closed palette kept rendering in normal flow under the navbar and grid.
 - The resource chooser stays on top and closable even when the portal breaks
   dialog modality: `showModal()` now falls back to the picker's own
   full-screen backdrop and layer, and Escape closes the chooser and shortcut
