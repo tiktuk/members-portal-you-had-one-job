@@ -62,6 +62,171 @@
   line-height: 1.25;
 }
 
+/* Help sits beside the Statistics action when the portal strip is present. */
+.onejob-keyboard-help {
+  display: inline-flex;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.onejob-pins-actions .onejob-keyboard-help {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+body > .onejob-keyboard-help {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1999;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 50%;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.18);
+}
+
+.onejob-keyboard-help:hover,
+.onejob-keyboard-help:focus-visible {
+  border-color: var(--bs-primary, #ff5b13);
+  color: var(--bs-primary, #ff5b13);
+}
+
+.onejob-keyboard-help:focus-visible {
+  outline: 2px solid var(--bs-primary, #ff5b13);
+  outline-offset: 2px;
+}
+
+.onejob-keyboard-dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(80vh, 40rem);
+  margin: 0;
+  padding: 1rem 1.15rem 1.15rem;
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.85rem;
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #212529);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.28);
+}
+
+.onejob-keyboard-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.onejob-keyboard-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+.onejob-keyboard-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.onejob-keyboard-dialog-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.onejob-keyboard-dialog-head form {
+  margin: 0;
+}
+
+.onejob-keyboard-close {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.onejob-keyboard-close:hover,
+.onejob-keyboard-close:focus-visible {
+  background: var(--bs-secondary-bg, #f1f3f5);
+}
+
+.onejob-keyboard-note {
+  margin: 0.55rem 0 0.9rem;
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.85rem;
+}
+
+.onejob-keyboard-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onejob-keyboard-list li {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onejob-keyboard-list kbd {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--bs-body-color, #212529) 55%, var(--bs-body-bg, #fff) 45%);
+  border-radius: 0.35rem;
+  background: var(--bs-secondary-bg, #e9ecef);
+  color: var(--bs-emphasis-color, var(--bs-body-color, #212529));
+  font: 600 0.8rem/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-align: center;
+}
+
+.onejob-keyboard-features-title {
+  margin: 1.1rem 0 0.55rem;
+  font-size: 0.95rem;
+}
+
+.onejob-keyboard-features {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onejob-keyboard-features li {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.onejob-keyboard-features strong {
+  font-size: 0.85rem;
+}
+
+.onejob-keyboard-features span {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .onejob-pins-bar-label {
   margin: 0 0.15rem 0 0.1rem;
   font-size: 0.68rem;
@@ -954,5 +1119,11 @@
   }
   50% {
     box-shadow: 0 0 0 7px var(--bs-primary-bg-subtle, #ffdecf);
+  }
+}
+
+@media (max-width: 1199.98px) {
+  body > .onejob-keyboard-help {
+    bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
   }
 }

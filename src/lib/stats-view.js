@@ -1,4 +1,4 @@
-/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobGroups, OneJobStats */
+/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobGroups, OneJobStats, OneJobKeyboardShortcuts */
 
 /**
  * The resource statistics screen. Mounted into the in-portal overlay by
@@ -13,6 +13,7 @@
   const O = OneJobOverview;
   const G = OneJobGroups;
   const S = OneJobStats;
+  const K = OneJobKeyboardShortcuts;
 
   const REFRESH_LABEL = "Refresh";
   const BAND_LABELS = ["No bookings", "Quiet", "Moderate", "Busy", "Very busy"];
@@ -22,6 +23,7 @@
     return {
       session: null,
       cachedGroups: null,
+      settings: null,
       resources: [],
       months: {},
       period: cfg.stats?.defaultPeriod || "12m",
@@ -57,6 +59,8 @@
     timer: 0,
     onStorageChanged: null,
     controller: null,
+    help: null,
+    getGlobalShortcutBindings: null,
   };
 
   globalThis.OneJobStatsView = { mount, destroy };
@@ -67,13 +71,28 @@
     ui.root = root;
     ui.doc = root.ownerDocument;
     ui.onClose = typeof options.onClose === "function" ? options.onClose : null;
+    ui.getGlobalShortcutBindings =
+      typeof options.getGlobalShortcutBindings === "function" ? options.getGlobalShortcutBindings : () => [];
     state.scope = normalizeScope(options.scope);
 
     root.classList.add("overview", "stats", "is-panel");
     root.replaceChildren(buildShell());
+    ui.help = K.mountHelp(root.getRootNode(), () => ({
+      enabled: shortcutsEnabled(),
+      bindings: shortcutsEnabled() ? shortcutBindings() : [],
+    }));
+    ui.help.button.classList.add("button", "button-icon");
+    ui.refreshButton.parentElement.insertBefore(ui.help.button, ui.refreshButton.nextSibling);
 
     start();
-    return { refresh: () => load({ force: true }), destroy };
+    return {
+      refresh: () => load({ force: true }),
+      destroy,
+      openHelp: () => ui.help?.open(),
+      isHelpOpen: () => Boolean(ui.help?.isOpen()),
+      handleShortcut,
+      shortcutBindings,
+    };
   }
 
   function normalizeScope(scope) {
@@ -89,6 +108,7 @@
   }
 
   function destroy() {
+    ui.help?.destroy();
     if (ui.timer) {
       clearTimeout(ui.timer);
       ui.timer = 0;
@@ -112,6 +132,8 @@
     ui.timer = 0;
     ui.onStorageChanged = null;
     ui.controller = null;
+    ui.help = null;
+    ui.getGlobalShortcutBindings = null;
 
     Object.assign(state, emptyState());
   }
@@ -147,6 +169,9 @@
       const button = el("button", "button stats-period", period.label);
       button.type = "button";
       button.dataset.period = period.id;
+      button.dataset.shortcutLabel = period.label;
+      button.dataset.shortcutPreferred =
+        period.id === "4w" ? "f" : period.id === "3m" ? "t" : "y";
       button.setAttribute("aria-pressed", String(period.id === state.period));
       button.addEventListener("click", () => {
         if (state.period === period.id) return;
@@ -159,6 +184,7 @@
       periods.appendChild(button);
       return button;
     });
+    K.assignShortcuts(ui.periodButtons);
     actions.appendChild(periods);
 
     ui.refreshButton = el("button", "button", REFRESH_LABEL);
@@ -191,9 +217,10 @@
    * ------------------------------------------------------------------ */
 
   async function start() {
-    [state.session, state.cachedGroups] = await Promise.all([
+    [state.session, state.cachedGroups, state.settings] = await Promise.all([
       get(cfg.storageKeys.session),
       get(cfg.storageKeys.groups),
+      get(cfg.storageKeys.settings),
     ]);
     if (!ui.root) return;
 
@@ -211,6 +238,10 @@
   function onStorageChanged(changes, area) {
     if (area !== "local" || !ui.root) return;
     let reload = false;
+
+    if (changes[cfg.storageKeys.settings]) {
+      state.settings = changes[cfg.storageKeys.settings].newValue || null;
+    }
 
     if (changes[cfg.storageKeys.session]) {
       state.session = changes[cfg.storageKeys.session].newValue || null;
@@ -1017,6 +1048,7 @@
       const all = el("button", "button stats-filter", `All resources ${state.model.resources.length}`);
       all.type = "button";
       all.dataset.type = "all";
+      all.dataset.shortcutLabel = "All resources";
       all.setAttribute("aria-pressed", String(state.type === "all"));
       all.addEventListener("click", () => {
         state.type = "all";
@@ -1028,6 +1060,7 @@
         const button = el("button", "button stats-filter", `${group.label} ${group.resources.length}`);
         button.type = "button";
         button.dataset.type = group.slug;
+        button.dataset.shortcutLabel = group.label;
         button.setAttribute("aria-pressed", String(state.type === group.slug));
         button.addEventListener("click", () => {
           state.type = group.slug;
@@ -1035,6 +1068,9 @@
         });
         filters.appendChild(button);
       }
+      K.assignShortcuts(filters.querySelectorAll("button"), {
+        reserved: new Set([...K.GLOBAL_KEYS, "f", "t", "y", "b", "n"]),
+      });
       controls.appendChild(filters);
     }
 
@@ -1045,6 +1081,8 @@
       const button = el("button", "button stats-filter", label);
       button.type = "button";
       button.dataset.sort = id;
+      button.dataset.shortcutLabel = label;
+      button.dataset.shortcutPreferred = id === "busy" ? "b" : "n";
       button.setAttribute("aria-pressed", String(state.sort === id));
       button.addEventListener("click", () => {
         state.sort = id;
@@ -1052,9 +1090,40 @@
       });
       sort.appendChild(button);
     }
+    K.assignShortcuts(sort.querySelectorAll("button"));
     controls.appendChild(sort);
 
     return controls;
+  }
+
+  function shortcutsEnabled() {
+    return state.settings?.singleKeyShortcuts !== false && cfg.keyboardShortcuts?.enabled !== false;
+  }
+
+  function shortcutBindings() {
+    if (!shortcutsEnabled()) return [];
+    return [
+      ...(ui.getGlobalShortcutBindings?.() || []),
+      ...K.collectHints(ui.root),
+    ];
+  }
+
+  function handleShortcut(event) {
+    if (
+      !ui.root ||
+      !shortcutsEnabled() ||
+      K.isEditableEvent(event) ||
+      K.isHelpDialog(event)
+    ) {
+      return false;
+    }
+    const key = String(event.key || "").toLowerCase();
+    const button = [...ui.root.querySelectorAll("[data-onejob-shortcut]")]
+      .find((candidate) => candidate.dataset.onejobShortcut === key);
+    if (!button || event.repeat) return false;
+    event.preventDefault();
+    button.click();
+    return true;
   }
 
   function resourceLegend() {

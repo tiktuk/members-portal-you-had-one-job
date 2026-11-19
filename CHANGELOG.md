@@ -11,6 +11,18 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- Shortcut help now includes a short guide to the extension's other features.
+- Put shortcut help beside Statistics in the portal strip and beside Refresh
+  in the overview, Statistics, and Caro Week View headers; strengthen keycap
+  contrast in the portal's dark theme.
+- Keep the shortcut help button visible within extension overlays, and
+  route `,` / `.` to Caro Week View while it is open instead of the calendar
+  behind it.
+- Single-key shortcuts: open Booking Overview / Statistics / Caro Week View
+  with `o` / `s` / `c`, and use `,` / `.` for calendar navigation. Caro Week
+  View and Statistics pills also have one-key controls; `h` or the help button
+  lists the active keys. The toolbar popup can turn these character shortcuts
+  off; Alt+O and Alt+S continue to work.
 - The booking dialog shows start and end times alongside duration. Editing the
   free endpoint recalculates duration, and editing duration recalculates that
   endpoint; the selected slot or adjacent booking edge stays fixed.

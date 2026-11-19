@@ -48,7 +48,7 @@ test("every file referenced by the manifest exists", () => {
 
 test("page-world scripts are web accessible to the built-in portal only", () => {
   const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
-  for (const file of ["lib/config.js", "lib/url.js", "page.js"]) {
+  for (const file of ["lib/config.js", "lib/url.js", "lib/keyboard-shortcuts.js", "page.js"]) {
     assert.ok(resources.includes(file), `${file} must be web accessible`);
   }
   const matches = manifest.web_accessible_resources.flatMap((entry) => entry.matches);
@@ -89,6 +89,7 @@ test("content script loads shared libraries before itself", () => {
   assert.deepEqual(entry.js, [
     "lib/config.js",
     "lib/url.js",
+    "lib/keyboard-shortcuts.js",
     "lib/groups.js",
     "lib/overview.js",
     "lib/stats.js",
@@ -101,6 +102,16 @@ test("content script loads shared libraries before itself", () => {
     "content.js",
   ]);
   assert.equal(entry.run_at, "document_start");
+});
+
+test("standalone overview loads the shared shortcut helpers before its view", () => {
+  const html = readFileSync(join(src, "overview.html"), "utf8");
+  assert.match(
+    html,
+    /<script src="lib\/keyboard-shortcuts\.js"><\/script>\s*<script src="lib\/overview-view\.js"><\/script>/,
+  );
+  const resources = manifest.web_accessible_resources.flatMap((entry) => entry.resources);
+  assert.ok(resources.includes("lib/keyboard-shortcuts.js"));
 });
 
 test("the overlay stylesheets are web accessible to the shadow roots", () => {

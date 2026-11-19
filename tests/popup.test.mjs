@@ -50,6 +50,17 @@ test("week-view machine colours are a default-on popup setting", () => {
   assert.match(script, /machineColors: machineColorsToggle\.checked/);
 });
 
+test("single-key shortcuts can be disabled from the popup", () => {
+  const config = loadConfig();
+  assert.equal(config.keyboardShortcuts.enabled, true);
+  assert.ok(config.onboarding.settings.some((row) =>
+    row.key === "singleKeyShortcuts" && row.label === "Single-key shortcuts"
+  ));
+  assert.match(html, /id="single-key-shortcuts"/);
+  assert.match(html, /Single-key shortcuts/);
+  assert.match(script, /singleKeyShortcuts: shortcutsToggle\.checked/);
+});
+
 test("Caro Week View is the configured name across its entry points", () => {
   const config = loadConfig();
   assert.equal(config.weekGrid.label, "Caro Week View");

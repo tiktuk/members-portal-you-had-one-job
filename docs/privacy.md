@@ -19,9 +19,9 @@ goes to your own portal.
   sign in. The extension keeps a copy of it on your device so the overview page
   can read your bookings without asking you to open the portal again. It is
   sent only to your own portal, and only to fetch your bookings.
-- **Your pins and settings.** Which resources you pinned and the eight toggles
+- **Your pins and settings.** Which resources you pinned and the nine toggles
   in the toolbar popup, including whether related machines are coloured in the
-  Caro Week View.
+  Caro Week View and whether single-key shortcuts are enabled.
 - **Resource groups and bookings.** The extension reads the portal's resource
   list (type, group and name) to build the Resources menu, and booking records to
   fill the overview cards and Caro Week View. Booking records include the name of the member who
@@ -56,7 +56,8 @@ goes to your own portal.
 
 Everything stays on your device, in the extension's own local storage:
 
-- Pins and settings, including the week-view machine-colours preference.
+- Pins and settings, including the week-view machine-colours preference and
+  the single-key shortcuts preference (one local boolean).
 - A cached copy of the resource groups, so the Resources menu opens instantly.
 - The portal session, so the overview page works without reopening the portal.
 - A cached copy of the booking times used by the statistics screen (resource id,
@@ -92,7 +93,7 @@ anyone else.
 ## Your controls
 
 - Unpin a resource from the menu or from its card in the overview.
-- Turn any of the four features off in the toolbar popup.
+- Turn features and single-key shortcuts on or off in the toolbar popup.
 - Cancel one of your own bookings from the overview; the extension sends that
   cancellation to your portal with the reason you pick.
 - Uninstall the extension to delete everything it stored.

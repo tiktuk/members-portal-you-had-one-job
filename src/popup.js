@@ -10,6 +10,7 @@
     dayGridEvents: cfg.dayGrid?.events !== false,
     weekGrid: cfg.weekGrid?.enabled !== false,
     machineColors: cfg.weekGrid?.machineColors !== false,
+    singleKeyShortcuts: cfg.keyboardShortcuts?.enabled !== false,
     lumaEvents: cfg.luma?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
   };
@@ -20,6 +21,7 @@
   const weekGridToggle = document.getElementById("week-grid");
   const machineColorsToggle = document.getElementById("machine-colors");
   const navToggle = document.getElementById("nav-menu");
+  const shortcutsToggle = document.getElementById("single-key-shortcuts");
   const navRowTitle = document.getElementById("nav-row-title");
   const navRowHint = document.getElementById("nav-row-hint");
   const lumaToggle = document.getElementById("luma-events");
@@ -43,6 +45,7 @@
     weekGridToggle.checked = settings.weekGrid !== false;
     machineColorsToggle.checked = settings.machineColors !== false;
     navToggle.checked = settings.navMenu !== false;
+    shortcutsToggle.checked = settings.singleKeyShortcuts !== false;
     lumaToggle.checked = settings.lumaEvents !== false;
     geoToggle.checked = settings.geoBlockPrompt !== false;
 
@@ -62,6 +65,9 @@
       saveSettings({ machineColors: machineColorsToggle.checked }),
     );
     navToggle.addEventListener("change", () => saveSettings({ navMenu: navToggle.checked }));
+    shortcutsToggle.addEventListener("change", () =>
+      saveSettings({ singleKeyShortcuts: shortcutsToggle.checked }),
+    );
     lumaToggle.addEventListener("change", () =>
       saveSettings({ lumaEvents: lumaToggle.checked }),
     );

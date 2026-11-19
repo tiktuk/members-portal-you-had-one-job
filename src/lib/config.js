@@ -39,6 +39,9 @@
     /** Which bookings view the extension falls back to. */
     defaultView: "calendar",
 
+    /** Default for the popup's single-character keyboard shortcuts toggle. */
+    keyboardShortcuts: { enabled: true },
+
     /**
      * The portal asks for the browser location on every page load (it feeds the
      * AI assistant). Safari only remembers a denial for a day, so the prompt
@@ -162,6 +165,7 @@
         { key: "machineColors", label: "Machine colours in Caro Week View" },
         { key: "lumaEvents", label: "Luma events in overview" },
         { key: "navMenu", label: "Resources in the main menu" },
+        { key: "singleKeyShortcuts", label: "Single-key shortcuts" },
         { key: "geoBlockPrompt", label: "Block location prompt" },
       ],
     },

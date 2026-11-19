@@ -116,7 +116,7 @@ dashboard's notes field and, if they need to live on disk, into
 - `src/stats.css` — the statistics screen's own styles, loaded after
   `overview.css` in the same shadow root so it can reuse the palette, header,
   buttons, notices and footer.
-- `src/popup.*` — toolbar settings UI (eight toggles, the tour replay row, group
+- `src/popup.*` — toolbar settings UI (nine toggles, the tour replay row, group
   cache status, link to the pinned overview).
 - `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
   (debugging the content script) and `screenshots.html` (the README and store

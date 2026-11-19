@@ -1,4 +1,4 @@
-/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobBookingDialog */
+/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobBookingDialog, OneJobKeyboardShortcuts */
 
 /**
  * The pinned resources overview, shared by the standalone page (overview.html)
@@ -11,6 +11,7 @@
   const cfg = OneJobConfig;
   const U = OneJobUrl;
   const O = OneJobOverview;
+  const K = OneJobKeyboardShortcuts;
 
   const REFRESH_MS = 60 * 1000;
   /** How long the "Booking created" toast stays up. */
@@ -64,6 +65,9 @@
     timer: null,
     successTimer: null,
     onStorageChanged: null,
+    help: null,
+    onKeydown: null,
+    getGlobalShortcutBindings: null,
   };
 
   /** The booking and cancel dialogs; they live in lib/booking-dialog.js. */
@@ -95,19 +99,36 @@
     ui.doc = root.ownerDocument;
     ui.variant = options.variant === "panel" ? "panel" : "page";
     ui.onClose = typeof options.onClose === "function" ? options.onClose : null;
+    ui.getGlobalShortcutBindings =
+      typeof options.getGlobalShortcutBindings === "function" ? options.getGlobalShortcutBindings : null;
 
     root.classList.add("overview", ui.variant === "panel" ? "is-panel" : "is-page");
     root.replaceChildren(buildShell());
+    ui.help = K.mountHelp(root.getRootNode(), () => ({
+      enabled: shortcutsEnabled(),
+      bindings: shortcutsEnabled() ? shortcutBindings() : [],
+    }));
+    ui.help.button.classList.add("button", "button-icon");
+    ui.refreshButton.parentElement.insertBefore(ui.help.button, ui.refreshButton.nextSibling);
+    if (ui.variant === "page") {
+      ui.onKeydown = onStandaloneKeydown;
+      ui.doc.addEventListener("keydown", ui.onKeydown);
+    }
 
     start();
     return {
       refresh: () => load(),
       destroy,
       hasOpenModal: () => dialogs.hasOpenModal(),
+      openHelp: () => ui.help?.open(),
+      isHelpOpen: () => Boolean(ui.help?.isOpen()),
+      handleShortcut: onStandaloneKeydown,
+      shortcutBindings,
     };
   }
 
   function destroy() {
+    ui.help?.destroy();
     dialogs.close();
     dialogs.reset();
     if (ui.timer) clearInterval(ui.timer);
@@ -115,6 +136,7 @@
     if (ui.onStorageChanged && typeof chrome?.storage?.onChanged?.removeListener === "function") {
       chrome.storage.onChanged.removeListener(ui.onStorageChanged);
     }
+    if (ui.onKeydown) ui.doc?.removeEventListener("keydown", ui.onKeydown);
     if (ui.root) ui.root.replaceChildren();
 
     ui.root = null;
@@ -130,6 +152,9 @@
     ui.timer = null;
     ui.successTimer = null;
     ui.onStorageChanged = null;
+    ui.help = null;
+    ui.onKeydown = null;
+    ui.getGlobalShortcutBindings = null;
 
     Object.assign(state, emptyState());
   }
@@ -797,6 +822,7 @@
     const heading = el("h2");
     const titleLink = el("a", "card-title-link", card.pin.name || `Resource ${card.pin.id}`);
     titleLink.href = calendarHref(card.pin);
+    titleLink.dataset.resourceId = String(card.pin.id);
     titleLink.target = "_blank";
     titleLink.rel = "noopener";
     titleLink.title = `Open ${card.pin.name || "resource"} in the calendar`;
@@ -1105,6 +1131,39 @@
     return String(type || "")
       .replace(/-/g, " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  function shortcutsEnabled() {
+    return state.settings?.singleKeyShortcuts !== false && cfg.keyboardShortcuts?.enabled !== false;
+  }
+
+  function shortcutBindings() {
+    if (!shortcutsEnabled()) return [];
+    if (ui.variant === "panel") return ui.getGlobalShortcutBindings?.() || [];
+    return [
+      { key: "h", label: "Show keyboard shortcuts" },
+    ];
+  }
+
+  function onStandaloneKeydown(event) {
+    if (
+      ui.variant !== "page" ||
+      !ui.root ||
+      !shortcutsEnabled() ||
+      event.defaultPrevented ||
+      K.isEditableEvent(event) ||
+      K.isInDialog(event) ||
+      K.isHelpDialog(event)
+    ) {
+      return false;
+    }
+    if (K.matches(event, "h")) {
+      event.preventDefault();
+      ui.help?.open();
+      return true;
+    }
+
+    return false;
   }
 
   function firstLetter(name) {

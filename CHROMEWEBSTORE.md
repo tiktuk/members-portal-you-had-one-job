@@ -37,7 +37,7 @@ FEATURES
 
 • First-run tour — the first time you open the portal, a short tour pins one machine, follows it to its calendar to show the 4 × 28 heatmap, then opens the Booking Overview, previews the toolbar settings with their current state and finishes on Resource statistics. Replay it from the toolbar popup.
 
-• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, or press Alt+O anywhere on the portal. Each card links to that resource's calendar, and its × button unpins it.
+• Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, press Alt+O or O, or use the corner shortcut help. Each card links to that resource's calendar, and its × button unpins it.
 
 • Show all machines — from a pinned machine's calendar, Show all returns to the original category calendar. A heading above the pins strip names the machines or category currently shown.
 
@@ -47,9 +47,11 @@ FEATURES
 
 • My bookings — a card that collects your own bookings across every resource, each linking to its page in the portal.
 
-• Resource statistics — open it from the bottom of the Resources menu, or press Alt+S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
+• Resource statistics — open it from the bottom of the Resources menu, or press Alt+S or S. It shows a daily heatmap for the last 12 months, every published resource colour-coded by booked hours per day, weekday and time-of-day charts, a booking-length distribution and summary tiles. Switch the period between 4 weeks, 3 months and 12 months; click a resource tile to open its single-resource calendar. Each group's expanded list also has a Statistics row under Show all, which opens the same screen scoped to that group.
 
-• Caro Week View — open it from the "Caro Week View" link at the right end of the strip above a category calendar, or from the Caro Week View row under each group in the Resources menu. Machines appear side by side by day on a shared hour axis; weekends are lightly shaded, elapsed days are hidden in the current week, and day headers have distinct shades and separators. Use the Week/Day toggle to switch between the full week and one date; the arrows move by a week or a day, and Today returns to the current period. Related machines share a hue with a different shade per machine; colours are on by default and can be turned off in the toolbar popup. For resources with multiple units, each day shows its peak concurrent usage plus one spare capacity lane when allocation permits, and expands after a booking when another lane is needed. Lanes represent shared capacity, not numbered physical machines. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Caro Week View" toggle hides the button and the menu rows.
+• Caro Week View — open it from the "Caro Week View" link at the right end of the strip above a category calendar, press C, or use the Caro Week View row under each group in the Resources menu. Machines appear side by side by day on a shared hour axis; weekends are lightly shaded, elapsed days are hidden in the current week, and day headers have distinct shades and separators. Use the Week/Day toggle or W/D to switch between the full week and one date; `,` and `.` move by a week or a day, and Today returns to the current period. Related machines share a hue with a different shade per machine; colours are on by default and can be turned off in the toolbar popup. For resources with multiple units, each day shows its peak concurrent usage plus one spare capacity lane when allocation permits, and expands after a booking when another lane is needed. Lanes represent shared capacity, not numbered physical machines. Your own bookings are highlighted, workshop reservations are hatched and Luma events tint the day. On a pinned machine's calendar the button opens that machine, and a switch in the header changes between it, all your pinned machines, the whole category, any other category you have pins in, and your own bookings; each switch has a one-key hint. Click a free time to book it or one of your own bookings to cancel it; booking and cancelling use the same confirmation dialogs as the overview. The toolbar popup's "Caro Week View" toggle hides the button and the menu rows.
+
+• Single-key navigation — use O/S/C to open the Booking Overview, Statistics or Caro Week View. In calendars, `,` and `.` move backward/forward; in Caro Week View, D/W select Day/Week and Statistics pills have one-key hints. Press H or the help button beside Statistics/Refresh to see the shortcuts available on the current screen. Single-key shortcuts can be disabled in the toolbar popup; Alt+O and Alt+S remain available.
 
 • Bookings heatmap — a single-resource calendar shows a 4 × 28 heatmap under the pins: 28 days from last week to the week in two weeks, with morning, afternoon, evening and night rows. Each square is coloured by how much of that six-hour block is booked, so a busy day stands out before you scroll the calendar; a dot marks the space's Luma events in that block and a green bar marks your own bookings; workshop reservations and bookings linked from another resource count as occupied. Click a square to open that day's week; the toolbar popup's "Bookings heatmap" toggle hides it and "Luma events in heatmap" hides the dots.
 
@@ -65,9 +67,9 @@ HOW TO USE
 2. Click "Resources" in the portal navigation. Every resource type and group is listed there; click a group to open its machines.
 3. Press the pin icon next to a resource you book often. It appears in the strip at the top of the page.
 4. Open that pin. The heatmap under the strip shows the resource's booked share of each six-hour block for the last week and the next three; click a square to jump to that week.
-5. Press Alt+O, or "Booking Overview" in the main navigation, to see all pinned resources and your own bookings. Hover a booking there to book the slot just before or after it, and use the × on your own rows to cancel one.
-6. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S) to see the year heatmap and every resource colour-coded by booked hours per day.
-7. The toolbar icon opens the overview as a full page, lists your pins, and holds the eight toggles.
+5. Press Alt+O or O, or choose "Booking Overview", to see all pinned resources and your own bookings. Hover a booking there to book the slot just before or after it, and use the × on your own rows to cancel one.
+6. Open the bottom of the Resources menu and choose "Resource statistics" (or press Alt+S or S) to see the year heatmap and every resource colour-coded by booked hours per day.
+7. The toolbar icon opens the overview as a full page, lists your pins, and holds the nine toggles.
 
 This build is for the MotionLab.Berlin members portal. Nexudus gives every space its own web address, so the extension is installed for one portal at a time and does nothing anywhere else.
 
@@ -154,7 +156,7 @@ rejection reason.
 **Permissions justification** — 842 of 1,000 characters
 
 ```
-storage: keeps pins, the eight popup toggles (including the machine-colours preference), a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
+storage: keeps pins, the nine popup toggles (including machine colours and the single-key shortcuts preference), a cached resource list, the portal session and cached booking times for the statistics screen on their device. Local only; nothing synced or sent.
 https://motionlabberlin.spaces.nexudus.com/*: reads the resource list and booking JSON for the portal the member is signed in to, to build the Resources menu, the overview cards and the resource statistics, and to create or cancel the booking the member confirms in the overview or Caro Week View. JSON only, no HTML.
 https://api.luma.com/*: reads the space's public upcoming events for the overview. No account, no user data, no writes.
 content script on members.motionlab.berlin: the only site the extension runs on.
@@ -300,9 +302,10 @@ listed below.
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
-7. The toolbar popup has eight toggles: calendar as default view, the bookings
+7. The toolbar popup has nine toggles: calendar as default view, the bookings
   heatmap, Caro Week View, Luma events in heatmap, Luma events in overview, the
-  machine colours in Caro Week View, the Resources menu and the location prompt block.
+  machine colours in Caro Week View, the Resources menu, single-key shortcuts
+  and the location prompt block.
 
 The extension runs on this portal only: the manifest names it in
 content_scripts.matches and asks for host access to just that site and to the

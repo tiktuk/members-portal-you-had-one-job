@@ -19,13 +19,18 @@
 
   const U = globalThis.OneJobUrl;
   const config = globalThis.OneJobConfig;
-  if (!U || !config) return;
+  const K = globalThis.OneJobKeyboardShortcuts;
+  if (!U || !config || !K) return;
 
   const RESOURCE_PARAM = U.RESOURCE_PARAM || "onejob-resource";
   const PINNED_KEY = config.storageKeys?.pinnedSession || "onejob:pinned-resource";
 
   const script = document.currentScript;
-  let settings = { calendarDefault: true, geoBlockPrompt: config.geo?.blockPrompt !== false };
+  let settings = {
+    calendarDefault: true,
+    geoBlockPrompt: config.geo?.blockPrompt !== false,
+    singleKeyShortcuts: config.keyboardShortcuts?.enabled !== false,
+  };
   try {
     settings = { ...settings, ...JSON.parse(script?.dataset?.config || "{}") };
   } catch {
@@ -335,26 +340,10 @@
     return index === 0 ? -1 : index === 1 ? 1 : 0;
   }
 
-  function localIso(date) {
-    const pad = (value, width = 2) => String(Math.abs(value)).padStart(width, "0");
-    const offset = -date.getTimezoneOffset();
-    const sign = offset < 0 ? "-" : "+";
-    return (
-      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-      `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}` +
-      `${sign}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`
-    );
-  }
-
-  function stepPinnedRange(days) {
-    const params = new URLSearchParams(location.search);
-    const from = new Date(params.get("start") || "");
-    const to = new Date(params.get("end") || "");
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return false;
-    from.setDate(from.getDate() + days);
-    to.setDate(to.getDate() + days);
-    params.set("start", localIso(from));
-    params.set("end", localIso(to));
+  function stepCalendarRange(days) {
+    const search = K.shiftDateRange(location.search, days);
+    if (!search) return false;
+    const params = new URLSearchParams(search);
     // Keep the marker alive through the pushState; the portal strips the
     // parameter again when it normalises the URL.
     const pin = pinned();
@@ -364,6 +353,42 @@
     window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
     return true;
   }
+
+  function visibleCalendarDays() {
+    const container = document.querySelector(".calendar-container");
+    const columns = container?.querySelectorAll(".fc-timegrid-col").length || 0;
+    if (columns) return columns;
+
+    const params = new URLSearchParams(location.search);
+    const start = new Date(params.get("start") || "");
+    const end = new Date(params.get("end") || "");
+    const range = Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+    return Number.isFinite(range) && range > 0 ? range : 7;
+  }
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        settings.singleKeyShortcuts === false ||
+        event.defaultPrevented ||
+        K.isEditableEvent(event) ||
+        K.isInDialog(event) ||
+        K.isInExtensionOverlay(event) ||
+        document.querySelector(".onejob-overview-overlay")
+      ) {
+        return;
+      }
+
+      const direction = K.matches(event, ",") ? -1 : K.matches(event, ".") ? 1 : 0;
+      const info = U.parseBookingPath(location.pathname);
+      if (!direction || !info || info.view !== "calendar") return;
+      if (!stepCalendarRange(direction * visibleCalendarDays())) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true,
+  );
 
   document.addEventListener(
     "click",
@@ -377,7 +402,7 @@
       if (!direction) return;
       const container = button.closest(".calendar-container");
       const days = container.querySelectorAll(".fc-timegrid-col").length || 1;
-      if (!stepPinnedRange(direction * days)) return;
+      if (!stepCalendarRange(direction * days)) return;
       event.preventDefault();
       event.stopPropagation();
     },

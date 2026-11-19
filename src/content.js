@@ -12,11 +12,12 @@
 
   const cfg = globalThis.OneJobConfig;
   const U = globalThis.OneJobUrl;
+  const K = globalThis.OneJobKeyboardShortcuts;
   const G = globalThis.OneJobGroups;
   const S = globalThis.OneJobStats;
   const O = globalThis.OneJobOverview;
   const T = globalThis.OneJobTour;
-  if (!cfg || !U || !G) return;
+  if (!cfg || !U || !K || !G) return;
 
   const NAV_ID = "onejob-nav-item";
   const MENU_ID = "onejob-menu";
@@ -35,6 +36,7 @@
     dayGridEvents: cfg.dayGrid?.events !== false,
     weekGrid: cfg.weekGrid?.enabled !== false,
     machineColors: cfg.weekGrid?.machineColors !== false,
+    singleKeyShortcuts: cfg.keyboardShortcuts?.enabled !== false,
     geoBlockPrompt: cfg.geo?.blockPrompt !== false,
     /** `cfg.onboarding.version` once the pinning tour has been shown. */
     onboardingVersion: 0,
@@ -95,6 +97,7 @@
   };
 
   let activeOverlay = null;
+  let portalHelp = null;
 
   // 1. Must happen synchronously, before the app's own scripts read the URL.
   if (state.settings.calendarDefault !== false && !U.isListAllowed()) {
@@ -151,6 +154,7 @@
     const scripts = [
       { file: "lib/config.js" },
       { file: "lib/url.js" },
+      { file: "lib/keyboard-shortcuts.js" },
       { file: "page.js", config: settings },
     ];
 
@@ -181,28 +185,7 @@
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
     document.addEventListener("click", onDocumentClick, true);
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        closeMenu();
-        closeSheet();
-        return;
-      }
-      if (!isEditableTarget(event.target)) {
-        if (matchesShortcut(event, SHORTCUTS.overview)) {
-          event.preventDefault();
-          closeMenu();
-          closeSheet();
-          openOverviewOverlay();
-          return;
-        }
-        if (matchesShortcut(event, SHORTCUTS.stats)) {
-          event.preventDefault();
-          closeMenu();
-          closeSheet();
-          openStatsOverlay();
-        }
-      }
-    });
+    document.addEventListener("keydown", onPortalKeydown);
     window.addEventListener("popstate", scheduleEnsure);
     // The pins strip moves between <main> and its parent when the portal's
     // responsive layout switches (personal pages are a flex row from 992px).
@@ -234,6 +217,7 @@
   }
 
   function ensureNav() {
+    ensureKeyboardHelp();
     ensurePinsBar();
     ensureDayGrid();
     if (state.tourPending) maybeStartTour();
@@ -271,6 +255,134 @@
       if (item) fillMenu(item);
       if (isSheetOpen()) fillSheet();
     }
+  }
+
+  function ensureKeyboardHelp() {
+    if (!portalHelp && document.body) {
+      portalHelp = K.mountHelp(document.body, () => ({
+        enabled: state.settings.singleKeyShortcuts !== false,
+        bindings: state.settings.singleKeyShortcuts !== false
+          ? portalShortcutBindings()
+          : [
+              { key: "Alt+O", label: "Open Booking Overview" },
+              { key: "Alt+S", label: "Open Statistics" },
+            ],
+      }));
+    }
+  }
+
+  function portalShortcutBindings({ includeView = true } = {}) {
+    const info = U.parseBookingPath(location.pathname);
+    const scope = calendarScope();
+    const bindings = [
+      { key: "o", label: "Open Booking Overview" },
+      { key: "s", label: "Open Statistics" },
+      { key: "Alt+O", label: "Open Booking Overview (modifier shortcut)" },
+      { key: "Alt+S", label: "Open Statistics (modifier shortcut)" },
+      { key: "h", label: "Show keyboard shortcuts" },
+    ];
+
+    if (scope && state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
+      bindings.push({ key: "c", label: "Open Caro Week View" });
+    }
+    if (info?.view === "calendar" && !activeOverlay) {
+      bindings.push(
+        { key: ",", label: "Previous calendar period" },
+        { key: ".", label: "Next calendar period" },
+      );
+    }
+    if (includeView && activeOverlay?.view?.shortcutBindings) {
+      bindings.push(...activeOverlay.view.shortcutBindings());
+    }
+    return bindings;
+  }
+
+  function onPortalKeydown(event) {
+    if (event.key === "Escape") {
+      if (
+        K.isHelpDialog(event) ||
+        portalHelp?.isOpen() ||
+        activeOverlay?.view?.isHelpOpen?.() ||
+        activeOverlay?.view?.hasOpenModal?.()
+      ) {
+        return;
+      }
+      closeMenu();
+      closeSheet();
+      return;
+    }
+
+    if (
+      K.isHelpDialog(event) ||
+      portalHelp?.isOpen() ||
+      activeOverlay?.view?.isHelpOpen?.()
+    ) {
+      return;
+    }
+
+    if (!isEditableTarget(event.target)) {
+      if (matchesShortcut(event, SHORTCUTS.overview)) {
+        event.preventDefault();
+        closeMenu();
+        closeSheet();
+        openOverviewOverlay();
+        return;
+      }
+      if (matchesShortcut(event, SHORTCUTS.stats)) {
+        event.preventDefault();
+        closeMenu();
+        closeSheet();
+        openStatsOverlay();
+        return;
+      }
+    }
+
+    if (
+      state.settings.singleKeyShortcuts === false ||
+      event.defaultPrevented ||
+      K.isEditableEvent(event) ||
+      K.isInDialog(event) ||
+      portalHelp?.isOpen() ||
+      activeOverlay?.view?.isHelpOpen?.()
+    ) {
+      return;
+    }
+
+    if (K.matches(event, "h")) {
+      event.preventDefault();
+      (activeOverlay?.view?.openHelp || portalHelp?.open)?.();
+      return;
+    }
+    if (K.matches(event, "o")) {
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      openOverviewOverlay();
+      return;
+    }
+    if (K.matches(event, "s")) {
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      const scope = calendarScope();
+      openStatsOverlay(
+        scope
+          ? { scope: { type: scope.type, group: scope.group, label: scope.categoryLabel } }
+          : {},
+      );
+      return;
+    }
+    if (K.matches(event, "c")) {
+      const scope = calendarScope();
+      if (!scope || state.settings.weekGrid === false || !globalThis.OneJobWeekGridView) return;
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      openWeekOverlay({ scope });
+      return;
+    }
+
+    if (activeOverlay?.view?.handleShortcut?.(event)) return;
   }
 
   function findNavList() {
@@ -943,7 +1055,11 @@
         root,
         previousFocus,
         previousOverflow,
-        view: mount(root, { variant: "panel", onClose: closeOverlay }),
+        view: mount(root, {
+          variant: "panel",
+          onClose: closeOverlay,
+          getGlobalShortcutBindings: () => portalShortcutBindings({ includeView: false }),
+        }),
       };
     } catch (error) {
       document.removeEventListener("keydown", onOverlayKeydown, true);
@@ -1045,6 +1161,7 @@
 
   function onOverlayKeydown(event) {
     if (event.key !== "Escape") return;
+    if (K.isHelpDialog(event) || activeOverlay?.view?.isHelpOpen?.()) return;
     // The overview's booking dialog is its own modal: the first Escape closes
     // it, the next one closes the overlay.
     if (activeOverlay?.view?.hasOpenModal?.()) return;
@@ -1788,6 +1905,10 @@
           scope: { type: scope.type, group: scope.group, label: scope.categoryLabel },
         }),
       );
+    }
+    if (portalHelp?.button) {
+      portalHelp.button.classList.add("onejob-pins-action");
+      links.push(portalHelp.button);
     }
 
     if (!links.length) return null;

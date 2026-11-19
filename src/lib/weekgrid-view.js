@@ -1,4 +1,4 @@
-/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobGroups, OneJobStats, OneJobWeekGrid, OneJobBookingDialog */
+/* global chrome, OneJobConfig, OneJobUrl, OneJobOverview, OneJobGroups, OneJobStats, OneJobWeekGrid, OneJobBookingDialog, OneJobKeyboardShortcuts */
 
 /**
  * The category week view: every resource of a menu group in one week grid.
@@ -15,6 +15,7 @@
   const G = OneJobGroups;
   const S = OneJobStats;
   const W = OneJobWeekGrid;
+  const K = OneJobKeyboardShortcuts;
 
   const SUCCESS_MS = 8 * 1000;
   const WEEKDAY = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
@@ -84,6 +85,8 @@
     timer: 0,
     successTimer: 0,
     onStorageChanged: null,
+    help: null,
+    getGlobalShortcutBindings: null,
     controller: null,
     ghost: null,
     cells: new Map(),
@@ -111,17 +114,29 @@
     ui.root = root;
     ui.doc = root.ownerDocument;
     ui.onClose = typeof options.onClose === "function" ? options.onClose : null;
+    ui.getGlobalShortcutBindings =
+      typeof options.getGlobalShortcutBindings === "function" ? options.getGlobalShortcutBindings : () => [];
     state.scope = normalizeScope(options.scope);
     state.mode = state.scope?.resourceId ? "single" : "category";
 
     root.classList.add("overview", "weekgrid", "is-panel");
     root.replaceChildren(buildShell());
+    ui.help = K.mountHelp(root.getRootNode(), () => ({
+      enabled: shortcutsEnabled(),
+      bindings: shortcutsEnabled() ? shortcutBindings() : [],
+    }));
+    ui.help.button.classList.add("button", "button-icon");
+    ui.refreshButton.parentElement.insertBefore(ui.help.button, ui.refreshButton.nextSibling);
 
     start();
     return {
       refresh: () => load({ force: true }),
       destroy,
       hasOpenModal: () => dialogs.hasOpenModal(),
+      openHelp: () => ui.help?.open(),
+      isHelpOpen: () => Boolean(ui.help?.isOpen()),
+      handleShortcut,
+      shortcutBindings,
     };
   }
 
@@ -138,6 +153,7 @@
   function destroy() {
     dialogs.close();
     dialogs.reset();
+    ui.help?.destroy();
     if (ui.timer) clearInterval(ui.timer);
     if (ui.successTimer) clearTimeout(ui.successTimer);
     if (ui.controller) ui.controller.abort();
@@ -164,6 +180,8 @@
     ui.timer = 0;
     ui.successTimer = 0;
     ui.onStorageChanged = null;
+    ui.help = null;
+    ui.getGlobalShortcutBindings = null;
     ui.controller = null;
     ui.ghost = null;
     ui.cells = new Map();
@@ -216,6 +234,7 @@
       button.type = "button";
       button.dataset.viewMode = mode;
       button.setAttribute("aria-pressed", String(state.viewMode === mode));
+      K.setHint(button, mode === "week" ? "w" : "d", `${mode === "week" ? "Week" : "Day"} view`);
       button.addEventListener("click", () => setViewMode(mode));
       ui.viewModes.appendChild(button);
     }
@@ -825,10 +844,77 @@
     for (const mode of modes) {
       const button = el("button", "wg-mode", mode.label);
       button.type = "button";
+      button.dataset.shortcutLabel = mode.label;
+      button.dataset.shortcutPreferred =
+        mode.id === "single"
+          ? "i"
+          : mode.id === "pinned"
+            ? "p"
+            : mode.id === "category"
+              ? "g"
+              : mode.id === "mine"
+                ? "m"
+                : "";
       button.setAttribute("aria-pressed", String(mode.id === state.mode));
       button.addEventListener("click", () => setMode(mode.id));
       ui.modes.appendChild(button);
     }
+    K.assignShortcuts(ui.modes.querySelectorAll(".wg-mode"));
+  }
+
+  function shortcutsEnabled() {
+    return state.settings?.singleKeyShortcuts !== false && cfg.keyboardShortcuts?.enabled !== false;
+  }
+
+  function shortcutBindings() {
+    if (!shortcutsEnabled()) return [];
+    return [
+      ...(ui.getGlobalShortcutBindings?.() || []),
+      { key: ",", label: "Previous day or week" },
+      { key: ".", label: "Next day or week" },
+      ...K.collectHints(ui.root),
+    ];
+  }
+
+  function handleShortcut(event) {
+    if (
+      !ui.root ||
+      !shortcutsEnabled() ||
+      K.isEditableEvent(event) ||
+      K.isHelpDialog(event) ||
+      dialogs.hasOpenModal()
+    ) {
+      return false;
+    }
+
+    if (K.matches(event, ",")) {
+      event.preventDefault();
+      moveDate(-1);
+      return true;
+    }
+    if (K.matches(event, ".")) {
+      event.preventDefault();
+      moveDate(1);
+      return true;
+    }
+    if (K.matches(event, "d")) {
+      event.preventDefault();
+      setViewMode("day");
+      return true;
+    }
+    if (K.matches(event, "w")) {
+      event.preventDefault();
+      setViewMode("week");
+      return true;
+    }
+
+    const key = String(event.key || "").toLowerCase();
+    const button = [...ui.root.querySelectorAll("[data-onejob-shortcut]")]
+      .find((candidate) => candidate.dataset.onejobShortcut === key);
+    if (!button || event.repeat) return false;
+    event.preventDefault();
+    button.click();
+    return true;
   }
 
   function summaryText(session) {

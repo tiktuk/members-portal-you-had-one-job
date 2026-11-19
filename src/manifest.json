@@ -35,6 +35,7 @@
       "js": [
         "lib/config.js",
         "lib/url.js",
+        "lib/keyboard-shortcuts.js",
         "lib/groups.js",
         "lib/overview.js",
         "lib/stats.js",
@@ -52,7 +53,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/config.js", "lib/url.js", "page.js", "overview.html", "overview.css", "stats.css", "weekgrid.css"],
+      "resources": ["lib/config.js", "lib/url.js", "lib/keyboard-shortcuts.js", "page.js", "overview.html", "overview.css", "stats.css", "weekgrid.css"],
       "matches": ["https://members.motionlab.berlin/*"]
     }
   ]
