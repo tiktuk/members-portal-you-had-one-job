@@ -23,7 +23,7 @@
     },
     {
       title: "Caro Week View",
-      description: "Compare resources side by side by day. Switch scope and Day/Week views; , and . move by a period and T returns to today. Click free time to book or one of your own bookings to cancel. Press B to aim a slot with the arrow keys and Enter to book it.",
+      description: "Compare resources side by side by day; C opens it anywhere, restoring the last scope off the calendar. Switch scope and Day/Week views; , and . move by a period and T returns to today. Click free time to book or one of your own bookings to cancel. Press B to aim a slot with the arrow keys and Enter to book it.",
     },
     {
       title: "Settings",

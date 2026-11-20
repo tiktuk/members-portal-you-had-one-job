@@ -377,12 +377,11 @@
       return;
     }
     if (K.matches(event, "c")) {
-      const scope = calendarScope();
-      if (!scope || state.settings.weekGrid === false || !globalThis.OneJobWeekGridView) return;
+      if (state.settings.weekGrid === false || !globalThis.OneJobWeekGridView) return;
       event.preventDefault();
       closeMenu();
       closeSheet();
-      openWeekOverlay({ scope });
+      openWeekOverlay({ scope: calendarScope() || rememberedWeekScope() || fallbackWeekScope() });
       return;
     }
     if (K.matches(event, "p")) {
@@ -1343,6 +1342,7 @@
   function openWeekOverlay(options = {}) {
     if (activeOverlay?.kind === "week" || !globalThis.OneJobWeekGridView) return;
     const scope = options.scope || null;
+    rememberWeekScope(scope);
     state.tour?.end("week");
     openOverlay({
       kind: "week",
@@ -1355,8 +1355,62 @@
           ...viewOptions,
           scope,
           bookingCursor: options.bookingCursor === true,
+          onScopeChange: rememberWeekScope,
         }),
     });
+  }
+
+  /** The scope Caro Week View last showed, so `c` off the calendar reopens it. */
+  const WEEK_SCOPE_KEY = "onejob:week-scope";
+
+  function rememberWeekScope(scope) {
+    if (!scope || (!scope.type && !scope.group && !scope.resourceId)) return;
+    try {
+      sessionStorage.setItem(WEEK_SCOPE_KEY, JSON.stringify(scope));
+    } catch {
+      /* session storage is a nicety, not a requirement */
+    }
+  }
+
+  function rememberedWeekScope() {
+    let scope = null;
+    try {
+      scope = JSON.parse(sessionStorage.getItem(WEEK_SCOPE_KEY) || "null");
+    } catch {
+      scope = null;
+    }
+    if (!scope || (!scope.type && !scope.group)) return null;
+    // A pinned machine can go away; keep its category rather than an empty grid.
+    if (scope.resourceId && state.groups?.resources?.length && !findResource(scope.resourceId)) {
+      scope = { ...scope, resourceId: "", label: scope.categoryLabel || scope.label };
+    }
+    return scope;
+  }
+
+  /** The `c` fallback before any week view was opened: a pin, else a category. */
+  function fallbackWeekScope() {
+    const pin = state.pins?.[0];
+    if (pin?.id) {
+      return {
+        type: pin.type || "",
+        group: pin.group || "",
+        resourceId: pin.id,
+        label: pin.name || "Pinned resource",
+        categoryLabel: pin.group
+          ? G.displayGroupName(pin.group, cfg.nav.stripGroupPrefix)
+          : G.typeLabel(pin.type || ""),
+      };
+    }
+    const category = pickerCategoryItems()[0];
+    if (category) {
+      return {
+        type: category.type || "",
+        group: category.group || "",
+        label: category.label,
+        categoryLabel: category.label,
+      };
+    }
+    return null;
   }
 
   /**

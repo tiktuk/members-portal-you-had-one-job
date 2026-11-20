@@ -597,7 +597,13 @@ dashboard's notes field and, if they need to live on disk, into
   viewport height. `openOverlayNow()` exposes the view kind on the outer
   overlay's `data-kind`, so only the week grid opts out of the full-height
   panel used by the overview and statistics views.
-- **Entry points:** a `Week view` row under `Statistics` in each group's list
+- **Entry points:** `c` on any page (the calendar's scope on a bookings
+  calendar; elsewhere the last scope the view showed — `onejob:week-scope` in
+  `sessionStorage`, written by `openWeekOverlay` and by the view's
+  `onScopeChange` whenever `setScope` runs — then the first pin, then the
+  first menu category; a remembered `resourceId` that the published list no
+  longer has degrades to its category), a `Week view` row under `Statistics`
+  in each group's list
   (so it is in the mobile sheet too) and `barActions()`, which puts *Week view*
   and *Statistics* (plus *Show all …* while a pin is open) as text links at the
   right end of the pins strip, in the style of the existing *Show all* link
@@ -693,7 +699,9 @@ dashboard's notes field and, if they need to live on disk, into
   `visibleDayObjects`, the same filtered day list the grid renders — day view
   shows one). Arrows move it (up/down by the snap step, left/right between
   machines wrapping across days at each day's ends), `+`/`-` grow and shrink
-  `span` by a snap step capped at the free gap and the window end, Enter runs
+  `span` (initialised to `config.overview.booking.defaultMinutes`, the same
+  default the click path gets) by a snap step capped at the free gap and the
+  window end, Enter runs
   the same occupied/past logic as `onCellClick` and passes `span` to
   `openBooking` as `durationMinutes` (the dialog's `gapDuration` still caps
   it), and a pointer move disarms it — the last input method wins. The cursor

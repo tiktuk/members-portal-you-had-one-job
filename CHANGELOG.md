@@ -22,6 +22,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   17:45–18:30`). `b` re-arms it while the view is open; away from a calendar
   `b` first asks which resource or category in the quick-open palette. `t`
   jumps the view back to the current day or week from anywhere in it.
+- `c` opens Caro Week View from any portal page, not just a bookings
+  calendar: on a calendar it still scopes to what is on screen, elsewhere it
+  restores the scope the view last showed, or falls back to your first pinned
+  resource or the first menu category.
 - Press `p` for a quick-open chooser (fuzzy search, pinned resources first)
   that jumps straight to a resource's calendar, a whole category ("All 3D
   printing" or "All machines"), the booking overview or the portal's My

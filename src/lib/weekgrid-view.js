@@ -119,6 +119,7 @@
     ui.root = root;
     ui.doc = root.ownerDocument;
     ui.onClose = typeof options.onClose === "function" ? options.onClose : null;
+    ui.onScopeChange = typeof options.onScopeChange === "function" ? options.onScopeChange : null;
     ui.getGlobalShortcutBindings =
       typeof options.getGlobalShortcutBindings === "function" ? options.getGlobalShortcutBindings : () => [];
     state.scope = normalizeScope(options.scope);
@@ -174,6 +175,7 @@
       return;
     }
     state.scope = next;
+    ui.onScopeChange?.(next);
     state.mode = nextMode;
     state.notice = "";
     applyScope();
@@ -1421,7 +1423,13 @@
       );
       if (index >= 0) columnIndex = index;
     }
-    state.cursor = { dayIndex, columnIndex, minutes, span: snap };
+    // The armed length starts at the dialog's default duration, snap-aligned;
+    // `cursorSpan` still caps it at each slot's free gap.
+    const span = Math.max(
+      snap,
+      Math.round((Number(cfg.overview?.booking?.defaultMinutes) || 60) / snap) * snap,
+    );
+    state.cursor = { dayIndex, columnIndex, minutes, span };
     updateCursorEl({ scroll: "center" });
     return true;
   }
