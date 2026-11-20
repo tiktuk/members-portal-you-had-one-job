@@ -3,7 +3,7 @@
   "use strict";
 
   let helpId = 0;
-  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", "p", ",", "."]);
+  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", "p", "b", "t", ",", "."]);
   const FEATURE_GUIDE = [
     {
       title: "Resources and pins",
@@ -23,7 +23,7 @@
     },
     {
       title: "Caro Week View",
-      description: "Compare resources side by side by day. Switch scope and Day/Week views; click free time to book or one of your own bookings to cancel.",
+      description: "Compare resources side by side by day. Switch scope and Day/Week views; , and . move by a period and T returns to today. Click free time to book or one of your own bookings to cancel. Press B to aim a slot with the arrow keys and Enter to book it.",
     },
     {
       title: "Settings",

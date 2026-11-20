@@ -11,6 +11,17 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- Book a slot without the mouse: `b` opens Caro Week View with an aimed slot
+  cursor — up/down arrows move it in 15-minute steps, left/right moves between
+  machines and wraps across days, `+` and `-` grow and shrink the aimed length
+  up to the free gap, Enter books it through the usual dialog and Escape puts
+  the cursor away. The cursor never targets a time that has already passed:
+  today it starts at the next 15-minute boundary and cannot move earlier, and
+  wholly past days refuse to arm. The aimed machine's name and column light up
+  and a live bar above the grid reads out the target (`Aiming Prusa - XL · Fri
+  17:45–18:30`). `b` re-arms it while the view is open; away from a calendar
+  `b` first asks which resource or category in the quick-open palette. `t`
+  jumps the view back to the current day or week from anywhere in it.
 - Press `p` for a quick-open chooser (fuzzy search, pinned resources first)
   that jumps straight to a resource's calendar, a whole category ("All 3D
   printing" or "All machines"), the booking overview or the portal's My

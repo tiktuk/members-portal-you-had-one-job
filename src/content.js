@@ -286,6 +286,9 @@
     if (scope && state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
       bindings.push({ key: "c", label: "Open Caro Week View" });
     }
+    if (state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
+      bindings.push({ key: "b", label: "Book a slot" });
+    }
     if (info?.view === "calendar" && !activeOverlay) {
       bindings.push(
         { key: ",", label: "Previous calendar period" },
@@ -389,6 +392,25 @@
       openResourcePicker();
       return;
     }
+    if (K.matches(event, "b")) {
+      if (state.settings.weekGrid === false || !globalThis.OneJobWeekGridView) return;
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      // Already open: `b` (re)arms the slot cursor in place.
+      if (activeOverlay?.kind === "week" && typeof activeOverlay.view?.armBookingCursor === "function") {
+        activeOverlay.view.armBookingCursor();
+        return;
+      }
+      const scope = calendarScope();
+      if (scope) {
+        openWeekOverlay({ scope, bookingCursor: true });
+        return;
+      }
+      // Off the calendar there is no scope to aim at: pick what to book first.
+      openResourcePicker({ booking: true });
+      return;
+    }
 
     if (activeOverlay?.view?.handleShortcut?.(event)) return;
   }
@@ -398,14 +420,25 @@
    * ------------------------------------------------------------------ */
 
   let resourcePicker = null;
+  let pickerIntent = "open";
 
-  function openResourcePicker() {
+  function openResourcePicker({ booking = false } = {}) {
+    pickerIntent = booking ? "book" : "open";
     const P = globalThis.OneJobResourcePicker;
     if (!P || !document.body) return;
     if (!resourcePicker) {
       resourcePicker = P.mount(document.body, {
         placeholder: "Search resources, categories, pages…",
         onPick: (item) => {
+          // "book" intent: the pick opens Caro Week View scoped to it, with
+          // the slot cursor armed — pages fall through to their usual action.
+          if (pickerIntent === "book") {
+            const scope = pickerScope(item);
+            if (scope) {
+              openWeekOverlay({ scope, bookingCursor: true });
+              return;
+            }
+          }
           // In Caro Week View a pick re-scopes the open view instead of
           // navigating to the picked calendar.
           const setScope =
@@ -458,7 +491,33 @@
       .filter((resource) => !pinnedIds.has(String(resource.id)))
       .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
       .map((resource) => pickerItem(resource, false));
-    return [...pinned, ...pickerPageItems(), ...pickerCategoryItems(), ...rest];
+    const pages = pickerIntent === "book" ? [] : pickerPageItems();
+    return [...pinned, ...pages, ...pickerCategoryItems(), ...rest];
+  }
+
+  /** Week-view scope for a picked resource or category (null for pages). */
+  function pickerScope(item) {
+    if (item.kind === "category") {
+      return {
+        type: item.type || "",
+        group: item.group || "",
+        label: item.label,
+        categoryLabel: item.label,
+      };
+    }
+    if (item.resource) {
+      const resource = item.resource;
+      return {
+        type: resource.type || "",
+        group: resource.group || "",
+        resourceId: resource.id,
+        label: item.name,
+        categoryLabel:
+          G.displayGroupName(resource.group, cfg.nav.stripGroupPrefix) ||
+          G.typeLabel(resource.type),
+      };
+    }
+    return null;
   }
 
   function pickerItem(resource, pinned) {
@@ -1291,7 +1350,12 @@
         ? `${cfg.weekGrid?.label || "Caro Week View"}: ${scope.label}`
         : cfg.weekGrid?.label || "Caro Week View",
       stylesheets: ["overview.css", "weekgrid.css"],
-      mount: (root, viewOptions) => globalThis.OneJobWeekGridView.mount(root, { ...viewOptions, scope }),
+      mount: (root, viewOptions) =>
+        globalThis.OneJobWeekGridView.mount(root, {
+          ...viewOptions,
+          scope,
+          bookingCursor: options.bookingCursor === true,
+        }),
     });
   }
 
@@ -1346,6 +1410,12 @@
     // The overview's booking dialog is its own modal: the first Escape closes
     // it, the next one closes the overlay.
     if (activeOverlay?.view?.hasOpenModal?.()) return;
+    // The view may have something lighter to drop first (the week grid's
+    // keyboard slot cursor): only an unconsumed Escape closes the overlay.
+    if (activeOverlay?.view?.dismiss?.()) {
+      event.stopPropagation();
+      return;
+    }
     event.stopPropagation();
     closeOverlay();
   }

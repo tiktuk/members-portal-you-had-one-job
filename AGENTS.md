@@ -688,6 +688,32 @@ dashboard's notes field and, if they need to live on disk, into
   an own booking opens the cancel dialog; clicking a free capacity lane opens
   `dialogs.openBooking({
   resourceId, resourceName, startStamp, gapMs })`.
+- **Keyboard booking:** `b` (or mounting with `bookingCursor`) arms a slot
+  cursor (`state.cursor` = { dayIndex, columnIndex, minutes, span } into
+  `visibleDayObjects`, the same filtered day list the grid renders — day view
+  shows one). Arrows move it (up/down by the snap step, left/right between
+  machines wrapping across days at each day's ends), `+`/`-` grow and shrink
+  `span` by a snap step capped at the free gap and the window end, Enter runs
+  the same occupied/past logic as `onCellClick` and passes `span` to
+  `openBooking` as `durationMinutes` (the dialog's `gapDuration` still caps
+  it), and a pointer move disarms it — the last input method wins. The cursor
+  never sits in the past: `dayFloorMinutes` is `hourFrom` or, once a day is
+  under way, the next snap boundary after now; moves clamp to it, a wholly
+  past day cannot be landed on, `armBookingCursor` skips spent days and
+  refuses on a wholly past view, and `clampCursorToValid` drops the cursor on
+  re-render if its day has become unbookable. The aimed cell and that day's
+  `.wg-name` carry `.is-aimed`; the live `Aiming <machine> · <start>–<end>`
+  readout is the `.wg-aim` bar above the grid — do not put a label back on the
+  box itself, because `.wg-col`'s `z-index` makes each column its own stacking
+  context and an overflowing chip paints under the next column's blocks.
+  `t` needs no cursor branch of its own: the header's Today button carries
+  `K.setHint`, and `handleShortcut`'s `[data-onejob-shortcut]` fallback clicks
+  it — the same mechanism the W/D buttons and pills use. Escape reaches the
+  view through the overlay's
+  `dismiss` hook, which `content.js::onOverlayKeydown` calls after
+  `hasOpenModal` and before closing the overlay. Off a calendar page `b` has no
+  scope, so it opens the resource picker with `pickerIntent = "book"`: a pick
+  opens the week view scoped to it and armed.
 - **Shared dialogs:** `lib/booking-dialog.js` owns the booking and cancel
   dialogs, the member profile and resource-interval lookups and the basket
   calls. A view passes a *host* (`doc`, `root`, `session`, `fetchJson`,

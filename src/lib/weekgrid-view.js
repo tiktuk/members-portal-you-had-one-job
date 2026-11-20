@@ -51,6 +51,10 @@
       /** weekStart ms -> { fetchedAt, records, reserved, mine, me }. */
       weeks: {},
       events: [],
+      /** Keyboard slot cursor: { dayIndex, columnIndex, minutes } or null. */
+      cursor: null,
+      /** Arm the cursor after the first model render (set by mount options). */
+      wantCursor: false,
     eventsStatus: "idle",
     loading: false,
     error: null,
@@ -89,6 +93,7 @@
     getGlobalShortcutBindings: null,
     controller: null,
     ghost: null,
+    cursorEl: null,
     cells: new Map(),
   };
 
@@ -118,6 +123,8 @@
       typeof options.getGlobalShortcutBindings === "function" ? options.getGlobalShortcutBindings : () => [];
     state.scope = normalizeScope(options.scope);
     state.mode = state.scope?.resourceId ? "single" : "category";
+    state.cursor = null;
+    state.wantCursor = options.bookingCursor === true;
 
     root.classList.add("overview", "weekgrid", "is-panel");
     root.replaceChildren(buildShell());
@@ -138,6 +145,8 @@
       handleShortcut,
       shortcutBindings,
       setScope,
+      armBookingCursor,
+      dismiss,
     };
   }
 
@@ -198,6 +207,7 @@
     ui.notice = null;
     ui.success = null;
     ui.body = null;
+    ui.aim = null;
     ui.refreshButton = null;
     ui.timer = 0;
     ui.successTimer = 0;
@@ -206,6 +216,7 @@
     ui.getGlobalShortcutBindings = null;
     ui.controller = null;
     ui.ghost = null;
+    ui.cursorEl = null;
     ui.cells = new Map();
 
     Object.assign(state, emptyState());
@@ -269,6 +280,7 @@
       if (state.viewMode === "day") goToDay(0, true);
       else goToWeek(0, true);
     });
+    K.setHint(today, "t", "Go to today");
     ui.title = el("span", "wg-title");
     ui.title.setAttribute("aria-live", "polite");
     ui.previousButton = iconButton("Previous period", "‹", () => moveDate(-1));
@@ -298,8 +310,11 @@
     ui.success = el("div", "notice success");
     ui.success.hidden = true;
     ui.success.setAttribute("role", "status");
+    ui.aim = el("div", "wg-aim");
+    ui.aim.hidden = true;
+    ui.aim.setAttribute("role", "status");
     ui.body = el("div", "wg-body");
-    main.append(ui.notice, ui.success, ui.body);
+    main.append(ui.notice, ui.success, ui.aim, ui.body);
 
     fragment.append(header, main);
     return fragment;
@@ -854,6 +869,10 @@
     renderNotice(session);
     renderSuccess();
     renderBody(session);
+    if (state.wantCursor && state.model?.days?.length) {
+      state.wantCursor = false;
+      armBookingCursor();
+    }
   }
 
   function renderModes() {
@@ -894,6 +913,15 @@
       ...(ui.getGlobalShortcutBindings?.() || []),
       { key: ",", label: "Previous day or week" },
       { key: ".", label: "Next day or week" },
+      ...(state.cursor
+        ? [
+            { key: "←→", label: "Move the slot between machines" },
+            { key: "↑↓", label: "Move the slot in time" },
+            { key: "+−", label: "Make the slot longer or shorter" },
+            { key: "↵", label: "Book the aimed slot" },
+            { key: "esc", label: "Put the slot cursor away" },
+          ]
+        : [{ key: "b", label: "Aim a slot to book" }]),
       ...K.collectHints(ui.root),
     ];
   }
@@ -909,6 +937,39 @@
       return false;
     }
 
+    if (state.cursor) {
+      const key = String(event.key || "");
+      const bare = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+      // Arrows repeat so the slot can be scanned without lifting the key.
+      if (bare && (key === "ArrowUp" || key === "ArrowDown")) {
+        event.preventDefault();
+        moveCursor(0, key === "ArrowUp" ? -1 : 1);
+        return true;
+      }
+      if (bare && (key === "ArrowLeft" || key === "ArrowRight")) {
+        event.preventDefault();
+        moveCursor(key === "ArrowLeft" ? -1 : 1, 0);
+        return true;
+      }
+      // `+`/`_` arrive with Shift on most layouts, so only command keys are excluded.
+      const noCommand = !event.altKey && !event.ctrlKey && !event.metaKey;
+      if (noCommand && (key === "+" || key === "=" || key === "-" || key === "_")) {
+        event.preventDefault();
+        resizeCursor(key === "-" || key === "_" ? -1 : 1);
+        return true;
+      }
+      if (K.matches(event, "enter")) {
+        event.preventDefault();
+        activateCursor();
+        return true;
+      }
+    }
+
+    if (K.matches(event, "b")) {
+      event.preventDefault();
+      armBookingCursor();
+      return true;
+    }
     if (K.matches(event, ",")) {
       event.preventDefault();
       moveDate(-1);
@@ -1028,10 +1089,7 @@
 
     const model = state.model;
     const count = model.resources.length;
-    const selectedDate = selectedDay();
-    const days = state.viewMode === "day"
-      ? model.days.filter((day) => day.key === dayKey(selectedDate))
-      : W.visibleDays(model.days);
+    const days = visibleDayObjects(model);
     const colorsEnabled = state.settings?.machineColors !== false;
     const colors = colorsEnabled ? W.machineColorMap(state.allResources) : null;
     const scroll = el("div", "wg-scroll");
@@ -1074,12 +1132,23 @@
       "p",
       "wg-hint",
       `Click free space to book, or one of your own bookings to cancel it.${
+        shortcutsEnabled() ? " Press B to aim a slot — arrows move it, +/− resizes, Enter books." : ""
+      }${
         model.resources.some((resource) => resource.allocation > 1)
           ? " Each day shows peak concurrent usage plus one spare lane where capacity permits; lanes are shared capacity, not numbered physical machines."
           : ""
       }`,
     );
     ui.body.appendChild(hint);
+    updateCursorEl();
+  }
+
+  /** The day objects the grid is showing, in display order. */
+  function visibleDayObjects(model) {
+    if (!model) return [];
+    if (state.viewMode !== "day") return W.visibleDays(model.days);
+    const key = dayKey(selectedDay());
+    return model.days.filter((day) => day.key === key);
   }
 
   function dayClasses(day) {
@@ -1261,7 +1330,265 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Keyboard slot cursor
+   *
+   * `b` (or opening the view with `bookingCursor`) arms an aimed slot;
+   * arrows move it — up/down by the snap step, left/right between machines
+   * with wrap into the neighbouring days — and Enter books it through the
+   * same path as a click. Escape (via the overlay's `dismiss` hook) or a
+   * pointer move puts it away again.
+   * ------------------------------------------------------------------ */
+
+  /** The aimed slot resolved against the visible days, or null. */
+  function cursorHit() {
+    const cursor = state.cursor;
+    const model = state.model;
+    if (!cursor || !model) return null;
+    const day = visibleDayObjects(model)[cursor.dayIndex];
+    const column = day?.columns?.[cursor.columnIndex];
+    if (!day || !column) return null;
+    const stamp = day.date.getTime() + cursor.minutes * 60000;
+    return { day, column, stamp, slot: W.slotAt(column, stamp, { snapMinutes: snapMinutes() }) };
+  }
+
+  function cursorCell(day, column) {
+    for (const [cell, entry] of ui.cells) {
+      if (entry.day === day && entry.column === column) return cell;
+    }
+    return null;
+  }
+
+  /**
+   * The earliest snap-aligned minute a cursor slot may start at on `day`:
+   * the hour window's start, or the next snap boundary after now on days
+   * that are already under way — the aimed slot never sits in the past.
+   */
+  function dayFloorMinutes(day, model, snap) {
+    const earliest = Math.ceil((Date.now() - day.date.getTime()) / 60000 / snap) * snap;
+    return Math.max(model.hourFrom * 60, earliest);
+  }
+
+  /** Clamp the cursor indices and start into what is visible and bookable. */
+  function clampCursorToValid() {
+    const cursor = state.cursor;
+    const model = state.model;
+    if (!cursor || !model) return;
+    const days = visibleDayObjects(model);
+    const snap = snapMinutes();
+    const to = model.hourTo * 60 - snap;
+    cursor.dayIndex = Math.min(Math.max(cursor.dayIndex, 0), Math.max(0, days.length - 1));
+    const day = days[cursor.dayIndex];
+    if (!day || !day.columns.length || dayFloorMinutes(day, model, snap) > to) {
+      state.cursor = null;
+      return;
+    }
+    cursor.columnIndex = Math.min(Math.max(cursor.columnIndex, 0), day.columns.length - 1);
+    cursor.minutes = Math.min(
+      Math.max(cursor.minutes, dayFloorMinutes(day, model, snap)),
+      to,
+    );
+  }
+
+  function armBookingCursor() {
+    const model = state.model;
+    const days = visibleDayObjects(model);
+    if (!days.length) return false;
+    const snap = snapMinutes();
+    const to = model.hourTo * 60 - snap;
+    // Arm on today at the next snap boundary; a day whose window is fully in
+    // the past is skipped (a wholly past week means there is nothing to arm).
+    let dayIndex = days.findIndex((day) => day.isToday);
+    if (dayIndex < 0) dayIndex = 0;
+    let minutes = -1;
+    for (let i = dayIndex; i < days.length; i += 1) {
+      const floor = dayFloorMinutes(days[i], model, snap);
+      if (floor <= to) {
+        dayIndex = i;
+        minutes = floor;
+        break;
+      }
+    }
+    if (minutes < 0) {
+      state.notice = "No bookable slots left in view.";
+      renderNotice(currentSession());
+      return false;
+    }
+    let columnIndex = 0;
+    if (state.scope?.resourceId) {
+      const index = model.resources.findIndex(
+        (resource) => String(resource.id) === String(state.scope.resourceId),
+      );
+      if (index >= 0) columnIndex = index;
+    }
+    state.cursor = { dayIndex, columnIndex, minutes, span: snap };
+    updateCursorEl({ scroll: "center" });
+    return true;
+  }
+
+  function disarmCursor() {
+    state.cursor = null;
+    ui.cursorEl?.remove();
+    ui.cursorEl = null;
+    ui.root?.querySelectorAll(".is-aimed").forEach((node) => node.classList.remove("is-aimed"));
+    updateAim();
+  }
+
+  function moveCursor(dx, dy) {
+    const cursor = state.cursor;
+    const model = state.model;
+    if (!cursor || !model) return;
+    const days = visibleDayObjects(model);
+    if (!days.length) return;
+    const snap = snapMinutes();
+    const to = model.hourTo * 60 - snap;
+    if (dy) {
+      const floor = dayFloorMinutes(days[cursor.dayIndex], model, snap);
+      cursor.minutes = Math.min(Math.max(cursor.minutes + dy * snap, floor), to);
+    }
+    if (dx) {
+      let dayIndex = cursor.dayIndex;
+      let columnIndex = cursor.columnIndex + dx;
+      while (columnIndex < 0 && dayIndex > 0) {
+        dayIndex -= 1;
+        columnIndex += days[dayIndex].columns.length;
+      }
+      while (dayIndex < days.length - 1 && columnIndex >= days[dayIndex].columns.length) {
+        columnIndex -= days[dayIndex].columns.length;
+        dayIndex += 1;
+      }
+      const landing = days[dayIndex];
+      if (landing && dayFloorMinutes(landing, model, snap) <= to) {
+        cursor.dayIndex = dayIndex;
+        cursor.columnIndex = Math.min(Math.max(columnIndex, 0), landing.columns.length - 1);
+        cursor.minutes = Math.min(
+          Math.max(cursor.minutes, dayFloorMinutes(landing, model, snap)),
+          to,
+        );
+      }
+    }
+    updateCursorEl({ scroll: "nearest" });
+  }
+
+  /** The aimed length: `cursor.span`, never longer than the free gap. */
+  function cursorSpan(hit) {
+    const snap = snapMinutes();
+    const span = Math.max(snap, Math.round(state.cursor?.span || snap));
+    const cap = Math.max(snap, hit?.slot?.gapMinutes || snap);
+    return Math.min(span, cap);
+  }
+
+  /** `+` / `-` grow and shrink the aimed slot by one snap step. */
+  function resizeCursor(dir) {
+    const cursor = state.cursor;
+    const model = state.model;
+    if (!cursor || !model) return;
+    const snap = snapMinutes();
+    const hit = cursorHit();
+    const windowEnd = model.hourTo * 60 - cursor.minutes;
+    const cap = Math.max(snap, Math.min(hit?.slot?.gapMinutes || snap, windowEnd));
+    cursor.span = Math.min(Math.max((cursor.span || snap) + dir * snap, snap), cap);
+    updateCursorEl();
+  }
+
+  function updateCursorEl({ scroll = false } = {}) {
+    ui.cursorEl?.remove();
+    ui.cursorEl = null;
+    ui.root?.querySelectorAll(".is-aimed").forEach((node) => node.classList.remove("is-aimed"));
+    clampCursorToValid();
+    const hit = cursorHit();
+    if (!hit) {
+      state.cursor = null;
+      updateAim();
+      return;
+    }
+    const cell = cursorCell(hit.day, hit.column);
+    if (!cell) {
+      state.cursor = null;
+      updateAim();
+      return;
+    }
+    const model = state.model;
+    const windowMs = (model.hourTo - model.hourFrom) * 3600000;
+    const base = hit.day.date.getTime() + model.hourFrom * 3600000;
+    const { slot } = hit;
+    const span = cursorSpan(hit);
+    const box = el(
+      "div",
+      `wg-cursor${slot.occupied ? " is-blocked" : ""}${slot.past ? " is-past" : ""}`,
+    );
+    box.style.top = `${((slot.start - base) / windowMs) * 100}%`;
+    box.style.height = `${(span * 60000 / windowMs) * 100}%`;
+    box.title = `${hit.column.name} · ${CLOCK.format(new Date(slot.start))}–${CLOCK.format(new Date(slot.start + span * 60000))}`;
+    cell.classList.add("is-aimed");
+    cell.appendChild(box);
+    const head = ui.root?.querySelectorAll(".wg-dayhead")[state.cursor.dayIndex];
+    head?.querySelectorAll(".wg-name")?.[state.cursor.columnIndex]?.classList.add("is-aimed");
+    ui.cursorEl = box;
+    updateAim();
+    if (scroll) box.scrollIntoView({ block: scroll, inline: "nearest" });
+  }
+
+  /** The live aim readout above the grid while the cursor is armed. */
+  function updateAim() {
+    if (!ui.aim) return;
+    const hit = cursorHit();
+    if (!hit) {
+      ui.aim.hidden = true;
+      ui.aim.textContent = "";
+      return;
+    }
+    const span = cursorSpan(hit);
+    const start = new Date(hit.slot.start);
+    const end = new Date(hit.slot.start + span * 60000);
+    ui.aim.textContent =
+      `Aiming ${hit.column.name} · ${WEEKDAY.format(hit.day.date)} ` +
+      `${CLOCK.format(start)}–${CLOCK.format(end)} (${O.durationLabel(span)})` +
+      " — ←→ machines · ↑↓ time · +/− length · Enter books · Esc drops";
+    ui.aim.hidden = false;
+  }
+
+  /** Enter on the aimed slot does what a click on it would. */
+  function activateCursor() {
+    const hit = cursorHit();
+    if (!hit) return;
+    const { day, column, slot } = hit;
+    const occupied = slot.occupied;
+    if (occupied) {
+      if (!occupied.mine || occupied.reserved) return;
+      if (occupied.rawStart <= Date.now()) {
+        state.notice = "That booking already started and can't be cancelled here.";
+        renderNotice(currentSession());
+        return;
+      }
+      openCancel(occupied, { day, column });
+      return;
+    }
+    if (slot.past) {
+      state.notice = "That time has already passed.";
+      renderNotice(currentSession());
+      return;
+    }
+    state.notice = "";
+    renderNotice(currentSession());
+    dialogs.openBooking({
+      resourceId: column.resourceId,
+      resourceName: column.name,
+      startStamp: slot.start,
+      gapMs: slot.gapMinutes * 60000,
+      durationMinutes: cursorSpan(hit),
+    });
+  }
+
+  /** Escape drops the cursor before the overlay itself would close. */
+  function dismiss() {
+    if (!state.cursor) return false;
+    disarmCursor();
+    return true;
+  }
+
   function onCellPointerMove(event) {
+    if (state.cursor) disarmCursor();
     const cell = event.currentTarget;
     if (event.target.closest?.(".wg-block")) {
       hideGhost();

@@ -114,7 +114,7 @@
      * Either `booking` + `side` (the gap before/after a row) or `startStamp`
      * (a free slot picked on the week grid) says where the slot starts.
      */
-    function openBookingDialog({ resourceId, resourceName, booking, side, gapMs, startStamp }) {
+    function openBookingDialog({ resourceId, resourceName, booking, side, gapMs, startStamp, durationMinutes }) {
       const fixedStart = Number.isFinite(startStamp) ? startStamp : null;
       if (!host.root() || (!booking && fixedStart == null)) return;
 
@@ -179,7 +179,7 @@
       const hoursInput = durationInput("hours", "Hours", Math.floor(gapCap() / 60));
       const minutesInput = durationInput("minutes", "Minutes", 59);
       durationRow.append(hoursInput.label, minutesInput.label);
-      const initialMinutes = defaultMinutes();
+      const initialMinutes = defaultMinutes(durationMinutes);
       const initialDuration = O.durationParts(initialMinutes);
       hoursInput.input.value = String(initialDuration.hours);
       minutesInput.input.value = String(initialDuration.minutes);
@@ -394,8 +394,10 @@
      * capped by the gap and snapped to the interval, so a 30-minute gap opens on
      * 30 min instead of a value the portal would refuse.
      */
-    function defaultMinutes() {
-      const preferred = Number(bookingCfg().defaultMinutes) || 60;
+    function defaultMinutes(preferredOverride) {
+      const preferred = Number.isFinite(preferredOverride)
+        ? Math.max(1, Math.floor(preferredOverride))
+        : Number(bookingCfg().defaultMinutes) || 60;
       return O.gapDuration(dialogState.gapMinutes, dialogState.interval, preferred, maxDuration());
     }
 

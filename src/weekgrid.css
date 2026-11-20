@@ -368,6 +368,13 @@
     border-color: CanvasText;
   }
 
+  .wg-col.is-aimed,
+  .wg-name.is-aimed {
+    background-color: Canvas;
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
 }
 
 /* ------------------------------------------------------------------ *
@@ -492,4 +499,56 @@
   border-radius: 3px;
   background: var(--accent-soft);
   pointer-events: none;
+}
+
+/* The keyboard booking cursor: a solid box over the aimed slot. */
+.wg-cursor {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  min-height: 4px;
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-soft);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.wg-cursor.is-blocked {
+  border-style: dashed;
+  border-color: var(--danger);
+  background: transparent;
+}
+
+.wg-cursor.is-past {
+  opacity: 0.45;
+}
+
+/* The live readout while the slot cursor is armed. It replaces the time chip
+   that used to sit on the box: each column is its own stacking context
+   (z-index), so a chip overflowing into the next column painted under that
+   column's booking blocks. */
+.wg-aim {
+  margin: 0 0 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The column and the machine name the armed cursor sits on. These selectors
+   carry enough classes to beat the machine-colour variants declared above. */
+.wg-scroll .wg-day .wg-col.is-aimed {
+  background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.wg-scroll.has-machine-colors .wg-col.is-aimed {
+  background-color: color-mix(in oklab, var(--accent) 14%, var(--wg-machine-surface));
+}
+
+.wg-scroll .wg-names .wg-name.is-aimed {
+  background-color: var(--accent);
+  color: var(--surface, #fff);
 }
