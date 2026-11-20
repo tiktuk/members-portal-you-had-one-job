@@ -404,12 +404,32 @@
     if (!P || !document.body) return;
     if (!resourcePicker) {
       resourcePicker = P.mount(document.body, {
+        placeholder: "Search resources, categories, pages…",
         onPick: (item) => {
-          const resource = item.resource;
           // In Caro Week View a pick re-scopes the open view instead of
-          // navigating to the resource's calendar.
-          if (activeOverlay?.kind === "week" && typeof activeOverlay.view?.setScope === "function") {
-            activeOverlay.view.setScope({
+          // navigating to the picked calendar.
+          const setScope =
+            activeOverlay?.kind === "week" && typeof activeOverlay.view?.setScope === "function"
+              ? (scope) => activeOverlay.view.setScope(scope)
+              : null;
+          if (item.kind === "page") {
+            location.assign(item.href);
+          } else if (item.kind === "overview") {
+            openOverviewOverlay();
+          } else if (item.kind === "category") {
+            if (setScope) {
+              setScope({
+                type: item.type || "",
+                group: item.group || "",
+                label: item.label,
+                categoryLabel: item.label,
+              });
+            } else {
+              openCategory(item);
+            }
+          } else if (setScope) {
+            const resource = item.resource;
+            setScope({
               type: resource.type || "",
               group: resource.group || "",
               resourceId: resource.id,
@@ -418,9 +438,9 @@
                 G.displayGroupName(resource.group, cfg.nav.stripGroupPrefix) ||
                 G.typeLabel(resource.type),
             });
-            return;
+          } else {
+            openResource(item.resource);
           }
-          openResource(resource);
         },
       });
     }
@@ -438,7 +458,7 @@
       .filter((resource) => !pinnedIds.has(String(resource.id)))
       .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
       .map((resource) => pickerItem(resource, false));
-    return [...pinned, ...rest];
+    return [...pinned, ...pickerPageItems(), ...pickerCategoryItems(), ...rest];
   }
 
   function pickerItem(resource, pinned) {
@@ -450,11 +470,69 @@
       .filter(Boolean)
       .join(" · ");
     return {
+      kind: "resource",
+      section: pinned ? "Pinned" : "Resources",
       name: resource.name || `Resource ${resource.id}`,
       subtitle,
       pinned,
       resource,
     };
+  }
+
+  /** Portal destinations that are not a bookings calendar. */
+  function pickerPageItems() {
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    return [
+      {
+        kind: "page",
+        section: "Pages",
+        name: "My bookings",
+        subtitle: "Portal page",
+        href: `/${webAddress}/user/activity/bookings`,
+      },
+      {
+        kind: "overview",
+        section: "Pages",
+        name: "Booking overview",
+        subtitle: "My bookings and pinned resources",
+      },
+    ];
+  }
+
+  /**
+   * One item per menu type ("All machines") and one per group
+   * ("All 3D printing"), in the same order the Resources menu lists them.
+   */
+  function pickerCategoryItems() {
+    const list = findNavList();
+    const model = G.buildMenuModel(state.groups?.groupsBySlug || {}, list ? readNavTypes(list) : [], {
+      stripPrefix: cfg.nav.stripGroupPrefix,
+      hideEmptyTypes: Boolean(state.groups) && cfg.nav.hideEmptyTypes,
+    });
+    const items = [];
+    for (const type of model) {
+      items.push({
+        kind: "category",
+        section: "Categories",
+        name: `All ${type.label.toLowerCase()}`,
+        subtitle: "Resource type",
+        type: type.slug,
+        group: "",
+        label: type.label,
+      });
+      for (const group of type.groups) {
+        items.push({
+          kind: "category",
+          section: "Categories",
+          name: `All ${group.label}`,
+          subtitle: type.label,
+          type: type.slug,
+          group: group.name,
+          label: group.label,
+        });
+      }
+    }
+    return items;
   }
 
   /** Open a resource's single-resource calendar, like a pin chip's link. */
@@ -468,6 +546,23 @@
     rememberPinnedResource({ id: resource.id, name, group, type });
     location.assign(
       U.bookingHref({ webAddress, type, view: cfg.defaultView, group, resource: resource.id, start, end }),
+    );
+  }
+
+  /** Open a type or group calendar, like the menu's "All …" links. */
+  function openCategory(item) {
+    const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
+    const { start, end } = U.currentRange(location.search);
+    clearPinnedResource();
+    location.assign(
+      U.bookingHref({
+        webAddress,
+        type: item.type || "all",
+        view: cfg.defaultView,
+        group: item.group || "",
+        start,
+        end,
+      }),
     );
   }
 

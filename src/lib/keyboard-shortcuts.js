@@ -7,7 +7,7 @@
   const FEATURE_GUIDE = [
     {
       title: "Resources and pins",
-      description: "Browse groups in the Resources menu and pin a machine. The pins strip opens its single-resource calendar; press P to search and open any resource.",
+      description: "Browse groups in the Resources menu and pin a machine. The pins strip opens its single-resource calendar; press P to search and open any resource, a whole category (\"All 3D printing\") or your bookings — the extension's overview or the portal page.",
     },
     {
       title: "Booking Overview",

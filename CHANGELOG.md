@@ -11,10 +11,11 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
-- Press `p` for a quick-open resource chooser (fuzzy search, pinned resources
-  first) that jumps straight to the chosen resource's calendar. While Caro
-  Week View is open, the chooser instead switches the view to the picked
-  resource without leaving it.
+- Press `p` for a quick-open chooser (fuzzy search, pinned resources first)
+  that jumps straight to a resource's calendar, a whole category ("All 3D
+  printing" or "All machines"), the booking overview or the portal's My
+  bookings page. While Caro Week View is open, the chooser instead switches
+  the view to the picked resource or category without leaving it.
 - Shortcut help now includes a short guide to the extension's other features.
 - Put shortcut help beside Statistics in the portal strip and beside Refresh
   in the overview, Statistics, and Caro Week View headers; strengthen keycap

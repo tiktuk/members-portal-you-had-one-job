@@ -64,7 +64,7 @@
 
     const dialog = doc.createElement("dialog");
     dialog.className = "onejob-picker";
-    dialog.setAttribute("aria-label", "Find a resource");
+    dialog.setAttribute("aria-label", "Find a resource, category or page");
 
     const input = doc.createElement("input");
     input.className = "onejob-picker-input";
@@ -127,14 +127,23 @@
       matches = [...pinned, ...rest];
 
       const rows = [];
-      if (pinned.length && rest.length) {
-        // Sections only when both exist; a filtered single group needs none.
-        const heading = doc.createElement("div");
-        heading.className = "onejob-picker-section";
-        heading.textContent = "Pinned";
-        rows.push(heading);
-      }
+      // A heading marks each change of `section` (pinned, categories, pages),
+      // but only when the filtered list holds more than one — a single group
+      // needs none.
+      const itemSection = (item) => item.section || (item.pinned ? "Pinned" : "");
+      const showSections = new Set(matches.map(itemSection)).size > 1;
+      let lastSection = null;
       for (const item of matches) {
+        const section = itemSection(item);
+        if (section !== lastSection) {
+          lastSection = section;
+          if (showSections && section) {
+            const heading = doc.createElement("div");
+            heading.className = "onejob-picker-section";
+            heading.textContent = section;
+            rows.push(heading);
+          }
+        }
         const row = doc.createElement("div");
         row.className = "onejob-picker-row";
         row.id = `onejob-picker-row-${id}-${matches.indexOf(item)}`;
@@ -165,7 +174,7 @@
       if (!matches.length) {
         const empty = doc.createElement("div");
         empty.className = "onejob-picker-empty";
-        empty.textContent = items.length ? "No matching resources" : "No resources loaded";
+        empty.textContent = items.length ? "No matches" : "Nothing to pick yet";
         rows.push(empty);
       }
       list.replaceChildren(...rows);
