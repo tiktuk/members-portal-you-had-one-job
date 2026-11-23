@@ -9,6 +9,18 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+### Fixed
+
+- Caro Week View now draws workshop events that only arrive as `event: true`
+  records in the bookings feed — the events endpoint does not echo every
+  reservation, so a workshop block could show on the portal's calendar but not
+  in the view. Both feeds are merged, deduped by resource and time.
+- Caro Week View now also draws events on linked resources: an event on a lab
+  (the portal shows a plain "Event" block) blocks its machines even though the
+  events feed names only the lab's resource id. `LinkedResourceIds` from
+  `/api/spaces/resources` are followed in both directions and the copies carry
+  the linked outline.
+
 ### Added
 
 - Book a slot without the mouse: `b` opens Caro Week View with an aimed slot

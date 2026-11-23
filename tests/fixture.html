@@ -258,6 +258,10 @@
         { id: 9007, resourceId: 1415309492, start: iso(1, 15), end: iso(1, 18), coworkerId: 5003, coworkerFullName: "Jo Weber" },
         { id: 9008, resourceId: 1415309596, start: iso(2, 9), end: iso(2, 13), coworkerId: 5002, coworkerFullName: "Sam Ortiz" },
         { id: 9009, resourceId: 1415309601, start: iso(3, 11), end: iso(3, 12), coworkerId: 5001, coworkerFullName: "Alex Kim" },
+        // A workshop block the portal draws on the laser: `event: true` records
+        // reach the week grid only through the bookings feed — the events
+        // endpoint does not echo this one.
+        { id: 9102, resourceId: 1415309492, event: true, start: iso(0, 18), end: iso(0, 21), title: "Laser workshop window", url: "/motionlabberlin/events/laser-workshop" },
       ];
       window.__fixtureEvents = [
         {
@@ -268,6 +272,23 @@
           title: "Laser Cutting 101",
           shortDescription: "Intro workshop for the E-Lab laser.",
           url: "/motionlabberlin/events/laser-cutting-101",
+        },
+        // Generic events on the E-Lab. The events feed names only the lab's
+        // resourceId; the portal still draws them on the linked xTool F1
+        // (mirrors the two real "Event" blocks on Laser Catthi via Laser Lab).
+        {
+          id: 9103,
+          resourceId: 1415309591,
+          start: iso(0, 10),
+          end: iso(0, 12),
+          title: "Event",
+        },
+        {
+          id: 9104,
+          resourceId: 1415309591,
+          start: iso(0, 14),
+          end: iso(0, 16),
+          title: "Event",
         },
       ];
       window.__fixtureLumaEvents = [
@@ -328,6 +349,15 @@
         }
         if (target.includes("fullCalendarEvents")) return json(window.__fixtureEvents);
         if (target.includes("/api/public/bookings/my")) return json(window.__fixtureMyBookings);
+        // `LinkedResourceIds` lives on /api/spaces/resources only — the
+        // published details payload does not carry it. E-Lab is linked to the
+        // xTool F1 on the lab side alone, like the live Laser Lab.
+        if (target.includes("/api/spaces/resources")) {
+          return json({
+            Records: [{ Id: 1415309591, Name: "E-Lab", LinkedResourceIds: "1415309492" }],
+            HasNextPage: false,
+          });
+        }
 
         // Cancelling one of the member's own bookings: the fee lookup and the
         // DELETE with the reason body the portal's edit page sends.

@@ -175,6 +175,30 @@ test("resourceListFromPayload exposes individual resources", () => {
   assert.equal(resources[4].type, "meeting-rooms");
 });
 
+test("linkedResourceIds follows links in both directions", () => {
+  const { OneJobGroups } = loadLibs();
+  const links = OneJobGroups.linkedResourceIds({
+    Resources: [
+      { Id: 1, LinkedResourceIds: "2, 3" },
+      { Id: 2 },
+      { Id: 3, LinkedResourceIds: [4] },
+      { Id: 5, LinkedResourceIds: "" },
+    ],
+  });
+  assert.deepEqual(plain([...links.get("1")].sort()), ["2", "3"]);
+  assert.deepEqual(plain([...links.get("2")]), ["1"]);
+  assert.deepEqual(plain([...links.get("3")].sort()), ["1", "4"]);
+  assert.deepEqual(plain([...links.get("4")]), ["3"]);
+  assert.equal(links.has("5"), false);
+
+  // /api/spaces/resources wraps its rows in Records.
+  const fromRecords = OneJobGroups.linkedResourceIds({
+    Records: [{ Id: 7, LinkedResourceIds: "8" }],
+  });
+  assert.deepEqual(plain([...fromRecords.get("7")]), ["8"]);
+  assert.deepEqual(plain([...fromRecords.get("8")]), ["7"]);
+});
+
 test("buildMenuModel keeps the portal's type order and strips prefixes", () => {
   const { OneJobGroups } = loadLibs();
   const groups = OneJobGroups.groupsBySlugFromPayload(PAYLOAD);

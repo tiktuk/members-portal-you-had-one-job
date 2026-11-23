@@ -73,6 +73,40 @@
   }
 
   /**
+   * Id -> Set of linked resource ids, in both directions.
+   *
+   * `LinkedResourceIds` is a comma-separated string on each resource. It lives
+   * on `api/spaces/resources` (`Records`) — `resources/published/details` does
+   * not include it. Nexudus blocks a resource when a linked resource is busy —
+   * a workshop on a lab makes all of its machines unbookable — and the events
+   * feed names only the linked resource's id, so both directions are needed
+   * to map it back.
+   */
+  function linkedResourceIds(payload) {
+    const links = new Map();
+    const add = (a, b) => {
+      if (!a || !b || a === b) return;
+      if (!links.has(a)) links.set(a, new Set());
+      links.get(a).add(b);
+    };
+    const published = resourcesFromPayload(payload);
+    const rows = published.length ? published : Array.isArray(payload?.Records) ? payload.Records : [];
+    for (const resource of rows) {
+      if (!resource || resource.Id == null) continue;
+      const id = String(resource.Id);
+      const raw = resource.LinkedResourceIds;
+      const parts = Array.isArray(raw) ? raw : String(raw ?? "").split(",");
+      for (const part of parts) {
+        const linkedId = String(part).trim();
+        if (!linkedId) continue;
+        add(id, linkedId);
+        add(linkedId, id);
+      }
+    }
+    return links;
+  }
+
+  /**
    * @param {Record<string, string[]>} groupsBySlug
    * @param {{slug: string, label?: string}[]} types  preferred order (usually from the portal menu)
    * @param {{stripPrefix?: boolean, hideEmptyTypes?: boolean}} options
@@ -118,6 +152,7 @@
     resourcesFromPayload,
     resourceListFromPayload,
     groupsBySlugFromPayload,
+    linkedResourceIds,
     buildMenuModel,
   };
 })();

@@ -665,9 +665,20 @@ dashboard's notes field and, if they need to live on disk, into
 - **Data:** per visible week, `fullCalendarBookings` (`showAll`, normalised with
   `perResource: true` so a linked booking shows on every machine it blocks),
   `fullCalendarEvents` (workshop reservations with a `resourceId`, drawn hatched
-  and counted as occupied), and `/api/public/bookings/my` (own bookings; the first
+  and counted as occupied) merged in `mergedReserved` with the `event: true`
+  copies inside the bookings feed — the record normaliser drops those and the
+  events endpoint does not always echo them, so both sources are deduped by
+  resource and span — and `/api/public/bookings/my` (own bookings; the first
   record naming its coworker identifies the member so finished bookings stay
-  highlighted). The week view also reads the published resource's `Allocation`
+  highlighted). `weekGrid` also expands each reserved event onto every column
+  linked to its resource: Nexudus blocks a machine when a linked resource (say
+  its lab) is busy, but the events feed names only the linked resource's id,
+  so a generic "Event" on a lab would be dropped even though the portal draws
+  it on the machine. `LinkedResourceIds` lives on `/api/spaces/resources`
+  (paginated `Records`; the published details payload does not carry it —
+  checked live) and `G.linkedResourceIds` parses it in both directions; the
+  copies carry the `linked` flag. A failed links fetch just leaves the map
+  empty. The week view also reads the published resource's `Allocation`
   for concurrent-unit capacity; this stays in memory and is not added to the
   cached resource groups. Luma comes through the background worker and follows the overview's
   `settings.lumaEvents`. Weeks are cached in memory for `config.weekGrid.cacheTtlMs`;

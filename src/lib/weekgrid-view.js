@@ -50,6 +50,9 @@
       dayOffset: 0,
       /** weekStart ms -> { fetchedAt, records, reserved, mine, me }. */
       weeks: {},
+      /** Resource id -> Set of ids linked to it, both directions. */
+      links: new Map(),
+      linksLoaded: false,
       events: [],
       /** Keyboard slot cursor: { dayIndex, columnIndex, minutes } or null. */
       cursor: null,
@@ -593,6 +596,7 @@
         needsResourceDetails ? loadResources(session, controller) : Promise.resolve(),
         needsWeek ? loadWeek(session, start, controller) : Promise.resolve(),
         loadEvents(),
+        state.linksLoaded && !force ? Promise.resolve() : loadLinks(session, controller),
       ]);
       if (!ui.root || controller.signal.aborted) return;
       state.updatedAt = new Date();
@@ -635,6 +639,37 @@
     }
   }
 
+  /**
+   * `LinkedResourceIds` lives on `/api/spaces/resources` — the published
+   * details endpoint omits it. A failure just leaves the links map empty:
+   * events on a linked resource then stay on their own column, as before.
+   */
+  async function loadLinks(session, controller) {
+    try {
+      const links = await fetchLinkedResources(session, controller);
+      if (controller.signal.aborted) return;
+      state.links = links;
+      state.linksLoaded = true;
+    } catch {
+      if (!controller.signal.aborted) state.linksLoaded = true;
+    }
+  }
+
+  async function fetchLinkedResources(session, controller) {
+    const base = U.apiBaseUrl(session.webAddress);
+    const records = [];
+    for (let page = 1; page <= 5; page += 1) {
+      const params = new URLSearchParams({ size: "200", page: String(page) });
+      const payload = await fetchJson(session, `${base}/api/spaces/resources?${params}`, {
+        signal: controller.signal,
+      });
+      if (!Array.isArray(payload?.Records) || !payload.Records.length) break;
+      records.push(...payload.Records);
+      if (!payload.HasNextPage) break;
+    }
+    return G.linkedResourceIds({ Records: records });
+  }
+
   async function loadWeek(session, start, controller) {
     const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
     const base = U.apiBaseUrl(session.webAddress);
@@ -657,11 +692,27 @@
     const entry = {
       fetchedAt: Date.now(),
       records: S.normalizeRecords(bookings.value, O.parseTimestamp, { perResource: true }),
-      reserved: reserved.status === "fulfilled" ? reservedFrom(reserved.value) : [],
+      reserved: mergedReserved(reserved.status === "fulfilled" ? reserved.value : [], bookings.value),
       mine: mine.status === "fulfilled" ? mine.value.mine : [],
       me: mine.status === "fulfilled" ? mine.value.me : currentWeek()?.me || null,
     };
     state.weeks[start.getTime()] = entry;
+  }
+
+  /**
+   * Workshop events arrive twice — `fullCalendarEvents` and `event: true`
+   * copies inside the bookings feed, which the record normaliser drops. Merge
+   * both keyed by resource and span: the events feed can miss one the portal
+   * still draws on the machine's column.
+   */
+  function mergedReserved(eventsPayload, bookingsPayload) {
+    const merged = new Map();
+    const bookingsEvents = (Array.isArray(bookingsPayload) ? bookingsPayload : [])
+      .filter((record) => record?.event === true);
+    for (const item of [...reservedFrom(eventsPayload), ...reservedFrom(bookingsEvents)]) {
+      merged.set(`${item.resourceId}|${item.start}|${item.end}`, item);
+    }
+    return [...merged.values()];
   }
 
   function reservedFrom(payload) {
@@ -840,6 +891,7 @@
       me: entry?.me || null,
       events: eventsEnabled() ? state.events : [],
       reserved: entry?.reserved || [],
+      links: state.links,
     });
   }
 
@@ -1285,7 +1337,13 @@
     if (block.name) parts.push(block.name);
     if (block.mine && !block.reserved) parts.push("your booking");
     if (block.count > 1) parts.push(`${block.count} bookings in this slot`);
-    if (block.linked) parts.push("linked: booked on a connected machine, which blocks this one too");
+    if (block.linked) {
+      parts.push(
+        block.reserved
+          ? "linked: event on a connected resource, which blocks this one too"
+          : "linked: booked on a connected machine, which blocks this one too",
+      );
+    }
     node.title = parts.join(" · ");
 
     const label = [CLOCK.format(new Date(block.rawStart)), block.name, block.count > 1 ? `×${block.count}` : ""]

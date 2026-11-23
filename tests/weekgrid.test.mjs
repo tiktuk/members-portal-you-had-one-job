@@ -333,6 +333,35 @@ test("workshop reservations block their machine and are flagged", () => {
   assert.equal(W.slotAt(laser, at(7, 14), { now: NOW }).occupied.reserved, true);
 });
 
+test("reservations on a linked resource block its columns too", () => {
+  const model = grid([], {
+    reserved: [{ resourceId: "99", start: at(7, 13), end: at(7, 15), name: "Event" }],
+    links: new Map([["99", new Set(["11"])]]),
+  });
+  const [cnc, laser] = model.days[2].columns;
+  assert.equal(cnc.blocks.length, 0);
+  assert.equal(laser.blocks.length, 1);
+  assert.equal(laser.blocks[0].reserved, true);
+  assert.equal(laser.blocks[0].linked, true);
+  assert.equal(laser.blocks[0].name, "Event");
+  assert.equal(W.slotAt(laser, at(7, 14), { now: NOW }).occupied.reserved, true);
+});
+
+test("a feed copy on the linked column is not drawn twice", () => {
+  const model = grid([], {
+    reserved: [
+      { resourceId: "99", start: at(7, 13), end: at(7, 15), name: "Event" },
+      { resourceId: "11", start: at(7, 13), end: at(7, 15), name: "Event" },
+    ],
+    links: new Map([
+      ["99", new Set(["11"])],
+      ["11", new Set(["99"])],
+    ]),
+  });
+  const laser = model.days[2].columns[1];
+  assert.equal(laser.blocks.length, 1);
+});
+
 test("overlapping blocks in one column get side-by-side lanes", () => {
   const model = grid([
     record("a", "10", at(7, 8), at(7, 10)),

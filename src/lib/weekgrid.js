@@ -350,33 +350,46 @@
       block.mine = block.mine || group.owned;
     }
 
+    // Reserved blocks also land on columns linked to the event's resource:
+    // a workshop on a lab blocks its machines even though the events feed
+    // names only the lab's id (options.links is id -> linked ids, both ways).
+    const links = options.links && typeof options.links.get === "function" ? options.links : null;
+    const seenReserved = new Set();
     for (const event of Array.isArray(options.reserved) ? options.reserved : []) {
-      if (!event || event.resourceId == null || !byId.has(String(event.resourceId))) continue;
-      const resourceId = String(event.resourceId);
+      if (!event || event.resourceId == null) continue;
+      const ownId = String(event.resourceId);
       const eventStart = Number(event.start);
       const eventEnd = Number(event.end);
       if (!Number.isFinite(eventStart) || !Number.isFinite(eventEnd) || eventEnd <= eventStart) continue;
-      for (const day of days) {
-        const from = Math.max(eventStart, day.date.getTime());
-        const to = Math.min(eventEnd, addDays(day.date, 1).getTime());
-        if (to <= from) continue;
-        segments.push({
-          day,
-          resourceId,
-          block: {
-            id: `reserved-${resourceId}-${eventStart}`,
+      const targets = [ownId];
+      if (links) for (const linkedId of links.get(ownId) || []) targets.push(linkedId);
+      for (const resourceId of targets) {
+        if (!byId.has(resourceId)) continue;
+        for (const day of days) {
+          const from = Math.max(eventStart, day.date.getTime());
+          const to = Math.min(eventEnd, addDays(day.date, 1).getTime());
+          if (to <= from) continue;
+          const key = `${resourceId}-${from}-${to}-${event.name ?? ""}`;
+          if (seenReserved.has(key)) continue;
+          seenReserved.add(key);
+          segments.push({
+            day,
             resourceId,
-            start: from,
-            end: to,
-            rawStart: eventStart,
-            rawEnd: eventEnd,
-            count: 1,
-            mine: false,
-            linked: false,
-            reserved: true,
-            name: String(event.name || "Reserved"),
-          },
-        });
+            block: {
+              id: `reserved-${resourceId}-${eventStart}`,
+              resourceId,
+              start: from,
+              end: to,
+              rawStart: eventStart,
+              rawEnd: eventEnd,
+              count: 1,
+              mine: false,
+              linked: event.linked === true || resourceId !== ownId,
+              reserved: true,
+              name: String(event.name || "Reserved"),
+            },
+          });
+        }
       }
     }
 
