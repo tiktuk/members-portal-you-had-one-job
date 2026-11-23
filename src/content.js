@@ -277,8 +277,6 @@
     const bindings = [
       { key: "o", label: "Open Booking Overview" },
       { key: "s", label: "Open Statistics" },
-      { key: "Alt+O", label: "Open Booking Overview (modifier shortcut)" },
-      { key: "Alt+S", label: "Open Statistics (modifier shortcut)" },
       { key: "h", label: "Show keyboard shortcuts" },
       { key: "p", label: "Find a resource" },
     ];
@@ -448,6 +446,12 @@
             location.assign(item.href);
           } else if (item.kind === "overview") {
             openOverviewOverlay();
+          } else if (item.kind === "week") {
+            openWeekOverlay({
+              scope: calendarScope() || rememberedWeekScope() || fallbackWeekScope(),
+            });
+          } else if (item.kind === "help") {
+            (activeOverlay?.view?.openHelp || portalHelp?.open)?.();
           } else if (item.kind === "category") {
             if (setScope) {
               setScope({
@@ -540,7 +544,7 @@
   /** Portal destinations that are not a bookings calendar. */
   function pickerPageItems() {
     const webAddress = U.webAddressFromLocation(location.pathname) || cfg.portal.webAddress;
-    return [
+    const items = [
       {
         kind: "page",
         section: "Pages",
@@ -555,6 +559,21 @@
         subtitle: "My bookings and pinned resources",
       },
     ];
+    if (state.settings.weekGrid !== false && globalThis.OneJobWeekGridView) {
+      items.push({
+        kind: "week",
+        section: "Pages",
+        name: cfg.weekGrid?.label || "Caro Week View",
+        subtitle: "Compare resources side by side",
+      });
+    }
+    items.push({
+      kind: "help",
+      section: "Pages",
+      name: "Help",
+      subtitle: "Keyboard shortcuts and feature guide",
+    });
+    return items;
   }
 
   /**

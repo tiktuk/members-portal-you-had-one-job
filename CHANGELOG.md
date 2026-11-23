@@ -91,9 +91,15 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   one button per other category you have pins in (viewing a laser with a CNC
   pinned adds "CNC Machining"), and "My bookings" (every machine you have a booking on in the visible week, in any
   category).
+- The quick-open chooser (`p`) also lists Caro Week View — opened with the
+  same scope rules as `c` — and Help, which opens the keyboard-shortcuts and
+  feature-guide dialog (the view's own help while an overlay is open).
 
 ### Changed
 
+- The shortcut-help list no longer repeats Alt+O and Alt+S as separate rows —
+  the note above the list already says the modifier shortcuts work alongside
+  the single keys.
 - Renamed the category week view to “Caro Week View” throughout the interface and
   store and privacy copy.
 - The week-view popup fits its calendar content, sits slightly higher, and
