@@ -32,6 +32,31 @@
     return cfg.weekGrid || {};
   }
 
+  /**
+   * Physical codes of the keys that type `+`/`=` or `-` in the active layout.
+   * On ISO boards the `+` key's Shift variant can type `*`, `±`, `?`…, so the
+   * character alone does not find it; the layout map (Chromium only) does.
+   */
+  let growCodes = null;
+  let shrinkCodes = null;
+
+  function loadKeyLayout() {
+    if (growCodes || typeof navigator === "undefined" || !navigator.keyboard?.getLayoutMap) return;
+    navigator.keyboard
+      .getLayoutMap()
+      .then((map) => {
+        const grow = new Set();
+        const shrink = new Set();
+        map.forEach((char, code) => {
+          if (char === "+" || char === "=") grow.add(code);
+          else if (char === "-") shrink.add(code);
+        });
+        growCodes = grow;
+        shrinkCodes = shrink;
+      })
+      .catch(() => {});
+  }
+
   function emptyState() {
     return {
       session: null,
@@ -130,6 +155,7 @@
     state.cursor = null;
     state.wantCursor = options.bookingCursor === true;
 
+    loadKeyLayout();
     root.classList.add("overview", "weekgrid", "is-panel");
     root.replaceChildren(buildShell());
     ui.help = K.mountHelp(root.getRootNode(), () => ({
@@ -972,6 +998,7 @@
             { key: "←→", label: "Move the slot between machines" },
             { key: "↑↓", label: "Move the slot in time" },
             { key: "+−", label: "Make the slot longer or shorter" },
+            { key: "⇧+−", label: "The same in hour steps" },
             { key: "↵", label: "Book the aimed slot" },
             { key: "esc", label: "Put the slot cursor away" },
           ]
@@ -1005,11 +1032,14 @@
         moveCursor(key === "ArrowLeft" ? -1 : 1, 0);
         return true;
       }
-      // `+`/`_` arrive with Shift on most layouts, so only command keys are excluded.
+      // `+`/`_` arrive with Shift on most layouts, so only command keys are
+      // excluded; Shift selects the hour step, the bare key the snap step.
       const noCommand = !event.altKey && !event.ctrlKey && !event.metaKey;
-      if (noCommand && (key === "+" || key === "=" || key === "-" || key === "_")) {
+      const grow = key === "+" || key === "=" || growCodes?.has(event.code);
+      const shrink = key === "-" || key === "_" || shrinkCodes?.has(event.code);
+      if (noCommand && (grow || shrink)) {
         event.preventDefault();
-        resizeCursor(key === "-" || key === "_" ? -1 : 1);
+        resizeCursor(shrink ? -1 : 1, { hours: event.shiftKey });
         return true;
       }
       if (K.matches(event, "enter")) {
@@ -1544,8 +1574,8 @@
     return Math.min(span, cap);
   }
 
-  /** `+` / `-` grow and shrink the aimed slot by one snap step. */
-  function resizeCursor(dir) {
+  /** `+` / `-` grow and shrink the aimed slot: a snap step, an hour with Shift. */
+  function resizeCursor(dir, { hours = false } = {}) {
     const cursor = state.cursor;
     const model = state.model;
     if (!cursor || !model) return;
@@ -1553,7 +1583,7 @@
     const hit = cursorHit();
     const windowEnd = model.hourTo * 60 - cursor.minutes;
     const cap = Math.max(snap, Math.min(hit?.slot?.gapMinutes || snap, windowEnd));
-    cursor.span = Math.min(Math.max((cursor.span || snap) + dir * snap, snap), cap);
+    cursor.span = Math.min(Math.max((cursor.span || snap) + dir * (hours ? 60 : snap), snap), cap);
     updateCursorEl();
   }
 
@@ -1610,7 +1640,7 @@
     ui.aim.textContent =
       `Aiming ${hit.column.name} · ${WEEKDAY.format(hit.day.date)} ` +
       `${CLOCK.format(start)}–${CLOCK.format(end)} (${O.durationLabel(span)})` +
-      " — ←→ machines · ↑↓ time · +/− length · Enter books · Esc drops";
+      " — ←→ machines · ↑↓ time · +/− length (⇧: hours) · Enter books · Esc drops";
     ui.aim.hidden = false;
   }
 

@@ -94,6 +94,10 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 - The quick-open chooser (`p`) also lists Caro Week View — opened with the
   same scope rules as `c` — and Help, which opens the keyboard-shortcuts and
   feature-guide dialog (the view's own help while an overlay is open).
+- Holding Shift while resizing Caro Week View's armed slot cursor makes
+  `+`/`-` step the aimed length by an hour instead of the snap step; the
+  physical keys are resolved through the keyboard layout map, so Shift+`+`
+  also registers on ISO layouts where it types `*`, `±` or `?`.
 
 ### Changed
 

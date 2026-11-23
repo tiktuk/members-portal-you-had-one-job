@@ -711,8 +711,10 @@ dashboard's notes field and, if they need to live on disk, into
   shows one). Arrows move it (up/down by the snap step, left/right between
   machines wrapping across days at each day's ends), `+`/`-` grow and shrink
   `span` (initialised to `config.overview.booking.defaultMinutes`, the same
-  default the click path gets) by a snap step capped at the free gap and the
-  window end, Enter runs
+  default the click path gets) by a snap step — an hour with Shift — capped at
+  the free gap and the window end (`navigator.keyboard.getLayoutMap`, when the
+  engine has it, finds the physical `+`/`-` keys so a Shift variant that types
+  `*`/`±`/`?` on ISO layouts still registers), Enter runs
   the same occupied/past logic as `onCellClick` and passes `span` to
   `openBooking` as `durationMinutes` (the dialog's `gapDuration` still caps
   it), and a pointer move disarms it — the last input method wins. The cursor
