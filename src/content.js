@@ -439,6 +439,7 @@
     if (!resourcePicker) {
       resourcePicker = P.mount(document.body, {
         placeholder: "Search resources, categories, pages…",
+        onTogglePin: (resource) => togglePin(resource),
         onPick: (item) => {
           // "book" intent: the pick opens Caro Week View scoped to it, with
           // the slot cursor armed — pages fall through to their usual action.

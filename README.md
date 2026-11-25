@@ -20,6 +20,8 @@ It does eight things:
    pin icon next to a resource (for example *OLSK Large CNC*). Pins sit in a
    strip at the top of every portal page, just below the navigation, so they are
    visible without opening the menu; the menu itself no longer repeats them.
+   The **P** quick-open picker also has a Pin/Unpin action for its selected
+   resource.
    Clicking a chip opens the calendar with **only that resource**, so there is no
    horizontal scrolling through every machine of the type, and the pin icon on
    the chip unpins it. While one resource is shown alone, the strip ends with
@@ -86,9 +88,9 @@ It does eight things:
    the overview header has no events toggle of its own.
 
 The eight toggles live in the toolbar popup; pins are managed from the strip at
-the top of the page and from the menu's group chevrons. The overview page uses
-the portal session the content script mirrors into extension storage, so open the
-portal once while signed in.
+the top of the page, the Resources menu and the **P** quick-open picker. The
+overview page uses the portal session the content script mirrors into extension
+storage, so open the portal once while signed in.
 
 ```
 Bookings ▾   Resources ▾   Booking Overview   Store ▾   Memberships   Community

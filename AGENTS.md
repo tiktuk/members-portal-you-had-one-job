@@ -67,12 +67,16 @@ dashboard's notes field and, if they need to live on disk, into
 ## Layout
 
 - `src/manifest.json` — MV3 manifest; content scripts load `lib/config.js`,
-  `lib/url.js`, `lib/groups.js`, `lib/overview.js`, `lib/stats.js`,
-  `lib/overview-view.js`, `lib/stats-view.js`, `lib/tour.js` **before**
-  `content.js` (classic scripts, shared via `globalThis`).
+  `lib/url.js`, `lib/keyboard-shortcuts.js`, `lib/resource-picker.js`,
+  `lib/groups.js`, `lib/overview.js`, `lib/stats.js`, `lib/weekgrid.js`,
+  `lib/booking-dialog.js`, `lib/overview-view.js`, `lib/stats-view.js`,
+  `lib/weekgrid-view.js` and `lib/tour.js` **before** `content.js` (classic
+  scripts, shared via `globalThis`).
 - `src/lib/config.js` — all tunables (labels, API host, type slugs, cache TTL).
 - `src/lib/url.js` — booking URL parsing/rewriting; used by both worlds.
 - `src/lib/groups.js` — API payload → menu model (grouping, ordering, labels).
+- `src/lib/resource-picker.js` — fuzzy-search picker UI; the host supplies items
+  and handlers, with Pin/Unpin as a footer action outside listbox options.
 - `src/lib/overview.js` — bookings/events/Luma payloads → pinned-overview model
   and personal-bookings model (day sections, timestamp parsing, icons); loaded
   by the page and the tests.
@@ -242,10 +246,10 @@ dashboard's notes field and, if they need to live on disk, into
   (`performance.getEntriesByType("navigation")`); a fresh navigation to a plain
   calendar URL clears it. SPA date changes keep it. The Previous/Next handler
   re-adds `onejob-resource` to its `pushState` URL for the same reason.
-- The strip's *Show all* link and the unpin navigation keep the resource's group
-  (`pinnedGroup()` in `content.js`), so the calendar returns to the same category
-  instead of the first resource of the whole type. The group comes from the
-  session pin, then the cached resource list, then the URL.
+- The strip's *Show all* link keeps the resource's group (`pinnedGroup()` in
+  `content.js`), so the calendar returns to the same category instead of the
+  first resource of the whole type. The group comes from the session pin, then
+  the cached resource list, then the URL.
 - Pins are shown in a strip at the top of `<main>`, not in the menu:
   `ensurePinsBar()` builds `onejob-pins-bar` inside a `.container` wrapper
   (`onejob-pins-bar-wrap`) on every portal page. Each chip links to the
@@ -739,6 +743,11 @@ dashboard's notes field and, if they need to live on disk, into
   `hasOpenModal` and before closing the overlay. Off a calendar page `b` has no
   scope, so it opens the resource picker with `pickerIntent = "book"`: a pick
   opens the week view scoped to it and armed.
+- The `p` picker keeps each result as a listbox option; its footer Pin/Unpin
+  button acts on the active resource without dismissing the dialog, then
+  refreshes results while preserving that resource's active selection. Keep the
+  button outside the option rows so they do not contain nested interactive
+  controls.
 - **Shared dialogs:** `lib/booking-dialog.js` owns the booking and cancel
   dialogs, the member profile and resource-interval lookups and the basket
   calls. A view passes a *host* (`doc`, `root`, `session`, `fetchJson`,

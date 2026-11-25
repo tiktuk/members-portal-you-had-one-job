@@ -54,10 +54,24 @@
 
   /**
    * @param {Element|Document} host  where the <dialog> is appended
-   * @param {{placeholder?: string, footer?: string, onPick?: Function}} options
+   * @param {{
+   *   placeholder?: string,
+   *   footer?: string,
+   *   onPick?: Function,
+   *   onTogglePin?: Function,
+   * }} options
    * `onPick(item)` runs when a row is confirmed by Enter or click.
+   * `onTogglePin(resource)` updates the active resource without closing the picker.
    */
-  function mount(host, { placeholder = "Search resources…", footer = "↑↓ select · Enter open", onPick } = {}) {
+  function mount(
+    host,
+    {
+      placeholder = "Search resources…",
+      footer = "↑↓ select · Enter open",
+      onPick,
+      onTogglePin,
+    } = {},
+  ) {
     const doc = host?.ownerDocument || host;
     if (!doc?.createElement) return null;
     const id = ++pickerId;
@@ -84,7 +98,13 @@
 
     const foot = doc.createElement("footer");
     foot.className = "onejob-picker-foot";
-    foot.textContent = footer;
+    const footerHint = doc.createElement("span");
+    footerHint.textContent = footer;
+    const pinAction = doc.createElement("button");
+    pinAction.type = "button";
+    pinAction.className = "onejob-picker-pin";
+    pinAction.hidden = true;
+    foot.append(footerHint, pinAction);
 
     // Own backdrop for the non-modal fallback: a host page that patches or
     // breaks `showModal()` must not hide the palette under its own UI.
@@ -112,6 +132,25 @@
       const row = list.querySelector(`#onejob-picker-row-${id}-${active}`);
       if (matches.length && row) input.setAttribute("aria-activedescendant", row.id);
       else input.removeAttribute("aria-activedescendant");
+      updatePinAction();
+    }
+
+    function updatePinAction() {
+      const item = matches[active];
+      if (!item?.resource || typeof onTogglePin !== "function") {
+        pinAction.hidden = true;
+        footerHint.textContent = footer;
+        return;
+      }
+
+      const pinned = Boolean(item.pinned);
+      const action = pinned ? "Unpin" : "Pin";
+      pinAction.hidden = false;
+      pinAction.textContent = action;
+      pinAction.title = `${action} ${item.name}`;
+      pinAction.setAttribute("aria-label", `${action} ${item.name}`);
+      pinAction.setAttribute("aria-pressed", String(pinned));
+      footerHint.textContent = `${footer} · Tab to ${action.toLowerCase()}`;
     }
 
     function pick(item) {
@@ -120,7 +159,7 @@
       onPick?.(item);
     }
 
-    function render() {
+    function render(preserveResourceId = "") {
       const query = input.value.trim();
       const pinned = rankItems(query, items.filter((item) => item.pinned));
       const rest = rankItems(query, items.filter((item) => !item.pinned));
@@ -178,7 +217,33 @@
         rows.push(empty);
       }
       list.replaceChildren(...rows);
-      setActive(0);
+      const preservedIndex = preserveResourceId
+        ? matches.findIndex(
+            (item) => String(item.resource?.id) === preserveResourceId,
+          )
+        : -1;
+      setActive(preservedIndex >= 0 ? preservedIndex : 0);
+    }
+
+    async function toggleActivePin() {
+      const item = matches[active];
+      if (
+        !item?.resource ||
+        typeof onTogglePin !== "function" ||
+        pinAction.disabled
+      ) {
+        return;
+      }
+
+      const resourceId = String(item.resource.id);
+      pinAction.disabled = true;
+      try {
+        await onTogglePin(item.resource);
+        items = getItems() || [];
+        render(resourceId);
+      } finally {
+        pinAction.disabled = false;
+      }
     }
 
     function open(itemsSource) {
@@ -207,6 +272,11 @@
     }
 
     input.addEventListener("input", render);
+    pinAction.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleActivePin();
+    });
     // The portal's global Escape handler can suppress the dialog's native
     // cancel; close explicitly and keep focus away from its listener.
     dialog.addEventListener("keydown", (event) => {

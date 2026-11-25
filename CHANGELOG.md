@@ -25,6 +25,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- The quick-open picker can pin or unpin its selected resource from a footer
+  action without closing the picker.
 - Keyboard help always lists `k` to toggle the current resource's pin, noting
   it only works on a single-resource calendar.
 - Book a slot without the mouse: `b` opens Caro Week View with an aimed slot
