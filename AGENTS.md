@@ -263,10 +263,9 @@ dashboard's notes field and, if they need to live on disk, into
   always lists it and labels that scope; the key is ignored in editable fields
   and dialogs like the other character shortcuts. Unpinning with `k`, from the
   Resources menu, or from the pins strip keeps the single-resource calendar open.
-- On a type/category calendar (`calendarScope()` without `resourceId`), the
-  wrapper also shows `.onejob-calendar-scope-heading` above the pins strip, e.g.
-  "All machines in CNC Machining". It is removed on a pinned single-resource
-  calendar and omitted on `/all`.
+- On a type/category or pinned single-resource calendar, the wrapper shows a
+  `.onejob-calendar-scope-heading` above the pins strip with the category or
+  resource name. It is omitted on `/all`.
 - Where the strip is mounted depends on `<main>`'s own display
   (`mountPinsBar()`): booking pages have a plain block `<main>` and the strip is
   its first child, but the personal pages (`/user/dashboard/*`) render

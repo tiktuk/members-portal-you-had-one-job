@@ -2082,26 +2082,61 @@
 
   function updateCalendarScopeHeading(wrap, scope) {
     let heading = wrap.querySelector(".onejob-calendar-scope-heading");
-    if (!scope || scope.resourceId) {
+    if (!scope) {
       heading?.remove();
       return;
     }
 
     if (!heading) {
-      heading = document.createElement("h2");
+      heading = document.createElement("header");
       heading.className = "onejob-calendar-scope-heading";
+      const kicker = document.createElement("span");
+      kicker.className = "onejob-calendar-scope-kicker";
+      const title = document.createElement(document.querySelector("main h1") ? "h2" : "h1");
+      title.className = "onejob-calendar-scope-title";
+      const detail = document.createElement("p");
+      detail.className = "onejob-calendar-scope-detail";
+      heading.append(kicker, title, detail);
       wrap.prepend(heading);
     }
-    const text = calendarScopeHeading(scope);
-    if (heading.textContent !== text) heading.textContent = text;
+
+    const copy = calendarScopeHeading(scope);
+    const kicker = heading.querySelector(".onejob-calendar-scope-kicker");
+    const title = heading.querySelector(".onejob-calendar-scope-title");
+    const detail = heading.querySelector(".onejob-calendar-scope-detail");
+    if (kicker.textContent !== copy.kicker) kicker.textContent = copy.kicker;
+    if (title.textContent !== copy.title) title.textContent = copy.title;
+    if (detail.textContent !== copy.detail) detail.textContent = copy.detail;
+    detail.hidden = !copy.detail;
   }
 
   function calendarScopeHeading(scope) {
-    const type = scope.type ? G.typeLabel(scope.type).toLowerCase() : "resources";
-    const category = scope.group ? G.displayGroupName(scope.group, cfg.nav.stripGroupPrefix) : "";
-    if (!category || category.toLowerCase() === type) return `All ${type}`;
-    if (category.toLowerCase().startsWith(`${type}:`)) return `All ${category}`;
-    return `All ${type} in ${category}`;
+    const type = scope.type ? G.typeLabel(scope.type) : "Resources";
+    const category = scope.group
+      ? G.displayGroupName(scope.group, cfg.nav.stripGroupPrefix)
+      : "";
+
+    if (scope.resourceId) {
+      return {
+        kicker: "Resource",
+        title: scope.label || "Pinned resource",
+        detail: [category, type]
+          .filter((value, index, values) => value && values.indexOf(value) === index)
+          .join(" · "),
+      };
+    }
+    if (scope.group) {
+      const detail =
+        category && category.toLowerCase() !== type.toLowerCase()
+          ? type
+          : "All bookable resources";
+      return {
+        kicker: "Category",
+        title: category || scope.label || type,
+        detail,
+      };
+    }
+    return { kicker: "Resource type", title: type, detail: "All bookable resources" };
   }
 
   /**

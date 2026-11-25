@@ -62,7 +62,8 @@ It does eight things:
    which opens the same screen scoped to that group.
 5. **Calendar by default.** Bookings links open the calendar view instead of the
    list view. Picking *List* in the portal's own *View* dropdown still works and
-   is remembered for the tab.
+   is remembered for the tab. The calendar header names the resource or
+   category currently in view.
 6. **Bookings heatmap.** A single-resource calendar has a 4 × 28 heatmap under
    the pins: 28 days from last week to the week in two weeks, with morning,
    afternoon, evening and night rows. Each column is labelled with its weekday

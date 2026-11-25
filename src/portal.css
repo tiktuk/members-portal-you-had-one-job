@@ -55,11 +55,42 @@
 }
 
 .onejob-calendar-scope-heading {
+  display: grid;
+  gap: 0.2rem;
   margin: 0.75rem 0 0.25rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--bs-primary-border-subtle, #ffbd9f);
+  border-inline-start: 4px solid var(--bs-primary, #ff5b13);
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    110deg,
+    var(--bs-primary-bg-subtle, #ffdecf),
+    var(--bs-body-bg, #fff) 76%
+  );
+}
+
+.onejob-calendar-scope-kicker {
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.onejob-calendar-scope-title {
+  margin: 0;
   color: var(--bs-body-color, #212529);
-  font-size: 1.15rem;
-  font-weight: 650;
-  line-height: 1.25;
+  font-size: clamp(1.3rem, 2.2vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.onejob-calendar-scope-detail {
+  margin: 0;
+  color: var(--bs-secondary-color, #6c757d);
+  font-size: 0.85rem;
+  line-height: 1.35;
 }
 
 /* Help sits beside the Statistics action when the portal strip is present. */

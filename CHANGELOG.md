@@ -25,6 +25,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ### Added
 
+- Regular resource calendars now have a header naming the active resource or
+  category.
 - The quick-open picker can pin or unpin its selected resource from a footer
   action without closing the picker.
 - Keyboard help always lists `k` to toggle the current resource's pin, noting
