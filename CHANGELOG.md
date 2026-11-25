@@ -20,9 +20,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   events feed names only the lab's resource id. `LinkedResourceIds` from
   `/api/spaces/resources` are followed in both directions and the copies carry
   the linked outline.
+- Unpinning the current resource with `k`, from the Resources menu, or from the
+  pins strip keeps its single-resource calendar open.
 
 ### Added
 
+- Keyboard help always lists `k` to toggle the current resource's pin, noting
+  it only works on a single-resource calendar.
 - Book a slot without the mouse: `b` opens Caro Week View with an aimed slot
   cursor — up/down arrows move it in 15-minute steps, left/right moves between
   machines and wraps across days, `+` and `-` grow and shrink the aimed length

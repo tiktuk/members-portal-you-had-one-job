@@ -49,6 +49,8 @@ test("shortcut help includes concise descriptions of the extension features", ()
     "Settings",
   ]);
   assert.ok(shortcuts.FEATURE_GUIDE.every((feature) => feature.description.length > 30));
+  assert.ok(shortcuts.GLOBAL_KEYS.has("k"));
+  assert.match(shortcuts.FEATURE_GUIDE[0].description, /press K to pin or unpin/i);
 });
 
 test("calendar range shifts preserve the span and other query parameters", () => {

@@ -293,6 +293,10 @@
         { key: ".", label: "Next calendar period" },
       );
     }
+    bindings.push({
+      key: "k",
+      label: "Toggle pin for current resource (single-resource calendar only)",
+    });
     if (includeView && activeOverlay?.view?.shortcutBindings) {
       bindings.push(...activeOverlay.view.shortcutBindings());
     }
@@ -387,6 +391,15 @@
       closeMenu();
       closeSheet();
       openResourcePicker();
+      return;
+    }
+    if (K.matches(event, "k")) {
+      const resource = viewedResource();
+      if (!resource) return;
+      event.preventDefault();
+      closeMenu();
+      closeSheet();
+      togglePin(resource);
       return;
     }
     if (K.matches(event, "b")) {
@@ -2966,14 +2979,6 @@
       state.tourPinId = id;
       state.tour.next();
     }
-
-    // Unpinning the resource that is currently shown alone should return to
-    // its group's calendar instead of leaving a stale single-resource view.
-    if (exists && currentPinnedId() === id) {
-      const href = showAllHref();
-      clearPinnedResource();
-      if (href) location.assign(href);
-    }
   }
 
   /* ------------------------------------------------------------------ *
@@ -3018,6 +3023,27 @@
     if (fromUrl) return fromUrl;
     const session = readPinnedSession();
     return session && session.id ? String(session.id) : "";
+  }
+
+  /** The resource shown by the portal's single-resource calendar. */
+  function viewedResource() {
+    const info = U.parseBookingPath(location.pathname);
+    if (!info || info.view !== "calendar") return null;
+    const id = currentPinnedId();
+    if (!id) return null;
+
+    const cached = findResource(id);
+    const session = readPinnedSession();
+    const saved = session && String(session.id) === id ? session : null;
+    const type = saved?.type || cached?.type || info.type;
+    if (type !== info.type) return null;
+
+    return {
+      id,
+      name: saved?.name || cached?.name || `Resource ${id}`,
+      group: saved?.group || cached?.group || U.currentGroup(location.search),
+      type,
+    };
   }
 
   /**

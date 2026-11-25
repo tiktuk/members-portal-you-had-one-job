@@ -3,11 +3,11 @@
   "use strict";
 
   let helpId = 0;
-  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", "p", "b", "t", ",", "."]);
+  const GLOBAL_KEYS = new Set(["o", "s", "c", "h", "d", "w", "p", "b", "k", "t", ",", "."]);
   const FEATURE_GUIDE = [
     {
       title: "Resources and pins",
-      description: "Browse groups in the Resources menu and pin a machine. The pins strip opens its single-resource calendar; press P to search and open any resource, a whole category (\"All 3D printing\") or your bookings — the extension's overview or the portal page.",
+      description: "Browse groups in the Resources menu and pin a machine. On a single-resource calendar, press K to pin or unpin it. The pins strip opens its single-resource calendar; press P to search and open any resource, a whole category (\"All 3D printing\") or your bookings — the extension's overview or the portal page.",
     },
     {
       title: "Booking Overview",
