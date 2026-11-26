@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Members portal, you had one job
 
-> Last Updated: 2026-11-17
+> Last Updated: 2026-11-26
 
 Everything below is meant to be copy-pasted into the Chrome Developer Dashboard.
 Source of truth for the store presence: update it whenever the manifest, the
@@ -35,7 +35,7 @@ FEATURES
 
 • Pin a resource — expand a group, press the pin next to a resource you book often, and it moves to a strip at the top of every portal page, visible without opening the menu. Clicking a pin opens the calendar with only that resource, so there is no horizontal scrolling through every machine of the type; while that view is open the strip also offers "Show all" for the resource's group.
 
-• First-run tour — the first time you open the portal, a short tour pins one machine, follows it to its calendar to show the 4 × 28 heatmap, then opens the Booking Overview, previews the toolbar settings with their current state and finishes on Resource statistics. Replay it from the toolbar popup.
+• First-run tour — the first time you open the portal, a short tour pins a machine, shows its 4 × 28 heatmap, compares a category in Caro Week View, demonstrates booking and cancellation in the overview, previews the toolbar settings, offers a button to try the live quick picker, and introduces keyboard help. Replay it from the toolbar popup.
 
 • Pinned resources overview — one card per pinned resource with its bookings and workshop reservations for the next 14 days, grouped by day. Open it from "Booking Overview" in the portal's main navigation, press Alt+O or O, or use the corner shortcut help. Each card links to that resource's calendar, and its × button unpins it.
 
@@ -86,7 +86,7 @@ SUPPORT
 
 Found a bug or have a suggestion? Open an issue at https://github.com/tiktuk/members-portal-you-had-one-job/issues or email tukodeb@gmail.com.
 
-Version 1.1.1 — book the free slot beside a booking and cancel your own bookings from the overview, resource statistics, the 4 × 28 calendar heatmap, pins on every page and a first-run tour. No new permissions.
+Version 1.2.0 — compare and book category resources in Caro Week View, use the quick-open picker and keyboard guide, and discover these features in the expanded tour. No new permissions.
 ```
 
 **Category** [REQUIRED]
@@ -112,34 +112,37 @@ English
 | Asset | Dimensions | Status | Filename |
 |-------|-----------|--------|----------|
 | Store Icon [REQUIRED] | 128×128 PNG | ✅ Ready | `src/icons/icon-128.png` (picked up from the manifest) |
-| Screenshot 1 [REQUIRED] | 1280×800 | ✅ Ready | `docs/screenshots/filters-menu.png` |
+| Screenshot 1 [REQUIRED] | 1280×800 | ✅ Ready | `docs/screenshots/quick-picker.png` |
 | Screenshot 2 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/calendar-heatmap.png` |
 | Screenshot 3 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview.png` |
-| Screenshot 4 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/overview-book-gap.png` |
+| Screenshot 4 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/caro-week-view.png` |
 | Screenshot 5 [RECOMMENDED] | 1280×800 | ✅ Ready | `docs/screenshots/statistics.png` |
 | Small Promo Tile [RECOMMENDED] | 440×280 | ⬜ Not created | |
 | Marquee Promo Tile | 1400×560 | ⬜ Not created | |
 
 <!-- Status options: ⬜ Not created | 🟡 Needs update | ✅ Ready -->
 
-`docs/screenshots/popup.png` is 640×1676 and is README-only — the store rejects
-it. So are `overview-events.png` and `statistics-resources.png`: the store takes
-at most five screenshots.
+`docs/screenshots/popup.png` is 640×2266 and is README-only — the store rejects
+it. So are `overview-book-gap.png`, `overview-events.png`,
+`statistics-resources.png` and `filters-menu.png`: the store takes at most five
+screenshots.
 
 ### Screenshot Notes
 
-All five are 1280×800 captures of `tests/screenshots.html`, which mirrors the
-portal with an invented space, invented members and invented bookings, so no
-member data appears in a public listing. Order them:
+The five store captures are 1280×800 images from `tests/screenshots.html`,
+which mirrors the portal with invented members and bookings. The README-only
+popup image is captured with `tests/popup-screenshot.html`; neither harness
+uses member data. Add `?picker=1` to the screenshots harness to capture quick
+open. Order the store images:
 
-1. `filters-menu.png` — the Resources menu open over the portal, showing types
-   and groups. This is the feature that sells the extension.
+1. `quick-picker.png` — the live picker with pinned resources, categories and
+   portal pages visible.
 2. `calendar-heatmap.png` — the 4 × 28 heatmap under the pins on a pinned
    machine's calendar.
 3. `overview.png` — the pinned overview with My bookings and resource cards,
    with the **+** and **×** of a hovered row.
-4. `overview-book-gap.png` — the book-a-gap dialog with the exact times and the
-   quoted price.
+4. `caro-week-view.png` — a two-machine category view with day columns,
+   machine colours and shared capacity lanes.
 5. `statistics.png` — the statistics header, summary tiles, year heatmap and
    weekday/time-of-day charts.
 
@@ -246,7 +249,8 @@ https://github.com/tiktuk/members-portal-you-had-one-job
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.1.1 | 2026-11-17 | Next store submission after 1.0.2 (1.1.0 was never submitted): book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. The descriptions no longer promise a number of clicks and the release zip carries the version in its name. No new permissions. | Draft |
+| 1.2.0 | 2026-11-26 | Category-based Caro Week View with Day/Week navigation, capacity lanes, booking and cancellation; quick open and keyboard feature help; expanded tour with a live picker preview. No new permissions. | Draft |
+| 1.1.1 | 2026-11-17 | Versioned patch after 1.1.0: the descriptions no longer promise a number of clicks and the release zip carries the version in its name. No new permissions. | Not submitted (superseded by 1.2.0) |
 | 1.1.0 | 2026-11-17 | Book the gap beside a booking and cancel your own bookings from the overview, resource statistics, the pins strip, the 4 × 28 calendar heatmap, a feature tour, a Resources menu rename and a Booking Overview nav item. No new permissions. | Not submitted (GitHub release only) |
 | 1.0.2 | 2026-11-06 | First store submission. Narrow permissions: `storage` plus the one portal and the space's events API; the "add another portal" field is gone. | Published |
 | 1.0.1 | 2026-11-06 | GitHub release only. Expand chevron on workshop and event rows no longer wraps onto its own line. | Not submitted |
@@ -286,23 +290,29 @@ listed below.
    resource, and the strip ends with "Show all" for its group. Under the strip
    a 4 × 28 heatmap shows the last week and the next three, with morning,
    afternoon, evening and night rows; click a square to jump to that week.
-4. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
+4. Open Caro Week View from the strip or a group's Resources menu. It compares
+   the category's machines by day; switch between Day and Week, click free time
+   to book, or click one of your own bookings to cancel. Press B to aim a
+   keyboard booking slot. Confirming a booking or cancellation changes the
+   test account, so do not confirm unless you intend to.
+5. Press Alt+O (Option+O on macOS) to open the pinned resources overview. It
    shows the My bookings card and one card per pinned resource. The toolbar
    popup's "Overview" link opens the same page in a new tab.
-5. In that overview, hover a booking or a workshop reservation: a small + appears
+6. In that overview, hover a booking or a workshop reservation: a small + appears
    before and after its title. Clicking one opens a dialog where you can edit
    duration or the free start/end time; it shows the exact times, the member it
    books for and the price.
    Confirming creates a real booking on the portal, so only confirm one if you
    want it in the test account. The × on your own rows cancels a real booking,
    with one of the portal's cancellation reasons.
-6. Open the bottom of the Resources menu and choose "Resource statistics" (or
+7. Open the bottom of the Resources menu and choose "Resource statistics" (or
    press Alt+S). It loads the last 12 months from the portal's booking feed and
    shows the heatmap, the charts and every published resource colour-coded by
    booked hours per day. The 4 weeks / 3 months / 12 months buttons change the
    period; a resource tile opens that resource's calendar. Expand a group and
    choose "Statistics" under "Show all" to see the same screen scoped to that group.
-7. The toolbar popup has nine toggles: calendar as default view, the bookings
+8. Press P for quick open or H for keyboard help and the feature guide. The
+   toolbar popup has nine toggles: calendar as default view, the bookings
   heatmap, Caro Week View, Luma events in heatmap, Luma events in overview, the
   machine colours in Caro Week View, the Resources menu, single-key shortcuts
   and the location prompt block.
@@ -352,11 +362,11 @@ space's own booking API subdomain.
 ## Pre-Submission Checklist
 
 - [x] `manifest_version: 3`
-- [x] Version bumped to 1.1.1 and `package.json`, `src/manifest.json` and
+- [x] Version bumped to 1.2.0 and `package.json`, `src/manifest.json` and
       `CHANGELOG.md` agree (`npm test`)
 - [x] Manifest name and description match this document, description ≤ 132 chars
 - [x] ZIP is built from `src/` only — no `.git/`, `node_modules/`, tests,
-      screenshots, README, CHANGELOG or this file (27 files, ~105 KB)
+      screenshots, README, CHANGELOG or this file (34 files, ~152 KB)
 - [x] No remote code, no `eval`, no obfuscation; every file is in the package
 - [x] Every permission and host permission justified above
 - [x] Privacy policy published and the URL loads
@@ -364,7 +374,7 @@ space's own booking API subdomain.
       written in this file — the repo is public)
 - [ ] Screenshots 1–5 uploaded in the order listed
 - [ ] Data use disclosure in the dashboard matches the table above
-- [ ] ZIP uploaded from the `v1.1.1` GitHub release (not a local `dist/` build)
+- [ ] ZIP uploaded from the `v1.2.0` GitHub release (not a local `dist/` build)
 
-<!-- Release asset: https://github.com/tiktuk/members-portal-you-had-one-job/releases/download/v1.1.1/members-portal-you-had-one-job-1.1.1.zip
-     sha256 4c0bfced2ae0ce6cfb47ac5ffb59a2bf777df461a5732031016254606a905e96 (107822 bytes, 27 files) -->
+<!-- Release asset: pending the v1.2.0 tag and GitHub release; upload that release zip
+     to the Web Store, not a local dist build. -->

@@ -27,9 +27,9 @@ It does eight things:
    the chip unpins it. While one resource is shown alone, the strip ends with
    *Show all CNC Machining*, which keeps the category in view instead of jumping
    to the first resource of the whole type. The first time you open the portal, a
-   short tour pins one machine, follows it to its calendar to show the 4 × 28
-   heatmap, then opens the overview, previews the toolbar settings and finishes
-   on the statistics screen; *Replay* in the popup brings it back.
+   short tour pins one machine, shows its 4 × 28 heatmap, Caro Week View, overview
+   booking tools, settings, the live quick picker and keyboard help; *Replay* in
+   the popup brings it back.
 3. **Pinned resources overview.** An overview shows every pinned resource as a
    card with its bookings and workshop reservations for the next 14 days,
    grouped by day like the widgets in the Always in Motion dashboard. A
@@ -88,7 +88,7 @@ It does eight things:
    the Django dashboard. The toolbar popup is the only place this is switched;
    the overview header has no events toggle of its own.
 
-The eight toggles live in the toolbar popup; pins are managed from the strip at
+The nine toggles live in the toolbar popup; pins are managed from the strip at
 the top of the page, the Resources menu and the **P** quick-open picker. The
 overview page uses the portal session the content script mirrors into extension
 storage, so open the portal once while signed in.
@@ -114,16 +114,28 @@ Bookings ▾   Resources ▾   Booking Overview   Store ▾   Memberships   Comm
 
 Shot on an invented space: the member, machine and booking names are made up.
 `tests/screenshots.html` renders the same pages with stubbed extension APIs, so
-the images can be regenerated without signing in.
+the images can be regenerated without signing in. The popup image uses the
+separate `tests/popup-screenshot.html` harness; add `?picker=1` to show the live
+quick picker in the portal harness.
 
 **The Resources menu** — every resource group, one click from the calendar:
 
 ![The Resources menu in the portal navigation](docs/screenshots/filters-menu.png)
 
+**Quick open** — search pinned resources, categories and portal pages; pin or
+unpin a resource from the picker without closing it:
+
+![The quick-open picker](docs/screenshots/quick-picker.png)
+
 **The 4 × 28 heatmap** — on a pinned machine's calendar, four times of day over
 the last week and the next three, with your own bookings marked in green:
 
 ![The heatmap under the pins on a single-resource calendar](docs/screenshots/calendar-heatmap.png)
+
+**Caro Week View** — compare the resources in a category by day, with shared
+capacity lanes and bookings on one hour axis:
+
+![Caro Week View comparing CNC machines](docs/screenshots/caro-week-view.png)
 
 **The pinned resources overview** — your own bookings, then one card per pinned
 resource. Hover a row for the **+** that books the free time beside it and the

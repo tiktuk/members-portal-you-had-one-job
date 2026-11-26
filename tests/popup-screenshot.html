@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Toolbar popup screenshot harness</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #fff;
+      }
+
+      #popup {
+        display: block;
+        width: 320px;
+        border: 0;
+        transform: scale(2);
+        transform-origin: top left;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="popup" title="Toolbar popup"></iframe>
+    <script>
+      const store = {
+        "onejob:settings": {
+          calendarDefault: true,
+          dayGrid: true,
+          dayGridEvents: true,
+          weekGrid: true,
+          machineColors: true,
+          lumaEvents: true,
+          navMenu: true,
+          singleKeyShortcuts: true,
+          geoBlockPrompt: true,
+          onboardingVersion: 2,
+        },
+        "onejob:pins": [
+          { id: 1415309496, name: "Large CNC", group: "Machines: CNC Machining", type: "machines" },
+          { id: 1415309591, name: "Electronics Lab", group: "Labs: Electronics Lab", type: "labs" },
+          { id: 1415299774, name: "Meeting Room A", group: "Meeting Rooms", type: "meeting-rooms" },
+        ],
+        "onejob:groups": {
+          groupsBySlug: {
+            machines: ["3D printing", "CNC Machining", "Laser Cutting", "Metalworking", "Textile Designing", "UV printing", "Woodworking"],
+            labs: ["Electronics Lab", "Outdoor Lab"],
+            "meeting-rooms": ["Meeting Rooms"],
+          },
+          fetchedAt: Date.now(),
+        },
+      };
+      const mock = `
+        <script>
+          const store = ${JSON.stringify(store)};
+          const listeners = [];
+          window.chrome = {
+            runtime: { getURL: (path) => "/src/" + path },
+            tabs: { create: () => {} },
+            storage: {
+              local: {
+                get: (keys, callback) => {
+                  const result = {};
+                  for (const key of keys) result[key] = store[key];
+                  callback(result);
+                },
+                set: (values, callback) => {
+                  const changes = {};
+                  for (const [key, value] of Object.entries(values)) {
+                    changes[key] = { oldValue: store[key], newValue: value };
+                    store[key] = value;
+                  }
+                  for (const listener of listeners) listener(changes, "local");
+                  if (callback) callback();
+                }
+              },
+              onChanged: { addListener: (listener) => listeners.push(listener) }
+            }
+          };
+        <\/script>`;
+      const iframe = document.getElementById("popup");
+      fetch(`/src/popup.html?capture=${Date.now()}`, { cache: "no-store" })
+        .then((response) => response.text())
+        .then((html) => {
+          html = html.replace("<head>", '<head><base href="/src/">');
+          html = html.replace(
+            '<script src="lib/config.js"><\/script>',
+            `${mock}<script src="lib/config.js"><\/script>`,
+          );
+          iframe.srcdoc = html;
+        });
+
+      iframe.addEventListener("load", () => {
+        const height = Math.max(
+          iframe.contentDocument.body.scrollHeight,
+          iframe.contentDocument.documentElement.scrollHeight,
+        );
+        iframe.style.height = `${height}px`;
+        document.body.style.width = "640px";
+        document.body.style.height = `${height * 2}px`;
+        document.documentElement.style.width = "640px";
+        document.documentElement.style.height = `${height * 2}px`;
+      });
+    </script>
+  </body>
+</html>

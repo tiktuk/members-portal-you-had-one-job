@@ -122,10 +122,11 @@ dashboard's notes field and, if they need to live on disk, into
   buttons, notices and footer.
 - `src/popup.*` — toolbar settings UI (nine toggles, the tour replay row, group
   cache status, link to the pinned overview).
-- `tests/` — `node --test` suites plus two browser harnesses: `fixture.html`
-  (debugging the content script) and `screenshots.html` (the README and store
-  images, with invented members, machines and bookings). Both run from
-  `python3 -m http.server 8765`; the screenshots are 1280×800 and live in
+- `tests/` — `node --test` suites plus browser harnesses: `fixture.html`
+  (debugging the content script), `screenshots.html` (README and store images
+  with invented members, machines and bookings), and `popup-screenshot.html`
+  (the toolbar popup with mocked Chrome storage). Run them from
+  `python3 -m http.server 8765`; portal screenshots are 1280×800 and live in
   `docs/screenshots/`.
 
 ## One portal per build
@@ -982,6 +983,9 @@ dashboard's notes field and, if they need to live on disk, into
   `.onejob-tour-figure` — that is how the settings preview shows
   `config.onboarding.settings` with the live `state.settings` values. Keep that
   row list in step with `popup.html`; `tests/popup.test.mjs` checks the labels.
+  The quick-open figure has a button that opens the real picker even when
+  single-key shortcuts are off; dismissing its dialog with Escape returns to
+  the same tour step.
 - `settings.onboardingVersion` (`onejob:settings`, default 0) is the seen marker;
   `config.onboarding.version` is the current tour. Bump the config value to show
   the tour again after a rewrite. It is written **when the intro is shown**, not
@@ -1002,8 +1006,10 @@ dashboard's notes field and, if they need to live on disk, into
 - Escape, Skip and a click outside the card end it; `onDocumentClick` ignores
   clicks on the card, and the card's `ignore` selector covers the nav item, the
   menu, the sheet, the dock, the overview items, the strip **and
-  `.onejob-overview-overlay`** (shadow-root clicks retarget to the host inside
-  it). Pinning during the pin step advances to the heatmap step.
+  `.onejob-overview-overlay`, `.onejob-picker` and `.onejob-keyboard-dialog`**
+  (shadow-root clicks retarget to the host inside it). Escape in either native
+  dialog is left for that dialog to dismiss, keeping the tour open. Pinning
+  during the pin step advances to the heatmap step.
 - `tests/fixture.html?tour=1` forces the tour; without the parameter the fixture
   store counts it as seen. The dev server cannot answer the portal route the
   heatmap step navigates to, so `?onejob-resource=<id>` is how the post-resume

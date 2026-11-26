@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Members portal, you had one job",
   "short_name": "One job",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Adds resource filters and pinned single-resource calendars to the MotionLab.Berlin portal, so you reach the right machine fast.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],

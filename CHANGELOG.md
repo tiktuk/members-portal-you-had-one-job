@@ -9,6 +9,8 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-26
+
 ### Fixed
 
 - Caro Week View now draws workshop events that only arrive as `event: true`
@@ -111,9 +113,13 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   keyboard help (`h`), Luma events and the updated booking dialog. Existing
   users see the expanded tour once; *Replay* still starts it from the toolbar
   popup.
+- The quick-open tour step now opens the live picker for a hands-on preview;
+  Escape closes it and returns to the same tour step.
 
 ### Changed
 
+- The toolbar popup's Replay note now previews the expanded tour through Caro
+  Week View, booking tools, quick open and keyboard help.
 - The tour card scrolls within short viewports, keeping longer feature steps
   and their controls reachable.
 - The shortcut-help list no longer repeats Alt+O and Alt+S as separate rows —

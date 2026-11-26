@@ -348,6 +348,9 @@
     function onKeydown(event) {
       if (ended) return;
       if (event.key === "Escape") {
+        // Let native dialogs handle Escape first, so dismissing one returns
+        // the member to this tour step instead of ending the tour.
+        if (document.querySelector(".onejob-picker[open], .onejob-keyboard-dialog[open]")) return;
         end("escape");
         return;
       }

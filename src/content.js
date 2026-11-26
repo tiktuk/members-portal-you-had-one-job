@@ -1648,6 +1648,8 @@
         `#${OVERVIEW_DOCK_ID}`,
         `#${PINS_BAR_ID}`,
         ".onejob-overview-overlay",
+        ".onejob-picker",
+        ".onejob-keyboard-dialog",
       ].join(", "),
       onEnd: () => {
         state.tour = null;
@@ -1955,13 +1957,21 @@
       title: "Jump anywhere with P",
       body: () =>
         state.settings.singleKeyShortcuts === false
-          ? "Turn on Single-key shortcuts in the toolbar popup to use P for quick open and H for keyboard help. The chooser searches pinned resources, categories, pages and Help; Tab pins or unpins the selected resource. Alt+O and Alt+S still work while single-key shortcuts are off."
-          : "When you're not typing, P opens quick open: search pinned resources, categories, pages or Help, then press Enter. Tab pins or unpins the selected resource without closing the chooser. Press H or the ? button for the live shortcut list and feature guide.",
+          ? "Use the button below to preview quick open. Turn on Single-key shortcuts in the toolbar popup to use P for the picker and H for help; Alt+O and Alt+S still work while it is off. Search pinned resources, categories, pages or Help; use the arrows to browse, Enter to open, or Tab to pin/unpin. Press Escape to return to this tour."
+          : "Press P while you're not typing, or try the picker below. Search pinned resources, categories, pages or Help; use the arrows to browse, Enter to open, or Tab to pin/unpin. Press Escape to return to this tour. H or ? opens the shortcut list and feature guide.",
       enter: () => {
         closeMenu();
         closeSheet();
       },
       centered: true,
+      render: (container) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "onejob-tour-picker-demo";
+        button.textContent = "Show the quick picker";
+        button.addEventListener("click", () => openResourcePicker());
+        container.appendChild(button);
+      },
     };
   }
 
