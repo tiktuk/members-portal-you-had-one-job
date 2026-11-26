@@ -106,9 +106,16 @@ newest release below; `tests/manifest.test.mjs` fails when they drift.
   `+`/`-` step the aimed length by an hour instead of the snap step; the
   physical keys are resolved through the keyboard layout map, so Shift+`+`
   also registers on ISO layouts where it types `*`, `±` or `?`.
+- The first-run feature tour now walks through Caro Week View's category
+  comparison, Day/Week switching and booking cursor, plus quick open (`p`),
+  keyboard help (`h`), Luma events and the updated booking dialog. Existing
+  users see the expanded tour once; *Replay* still starts it from the toolbar
+  popup.
 
 ### Changed
 
+- The tour card scrolls within short viewports, keeping longer feature steps
+  and their controls reachable.
 - The shortcut-help list no longer repeats Alt+O and Alt+S as separate rows —
   the note above the list already says the modifier shortcuts work alongside
   the single keys.

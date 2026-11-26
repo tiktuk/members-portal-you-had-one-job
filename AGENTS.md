@@ -908,20 +908,23 @@ dashboard's notes field and, if they need to live on disk, into
 ## First-run onboarding
 
 - The tour is a **feature tour**, not a menu tour: intro → pin one machine →
-  the pinned calendar's 4 × 28 heatmap → Booking Overview → the toolbar settings
-  → Resource statistics. `src/lib/tour.js` is the card; `content.js::tourSteps`
-  owns the six steps. The pin step is **blocking**: `step.blocked` disables
+  the pinned calendar's 4 × 28 heatmap → Caro Week View → Booking Overview →
+  the toolbar settings → quick open and keyboard help → Resource statistics.
+  `src/lib/tour.js` is the card; `content.js::tourSteps` owns the conditional
+  steps. The pin step is **blocking**: `step.blocked` disables
   *Next* (and ArrowRight) until `state.pins` is non-empty, so the heatmap step
   always has a machine to follow. `togglePin` records the machine pinned during
   that step in `state.tourPinId` and advances; `tourPin()` prefers it over the
   active or first pin. The pin step stays in the array even when a pin already
-  exists, so the "n of 6" counter survives the page change, and it then adapts:
+  exists, so the step count stays consistent across the page change, and it adapts:
   `tourPin()` makes it point at that chip (never at a menu pin button, which
   would unpin) and *Next* is enabled. The tour always starts at step 1; only a
   resumed tour starts further in, and `tour.js` hides Back up to `startedAt` so
   the steps before it cannot be reached. The pin step is dropped when
   `tourGroup()` finds nothing to pin, and the heatmap step when *Bookings
-  heatmap* is off.
+  heatmap* is off. The Caro Week View steps are omitted when that feature is
+  switched off or no usable scope exists; the quick-open step adapts when
+  single-key shortcuts are disabled.
 - No backdrop. The targets sit inside the portal's navbar, our dropdown and the
   overlays' shadow roots, so darkening the page needs z-index surgery on
   React-rendered ancestors. The card floats next to the target and the target
@@ -929,6 +932,8 @@ dashboard's notes field and, if they need to live on disk, into
   `prefers-reduced-motion`). `tour.js` **also sets an inline outline**, because
   `portal.css` does not reach a target inside the overlay's shadow root; the
   class is kept for the pulse. Restore the previous inline values on clear.
+- The card is capped to the viewport height and scrolls internally; longer
+  steps must keep their actions reachable on short screens.
 - Step targets are **getters**, called on every 250 ms position tick: `fillMenu`
   rebuilds the rows whenever pins or the route change, and the overlays
   re-render, so a stored element reference goes stale.
@@ -942,8 +947,8 @@ dashboard's notes field and, if they need to live on disk, into
   full legend (dot, green bar, orange bar) is only shown once the grid is on
   screen — explaining it before the page change read as if it had already
   happened. The next page consumes the marker in `maybeStartTour` and starts at
-  the same step index (`startIndex`), so the tour counts "3 of 6" and Back still
-  works. The marker is ignored after 30 s or when the step no longer exists;
+  the same step index (`startIndex`), so Back still works. The marker is
+  ignored after 30 s or when the step no longer exists;
   clicking the chip by hand during the step also writes it. The pin's href is
   built from `state.pins`, **not** from the chip element, so pinning a machine
   in step 2 does not race the strip's re-render.
@@ -957,21 +962,23 @@ dashboard's notes field and, if they need to live on disk, into
   navbar but leaves the DOM in place, and the tour must use the dock's sheet
   instead. The sheet renders the same `renderMenuContent`, so the selectors
   carry over.
-- Overlay steps call `openOverviewOverlay({ fromTour: true })` /
-  `openStatsOverlay({ fromTour: true })`: the `fromTour` flag skips their
-  `state.tour?.end(...)` and sets `aria-modal="false"` on the panel, because the
-  tour card lives outside it and there is no focus trap. `onEnd` restores
-  `aria-modal="true"`. Both overlay steps' `leave` closes their screen on every
-  exit (Got it, Back, Skip), so the tour always ends back on the calendar.
+- Overlay steps call `openOverviewOverlay({ fromTour: true })`,
+  `openWeekOverlay({ fromTour: true })` or `openStatsOverlay({ fromTour: true })`:
+  the `fromTour` flag skips their `state.tour?.end(...)` and sets
+  `aria-modal="false"` on the panel, because the tour card lives outside it and
+  there is no focus trap. `onEnd` restores `aria-modal="true"`. Each overlay
+  step's `leave` closes its screen on every exit (Got it, Back, Skip), so the
+  tour always ends back on the calendar.
 - `openOverlay` is a promise queue with a generation counter. The tour can ask
   for the statistics screen while the overview's stylesheet is still loading,
   and a queued or in-flight open must not resurrect a screen the member closed
   (`closeOverlay(true)` bumps the generation; the replacement path inside
   `openOverlayNow` passes `false`).
-- `missingMs` per step: 1 s by default, 4 s for the overview, 10 s for the
-  statistics screen (13 months of fetches). While a target is missing the card
-  stays up, centred, instead of ending the tour; `centered: true` steps (the
-  settings preview) skip target lookup entirely. `step.render(container)` fills
+- `missingMs` per step: 1 s by default, 4 s for the overview, 10 s for the week
+  grid and statistics screen (13 months of fetches). While a target is missing
+  the card stays up, centred, instead of ending the tour; `centered: true` steps
+  (the settings preview and quick-open guide) skip target lookup entirely.
+  `step.render(container)` fills
   `.onejob-tour-figure` — that is how the settings preview shows
   `config.onboarding.settings` with the live `state.settings` values. Keep that
   row list in step with `popup.html`; `tests/popup.test.mjs` checks the labels.

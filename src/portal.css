@@ -1142,6 +1142,10 @@ body > .onejob-keyboard-help {
 .onejob-tour-card {
   position: fixed;
   width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0.85rem 0.95rem;
   border: 1px solid var(--bs-primary-border-subtle, #ffbd9f);
   border-radius: 0.85rem;

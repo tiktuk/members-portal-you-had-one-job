@@ -143,15 +143,14 @@
     },
 
     /**
-     * The one-time feature tour on the first portal visit. `version` is the
-     * "seen" marker (`settings.onboardingVersion`): bump it to show the tour
-     * again after rewriting it. The pin step opens the Resources menu itself,
-     * so it cannot run while that menu is switched off; the rest of the tour
-     * (heatmap, overview, statistics) does not need it.
+     * The feature tour on the first portal visit. `version` is the "seen"
+     * marker (`settings.onboardingVersion`): bump it to show the tour again
+     * after rewriting it. The pin and statistics entry steps use the Resources
+     * menu, so the tour does not run while that menu is switched off.
      */
     onboarding: {
       enabled: true,
-      version: 1,
+      version: 2,
       delayMs: 900,
       /**
        * The settings the tour's settings step previews, in the popup's order.

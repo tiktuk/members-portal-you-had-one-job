@@ -1179,6 +1179,8 @@
   const SHORTCUTS = {
     overview: parseShortcut(cfg.overview?.shortcut || "alt+o"),
     stats: parseShortcut(cfg.stats?.shortcut || "alt+s"),
+    week: parseShortcut("c"),
+    today: parseShortcut("t"),
   };
 
   function parseShortcut(value) {
@@ -1374,15 +1376,17 @@
 
   function openWeekOverlay(options = {}) {
     if (activeOverlay?.kind === "week" || !globalThis.OneJobWeekGridView) return;
+    const fromTour = options.fromTour === true;
     const scope = options.scope || null;
     rememberWeekScope(scope);
-    state.tour?.end("week");
+    if (!fromTour) state.tour?.end("week");
     openOverlay({
       kind: "week",
       label: scope?.label
         ? `${cfg.weekGrid?.label || "Caro Week View"}: ${scope.label}`
         : cfg.weekGrid?.label || "Caro Week View",
       stylesheets: ["overview.css", "weekgrid.css"],
+      ariaModal: !fromTour,
       mount: (root, viewOptions) =>
         globalThis.OneJobWeekGridView.mount(root, {
           ...viewOptions,
@@ -1684,8 +1688,8 @@
     const steps = [
       {
         id: "intro",
-        title: "Three screens, one click away",
-        body: `Booking Overview, resource statistics and a 28-day heatmap on any machine's calendar. A 30-second tour?`,
+        title: "Find it, compare it, book it",
+        body: "Pin a machine, compare a whole week, book a free slot and jump back to your next session. Here's the fast tour.",
         enter: () => {
           closeMenu();
           closeSheet();
@@ -1696,16 +1700,24 @@
     ];
 
     // Pinning is the way in; the heatmap step then opens that machine's
-    // calendar. Kept in the list even when a pin exists, so the step count does
-    // not change across the page change; the step itself adapts to that pin.
+    // calendar. Keep the pin step even when a pin exists so it adapts to that
+    // pin without changing the count across the page change.
     if (group) steps.push(tourPinStep(group));
 
     if (state.settings.dayGrid !== false) steps.push(tourHeatmapStep());
+    if (
+      state.settings.weekGrid !== false &&
+      globalThis.OneJobWeekGridView &&
+      (group || calendarScope() || fallbackWeekScope())
+    ) {
+      steps.push(tourWeekEntryStep(group), tourWeekStep());
+    }
     steps.push(
       tourOverviewEntryStep(),
       tourOverviewStep(),
       tourGapStep(),
       tourSettingsStep(),
+      tourQuickOpenStep(),
       tourStatsEntryStep(),
       tourStatsStep(),
     );
@@ -1774,6 +1786,65 @@
     };
   }
 
+  function tourWeekEntryStep(group) {
+    return {
+      id: "week-entry",
+      title: "Compare a whole category",
+      body: () =>
+        `Caro Week View puts every resource in a category side by side. Find it in the Resources menu; ${
+          state.settings.singleKeyShortcuts === false
+            ? "turn on Single-key shortcuts to use C from anywhere."
+            : `${shortcutLabel(SHORTCUTS.week)} opens it from anywhere.`
+        } Next opens a category view.`,
+      enter: () => {
+        if (group) {
+          state.expandedGroups.add(group.key);
+          openTourMenu();
+        } else {
+          closeMenu();
+          closeSheet();
+        }
+      },
+      target: () => {
+        const menuLabel = cfg.weekGrid?.menuLabel || "Caro Week View";
+        const menuTarget = group
+          ? [...(tourMenuRoot()?.querySelectorAll(".onejob-link") || [])].find(
+              (button) =>
+                button.getAttribute("aria-label") === `${menuLabel} of all ${group.label}`,
+            )
+          : null;
+        if (menuTarget) return menuTarget;
+
+        const label = cfg.weekGrid?.buttonLabel || "Caro Week View";
+        const actions =
+          document.getElementById(PINS_BAR_ID)?.querySelectorAll(".onejob-pins-action") || [];
+        return [...actions].find((button) => button.textContent.trim() === label) || tourNavTarget();
+      },
+      primaryLabel: "Open it",
+    };
+  }
+
+  function tourWeekStep() {
+    return {
+      id: "week-view",
+      title: "Book from the week grid",
+      body: () =>
+        `Compare every machine by day; switch scope between pinned machines, categories and My bookings, or switch Day/Week. Your bookings are green, reservations hatched and Luma events tint the day. Click free time to book or your booking to cancel. ${
+          state.settings.singleKeyShortcuts === false
+            ? "Turn on Single-key shortcuts to use B to aim a slot and T to return to today."
+            : "B aims a slot; arrows move, +/- resize it (Shift steps by an hour), Enter books, and T returns to today."
+        }`,
+      enter: () => {
+        closeMenu();
+        closeSheet();
+        openWeekOverlay({ scope: tourWeekScope(), fromTour: true });
+      },
+      leave: () => closeOverlay(),
+      target: () => tourOverlayQuery(".wg-scroll") || tourOverlayQuery(".page-header"),
+      missingMs: 10000,
+    };
+  }
+
   function heatmapBody() {
     if (dayGridMounted()) {
       return "This is the 28-day heatmap: morning, afternoon, evening and night for last week and the next three. A black dot marks a Luma event, a green bar along the bottom your own booking and an orange bar a workshop reservation; the square's colour is how much of that six-hour block is booked. Click a square to open that day's week.";
@@ -1817,7 +1888,7 @@
     return {
       id: "overview",
       title: "Every pin, two weeks ahead",
-      body: `One card per pinned machine with its next 14 days of bookings, your own bookings above them and workshops marked Reserved. ${shortcutLabel(SHORTCUTS.overview)} opens it from anywhere.`,
+      body: `One card per pinned machine with its next 14 days of bookings, your own bookings above them and workshops marked Reserved. Turn on Luma events in overview to add the space calendar here too. ${shortcutLabel(SHORTCUTS.overview)} opens it from anywhere.`,
       enter: () => {
         closeMenu();
         closeSheet();
@@ -1848,7 +1919,7 @@
     return {
       id: "gap",
       title: "Book the gap beside a booking",
-      body: "Hover a row and a + appears on each side the machine is free: the left one books a slot that ends when this booking starts, the right one a slot that starts when it ends. Pick a duration, confirm, done. Your own rows carry a × that cancels instead.",
+      body: "Hover a row and a + appears on each side the machine is free: the left one books a slot that ends when this booking starts, the right one a slot that starts when it ends. The dialog shows the exact times, duration and price before checkout. Your own rows carry a × to cancel with the portal's reason and any quoted fee.",
       enter: () => {
         closeMenu();
         closeSheet();
@@ -1868,13 +1939,29 @@
     return {
       id: "settings",
       title: "Your settings live in the toolbar",
-      body: "These are the six switches with their current state. The extension's toolbar icon opens the popup that changes them, and its tour row replays this tour.",
+      body: "These switches show their current state. The extension's toolbar icon opens the popup that changes them, and its tour row replays this tour.",
       enter: () => {
         closeMenu();
         closeSheet();
       },
       centered: true,
       render: (container) => renderTourSettings(container),
+    };
+  }
+
+  function tourQuickOpenStep() {
+    return {
+      id: "quick-open",
+      title: "Jump anywhere with P",
+      body: () =>
+        state.settings.singleKeyShortcuts === false
+          ? "Turn on Single-key shortcuts in the toolbar popup to use P for quick open and H for keyboard help. The chooser searches pinned resources, categories, pages and Help; Tab pins or unpins the selected resource. Alt+O and Alt+S still work while single-key shortcuts are off."
+          : "When you're not typing, P opens quick open: search pinned resources, categories, pages or Help, then press Enter. Tab pins or unpins the selected resource without closing the chooser. Press H or the ? button for the live shortcut list and feature guide.",
+      enter: () => {
+        closeMenu();
+        closeSheet();
+      },
+      centered: true,
     };
   }
 
@@ -1989,6 +2076,28 @@
     if (!state.pins.length) return null;
     const active = currentPinnedId();
     return state.pins.find((pin) => pin.id === active) || state.pins[0];
+  }
+
+  /** Show the pinned machine's whole category in the week-view tour step. */
+  function tourWeekScope() {
+    const pin = tourPin();
+    const resource = pin ? findResource(pin.id) : null;
+    if (pin) {
+      const type = pin.type || resource?.type || "";
+      const group = pin.group || resource?.group || "";
+      const label =
+        G.displayGroupName(group, cfg.nav.stripGroupPrefix) ||
+        G.typeLabel(type) ||
+        pin.name ||
+        "Resources";
+      return { type, group, label, categoryLabel: label };
+    }
+
+    const scope = calendarScope() || rememberedWeekScope() || fallbackWeekScope();
+    if (!scope || (!scope.type && !scope.group)) return null;
+    if (!scope.resourceId) return scope;
+    const label = scope.categoryLabel || scope.label;
+    return { ...scope, resourceId: "", label, categoryLabel: label };
   }
 
   /** The pin's single-resource calendar, built the way its chip's link is. */

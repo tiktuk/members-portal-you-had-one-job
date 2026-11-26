@@ -128,6 +128,8 @@
       // `?tour=1` forces the first-run pinning tour; without it the tour counts
       // as already seen, so a normal fixture reload stays quiet.
       const fixtureTour = new URLSearchParams(location.search).has("tour");
+      // `?noheatmap=1` skips the page-changing tour step for in-place checks.
+      const fixtureNoHeatmap = new URLSearchParams(location.search).has("noheatmap");
       // `?onejob-resource=<id>` opens the single-resource view, so the day grid
       // can be checked without walking the menu first.
       const fixtureResource = new URLSearchParams(location.search).get("onejob-resource");
@@ -164,7 +166,7 @@
       };
 
       // Set onboardingVersion to 0 (or delete it) to watch the first-run tour.
-      const settings = { calendarDefault: true, navMenu: true, weekGrid: true, machineColors: true, lumaEvents: true, geoBlockPrompt: true, onboardingVersion: fixtureTour ? 0 : 1 };
+      const settings = { calendarDefault: true, navMenu: true, weekGrid: true, machineColors: true, lumaEvents: true, geoBlockPrompt: true, dayGrid: !fixtureNoHeatmap, onboardingVersion: fixtureTour ? 0 : 2 };
       const store = {
         "onejob:settings": settings,
         "onejob:pins": [],
